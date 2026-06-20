@@ -17,7 +17,10 @@ The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **pr
 
 ### Done while you slept (this session)
 - Folded the moat/integration roadmap into `docs/moat-and-integration-roadmap.md`.
-- Built **roadmap Tier 0 #4** — `@cosign/sdk` (the front door: `health/agents/applyPolicy/freeze/unfreeze/ledger` + live `subscribe()`), 4 tests, full suite green.
+- Built **roadmap Tier 0 #4 in full** — `@cosign/sdk` (typed client) **and** `@cosign/mcp` (Cosign as
+  MCP tools: the kill switch + spend guard inside any MCP client). Verified end-to-end over stdio.
+- Shipped the **agent pre-flight spend guard** (`POST /evaluate`): an agent asks Cosign "may I spend?"
+  before touching the wallet — the call made on every transaction (the flywheel). 70 tests, green.
 
 ## ① Decisions only you can make (≈15 min, do first — they unblock everything)
 
@@ -29,11 +32,12 @@ The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **pr
 
 A. **Real Coinbase adapter** [Tier 0 #1] → Phase-0 single-stop spike on Base Sepolia → **measure real freeze latency** (the number that validates the <1s claim under real network + on-chain lag). *Needs creds (item ①.2).*
 B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s freeze (the headline / handoff Phase 2). *Needs creds.*
-C. **Cosign MCP server** on top of `@cosign/sdk` [the agent-facing half of Tier 0 #4] → expose Cosign as MCP tools (check-policy / request-spend / freeze / ledger) so agents wire in natively. *No creds — I can start this anytime.*
-D. **x402 + USDC first-class** [Tier 1 #5/#6] → govern the dominant machine-payment rail + the settlement asset.
+~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
+D. **x402 + USDC first-class** [Tier 1 #5/#6] → govern the dominant machine-payment rail + the settlement asset. *(unblocked — public protocol)*
 E. **Anomaly-freeze v0 + design-partner onboarding** [handoff Phase 3 / roadmap moat #2].
+F. **Self-serve onboarding + free testnet tier** → the product-led growth surface (see the flywheel note).
 
-> If you want progress before you've gathered creds, tell me to start **(C)** — it's the only fully-unblocked build item left in Tier 0.
+> Fully-unblocked next build (no creds): **(D)** x402/USDC, or **(F)** the self-serve sign-up flow. Everything in (A)/(B) waits on credentials.
 
 ## ③ The one risk to kill this week
 

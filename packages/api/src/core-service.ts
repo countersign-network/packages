@@ -7,18 +7,21 @@
 
 import {
   FreezeController,
+  nextId,
   providerEventToLedger,
+  type ActionRequest,
   type AgentId,
   type AgentRef,
   type EnforcementProvider,
   type FreezeReport,
   type LedgerEvent,
+  type ProviderId,
   type ProviderRegistration,
   type Venue,
 } from "@cosign/core";
 import { InMemoryLedger, type LedgerPort, type LedgerRecord } from "@cosign/ledger";
-import type { UnifiedPolicy } from "@cosign/policy";
-import type { ApplyPolicyResult, ProviderHealth } from "@cosign/api-contract";
+import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
+import type { ApplyPolicyResult, EvaluateResponse, ProviderHealth } from "@cosign/api-contract";
 
 export interface CosignCoreOptions {
   ledger?: LedgerPort<LedgerEvent>;
@@ -35,6 +38,10 @@ export class CosignCore {
   private readonly controller: FreezeController;
   private readonly subscribers = new Set<LedgerSubscriber>();
   private readonly unsubs: (() => void)[] = [];
+  // Cosign's own view of policy + spend, for the pre-flight guard (the layer above the wallets).
+  private readonly policies = new Map<AgentId, UnifiedPolicy>();
+  private readonly policyIds = new Map<AgentId, string>();
+  private readonly dailySpent = new Map<AgentId, string>();
 
   constructor(opts: CosignCoreOptions = {}) {
     this.ledger = opts.ledger ?? new InMemoryLedger<LedgerEvent>();
@@ -80,6 +87,7 @@ export class CosignCore {
    */
   async applyPolicy(policy: UnifiedPolicy, agentId?: AgentId): Promise<ApplyPolicyResult> {
     const result: ApplyPolicyResult = { applied: [], failed: [] };
+    const corePolicyId = nextId("pol");
     await Promise.all(
       this.registrations.flatMap((reg) => {
         const targets = agentId ? reg.agents.filter((a) => a.agentId === agentId) : reg.agents;
@@ -87,6 +95,11 @@ export class CosignCore {
           try {
             const { policyId } = await reg.provider.applyPolicy(agent.agentId, policy);
             result.applied.push({ providerId: reg.provider.id, agentId: agent.agentId, policyId });
+            // Cosign retains the unified policy for its own pre-flight guard (enforces what the
+            // backend can't, and is the canonical decision the agent asks for before spending).
+            this.policies.set(agent.agentId, policy);
+            this.policyIds.set(agent.agentId, corePolicyId);
+            if (!this.dailySpent.has(agent.agentId)) this.dailySpent.set(agent.agentId, "0");
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             result.failed.push({ providerId: reg.provider.id, agentId: agent.agentId, error: message });
@@ -111,6 +124,53 @@ export class CosignCore {
     await Promise.all(
       this.registrations.map((r) => Promise.resolve(r.provider.unfreeze({ kind: "provider-all" })).catch(() => {})),
     );
+  }
+
+  /**
+   * The agent-facing pre-flight guard. An agent calls this BEFORE touching its wallet; Cosign
+   * answers from the unified policy it holds, records the decision in the ledger, and (on allow)
+   * advances its own daily tally. This is the call made on every transaction — fail-closed: no
+   * policy => deny.
+   */
+  async evaluateSpend(agentId: AgentId, attempt: SpendAttempt): Promise<EvaluateResponse> {
+    const located = this.agents().find((a) => a.agentId === agentId);
+    const providerId: ProviderId = located?.provider ?? (`unknown` as ProviderId);
+    const policyId = this.policyIds.get(agentId) ?? "none";
+    const action: ActionRequest = {
+      id: nextId("act"),
+      agentId,
+      kind: attempt.asset === "USDC" ? "x402-payment" : "transfer",
+      asset: attempt.asset,
+      amount: attempt.amount,
+      venue: attempt.venue,
+      ts: Date.now(),
+      ...(attempt.counterparty !== undefined ? { counterparty: attempt.counterparty } : {}),
+    };
+    await this.append({ kind: "action_requested", providerId, agentId, action, ts: action.ts });
+
+    const policy = this.policies.get(agentId);
+    if (!policy) {
+      const reason = "no policy applied (default deny)";
+      await this.append({ kind: "action_blocked", providerId, agentId, action, policyId, reason, ts: Date.now() });
+      return { outcome: "deny", reason, policyId };
+    }
+
+    const res = evaluatePolicy(policy, attempt, { dailySpent: this.dailySpent.get(agentId) });
+    if (res.outcome === "allow") {
+      if (attempt.asset === policy.asset) {
+        const prior = this.dailySpent.get(agentId) ?? "0";
+        this.dailySpent.set(agentId, (BigInt(prior) + BigInt(attempt.amount)).toString());
+      }
+      await this.append({ kind: "action_allowed", providerId, agentId, action, policyId, ts: Date.now() });
+      return { outcome: "allow", policyId };
+    }
+    if (res.outcome === "deny") {
+      await this.append({ kind: "action_blocked", providerId, agentId, action, policyId, reason: res.reason, ts: Date.now() });
+      return { outcome: "deny", reason: res.reason, policyId };
+    }
+    const approvalToken = nextId("appr");
+    await this.append({ kind: "needs_approval", providerId, agentId, action, approvalToken, reason: res.reason, ts: Date.now() });
+    return { outcome: "needs_approval", reason: res.reason, approvalToken, policyId };
   }
 
   async health(): Promise<ProviderHealth[]> {

@@ -37,6 +37,7 @@ are skeletons until credentials exist (see §"Status" below).
 - `packages/api` — Core service (REST + ws) the client talks to.
 - `packages/agent-harness` — reference spending agents + the headline demo runner.
 - `packages/sdk` — `@cosign/sdk`: typed client over the Core API + live ledger subscribe (front door).
+- `packages/mcp` — `@cosign/mcp`: Cosign as MCP tools (kill switch + spend guard in any MCP client).
 - `api-contract/` — OpenAPI + ws event schema (source of truth; generates the Dart client).
 - `client/` — Flutter app (scaffold; Phase 3).
 

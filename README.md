@@ -42,6 +42,7 @@ lives in Core; the client holds no keys. The language boundary is the trust boun
 | `packages/api` | the Core service: REST + ws (`packages/api/src/main.ts` runs it) |
 | `packages/agent-harness` | reference agents + the headline demo (`pnpm demo`) |
 | `packages/sdk` | `@cosign/sdk` — typed client + live ledger subscribe (the front door; roadmap Tier 0 #4) |
+| `packages/mcp` | `@cosign/mcp` — Cosign as MCP tools: kill switch + spend guard inside any MCP client (Claude, …) |
 | `api-contract/` | OpenAPI + typed ws schema — single source of truth; generates the Dart client |
 | `client/` | Flutter app (scaffold; Phase 3) |
 
@@ -59,8 +60,9 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested:** core + freeze controller, policy compiler, hash-chained
-  ledger, MockProvider, REST+ws API, agent harness, the headline demo, full test suite.
+- **Done, credential-free & tested (70 tests):** core + freeze controller, policy compiler,
+  hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
+  guard** (`POST /evaluate`), typed **SDK** + **MCP server** (the front door), agent harness, demo.
 - **Skeletons (need vendor creds):** `packages/providers/{coinbase,turnkey,openfort}` — accurate
   signatures + real `capabilities()`, every live call throws `NotImplementedError`. To finish one:
   install its SDK, fill the methods per `docs/sdk-research/<vendor>.md`, supply credentials.
