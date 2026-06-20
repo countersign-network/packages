@@ -36,8 +36,11 @@ are skeletons until credentials exist (see §"Status" below).
 - `packages/providers/{mock,coinbase,turnkey,openfort}` — `EnforcementProvider` adapters.
 - `packages/api` — Core service (REST + ws) the client talks to.
 - `packages/agent-harness` — reference spending agents + the headline demo runner.
+- `packages/sdk` — `@cosign/sdk`: typed client over the Core API + live ledger subscribe (front door).
 - `api-contract/` — OpenAPI + ws event schema (source of truth; generates the Dart client).
 - `client/` — Flutter app (scaffold; Phase 3).
+
+Roadmap/next steps: `docs/NEXT-STEPS.md` and `docs/moat-and-integration-roadmap.md`.
 
 ## Commands
 

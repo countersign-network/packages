@@ -41,6 +41,7 @@ lives in Core; the client holds no keys. The language boundary is the trust boun
 | `packages/providers/{coinbase,turnkey,openfort}` | real adapter **skeletons** (see *Status*) |
 | `packages/api` | the Core service: REST + ws (`packages/api/src/main.ts` runs it) |
 | `packages/agent-harness` | reference agents + the headline demo (`pnpm demo`) |
+| `packages/sdk` | `@cosign/sdk` — typed client + live ledger subscribe (the front door; roadmap Tier 0 #4) |
 | `api-contract/` | OpenAPI + typed ws schema — single source of truth; generates the Dart client |
 | `client/` | Flutter app (scaffold; Phase 3) |
 
@@ -65,6 +66,12 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
   install its SDK, fill the methods per `docs/sdk-research/<vendor>.md`, supply credentials.
 - **Deferred:** Flutter client beyond scaffold, FCM/APNs push, anomaly detection, Postgres via
   testcontainers (pglite stands in for tests).
+
+## Roadmap & next steps
+
+`docs/NEXT-STEPS.md` (morning checklist) · `docs/moat-and-integration-roadmap.md` (moat + Tier 0–4
+integration order). The build is roadmap **Tier 0** (three enforcement backends + the SDK front
+door + freeze/policy/ledger), proven against mocks.
 
 ## Next (the §7 decisions are yours — see `docs/handoff.md`)
 

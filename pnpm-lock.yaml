@@ -142,6 +142,25 @@ importers:
         specifier: workspace:*
         version: link:../../policy
 
+  packages/sdk:
+    dependencies:
+      '@cosign/api-contract':
+        specifier: workspace:*
+        version: link:../../api-contract
+    devDependencies:
+      '@cosign/api':
+        specifier: workspace:*
+        version: link:../api
+      '@cosign/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cosign/policy':
+        specifier: workspace:*
+        version: link:../policy
+      '@cosign/provider-mock':
+        specifier: workspace:*
+        version: link:../providers/mock
+
 packages:
 
   '@electric-sql/pglite@0.2.17':
