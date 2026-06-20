@@ -15,13 +15,14 @@
     "start": "tsx src/server.ts"
   },
   "dependencies": {
+    "@cosign/api": "workspace:*",
+    "@cosign/api-contract": "workspace:*",
     "@cosign/policy": "workspace:*",
     "@cosign/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cosign/api": "workspace:*",
     "@cosign/core": "workspace:*",
     "@cosign/provider-mock": "workspace:*"
   },

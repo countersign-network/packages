@@ -93,3 +93,18 @@ export type WsServerMessage =
   | { type: "hello"; providers: ProviderHealth[] }
   | { type: "ledger_append"; record: LedgerRecordDTO }
   | { type: "freeze_report"; report: FreezeReport };
+
+/**
+ * The operations the front door exposes — the single abstraction the SDK client, the embedded
+ * in-process Core, the MCP tools, and the x402 guard all program against. `CosignClient` (HTTP) and
+ * the local adapter both implement this, so callers don't care whether the Core is remote or embedded.
+ */
+export interface CosignApi {
+  health(): Promise<HealthResponse>;
+  agents(): Promise<AgentsResponse>;
+  applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult>;
+  evaluate(req: EvaluateRequest): Promise<EvaluateResponse>;
+  freeze(req?: FreezeRequest): Promise<FreezeResponse>;
+  unfreeze(): Promise<{ ok: boolean }>;
+  ledger(): Promise<LedgerResponse>;
+}

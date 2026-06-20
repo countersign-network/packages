@@ -9,7 +9,7 @@
 
 import { z, type ZodRawShape } from "zod";
 import { definePolicy } from "@cosign/policy";
-import type { CosignClient } from "@cosign/sdk";
+import type { CosignApi } from "@cosign/api-contract";
 
 export interface CosignTool {
   name: string;
@@ -21,7 +21,7 @@ export interface CosignTool {
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : v === undefined ? undefined : String(v));
 const strArr = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.map((x) => String(x)) : undefined);
 
-export function createCosignTools(client: CosignClient): CosignTool[] {
+export function createCosignTools(client: CosignApi): CosignTool[] {
   return [
     {
       name: "cosign_health",
