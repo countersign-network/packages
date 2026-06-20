@@ -1,0 +1,21 @@
+{
+  "name": "@cosign/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cosign/api-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@cosign/api": "workspace:*",
+    "@cosign/core": "workspace:*",
+    "@cosign/policy": "workspace:*",
+    "@cosign/provider-mock": "workspace:*"
+  },
+  "comment": "Tier 0 #4 (front door): the typed client agents/operators use to wire Cosign in. Browser + Node (global fetch/WebSocket). The Dart client generates from api-contract; this is its TS twin."
+}

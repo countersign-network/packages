@@ -1,0 +1,81 @@
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { asAgentId } from "@cosign/core";
+import { definePolicy } from "@cosign/policy";
+import { MockProvider } from "@cosign/provider-mock";
+import { CosignCore, createCosignServer, type CosignServer } from "@cosign/api";
+import { CosignClient, CosignApiError, type WsServerMessage } from "@cosign/sdk";
+
+let server: CosignServer;
+let client: CosignClient;
+
+beforeAll(async () => {
+  const core = new CosignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
+  const fleet = [
+    { id: "coinbase", mode: "native-session-caps" as const, venue: "base-sepolia" },
+    { id: "turnkey", mode: "pre-sign-policy" as const, venue: "ethereum-sepolia" },
+    { id: "openfort", mode: "onchain-policy" as const, venue: "polygon-amoy" },
+  ];
+  for (const f of fleet) {
+    await core.registerProvider(new MockProvider({ id: f.id, mode: f.mode }));
+    await core.provisionAgent(f.id, asAgentId(`${f.id}-agent`), f.venue);
+  }
+  server = createCosignServer(core);
+  const port = await server.listen(0);
+  client = new CosignClient({ baseUrl: `http://localhost:${port}` });
+});
+
+afterAll(async () => {
+  await server.close();
+});
+
+describe("@cosign/sdk — typed client over the Core API", () => {
+  it("health() lists the backends", async () => {
+    const h = await client.health();
+    expect(h.ok).toBe(true);
+    expect(h.providers).toHaveLength(3);
+  });
+
+  it("applyPolicy() -> agents() -> freeze() -> ledger() round-trips", async () => {
+    const applied = await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100", allowlist: ["0xTREASURY"] }) });
+    expect(applied.applied).toHaveLength(3);
+    expect((await client.agents()).agents).toHaveLength(3);
+
+    const report = await client.freeze({ reason: "sdk test" });
+    expect(report.allStopped).toBe(true);
+    expect(report.windowMs).toBeLessThan(1000);
+
+    const ledger = await client.ledger();
+    expect(ledger.verified).toBe(true);
+    expect(ledger.records.length).toBeGreaterThan(0);
+
+    expect((await client.unfreeze()).ok).toBe(true);
+  });
+
+  it("subscribe() streams ledger appends triggered by a freeze", async () => {
+    const messages: WsServerMessage[] = [];
+    const got = new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("no ledger_append")), 4000);
+      const unsub = client.subscribe((m) => {
+        messages.push(m);
+        if (m.type === "ledger_append") {
+          clearTimeout(timer);
+          unsub();
+          resolve();
+        }
+      });
+    });
+    // small delay so the socket is open before we trigger events
+    await new Promise((r) => setTimeout(r, 150));
+    await client.freeze({ reason: "stream test" });
+    await got;
+    expect(messages.some((m) => m.type === "ledger_append")).toBe(true);
+  });
+
+  it("surfaces non-2xx responses as CosignApiError", async () => {
+    const failing = new CosignClient({
+      baseUrl: "http://example.invalid",
+      fetch: async () => new Response("boom", { status: 500 }),
+    });
+    await expect(failing.health()).rejects.toBeInstanceOf(CosignApiError);
+  });
+});
