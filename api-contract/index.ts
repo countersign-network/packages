@@ -54,6 +54,26 @@ export interface FreezeRequest {
 
 export type FreezeResponse = FreezeReport;
 
+/**
+ * The agent-facing pre-flight guard: an agent asks Cosign "should I make this spend?" BEFORE it
+ * touches the wallet. Cosign answers from the unified policy and records the decision. This is the
+ * call that gets made on every transaction — the data flywheel.
+ */
+export interface EvaluateRequest {
+  agentId: string;
+  amount: string; // base units
+  asset: string;
+  counterparty?: string;
+  venue: string;
+}
+
+export interface EvaluateResponse {
+  outcome: "allow" | "deny" | "needs_approval";
+  reason?: string;
+  approvalToken?: string;
+  policyId: string;
+}
+
 export interface LedgerRecordDTO {
   index: number;
   prevHash: string;

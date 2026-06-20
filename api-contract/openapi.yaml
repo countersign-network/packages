@@ -55,6 +55,20 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FreezeReport" }
+  /evaluate:
+    post:
+      summary: Pre-flight spend guard — ask Cosign whether a spend is allowed before touching the wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluateRequest" }
+      responses:
+        "200":
+          description: The decision (allow / deny / needs_approval), also recorded in the ledger
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvaluateResponse" }
   /ledger:
     get:
       summary: The append-only, hash-chained audit ledger (re-verified at read time)
@@ -138,6 +152,23 @@ components:
       type: object
       properties:
         reason: { type: string }
+    EvaluateRequest:
+      type: object
+      required: [agentId, amount, asset, venue]
+      properties:
+        agentId: { type: string }
+        amount: { type: string, description: base units }
+        asset: { type: string }
+        counterparty: { type: string }
+        venue: { type: string }
+    EvaluateResponse:
+      type: object
+      required: [outcome, policyId]
+      properties:
+        outcome: { type: string, enum: [allow, deny, needs_approval] }
+        reason: { type: string }
+        approvalToken: { type: string }
+        policyId: { type: string }
     FreezeReport:
       type: object
       required: [freezeId, requestedAt, windowMs, allStopped, providers]

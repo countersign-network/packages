@@ -15,6 +15,8 @@ import {
   type AgentsResponse,
   type ApplyPolicyRequest,
   type ApplyPolicyResult,
+  type EvaluateRequest,
+  type EvaluateResponse,
   type FreezeRequest,
   type FreezeResponse,
   type HealthResponse,
@@ -28,6 +30,8 @@ export type {
   AgentsResponse,
   ApplyPolicyRequest,
   ApplyPolicyResult,
+  EvaluateRequest,
+  EvaluateResponse,
   FreezeRequest,
   FreezeResponse,
   HealthResponse,
@@ -80,6 +84,11 @@ export class CosignClient {
   /** The kill switch — freeze every agent on every backend. */
   freeze(req: FreezeRequest = {}): Promise<FreezeResponse> {
     return this.request<FreezeResponse>("POST", "/freeze", req);
+  }
+
+  /** Pre-flight guard: ask Cosign whether a spend is allowed BEFORE touching the wallet. */
+  evaluate(req: EvaluateRequest): Promise<EvaluateResponse> {
+    return this.request<EvaluateResponse>("POST", "/evaluate", req);
   }
 
   /** Lift a freeze (replay / recover). */

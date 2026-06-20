@@ -1,0 +1,29 @@
+{
+  "name": "@cosign/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "cosign-mcp": "./src/server.ts"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@cosign/policy": "workspace:*",
+    "@cosign/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cosign/api": "workspace:*",
+    "@cosign/core": "workspace:*",
+    "@cosign/provider-mock": "workspace:*"
+  },
+  "comment": "Agent-facing front door: exposes Cosign as MCP tools (the kill switch + spend guard inside any MCP client like Claude). Run: COSIGN_URL=http://localhost:8080 pnpm --filter @cosign/mcp start"
+}

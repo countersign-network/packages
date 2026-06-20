@@ -14,6 +14,7 @@ import {
   WS_PATH,
   type AgentsResponse,
   type ApplyPolicyRequest,
+  type EvaluateRequest,
   type FreezeRequest,
   type HealthResponse,
   type LedgerRecordDTO,
@@ -119,6 +120,16 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     case "POST /unfreeze": {
       await core.unfreezeAll();
       return send(res, 200, { ok: true });
+    }
+    case "POST /evaluate": {
+      const b = await readJson<EvaluateRequest>(req);
+      const decision = await core.evaluateSpend(asAgentId(b.agentId), {
+        amount: b.amount,
+        asset: b.asset,
+        venue: b.venue,
+        ...(b.counterparty !== undefined ? { counterparty: b.counterparty } : {}),
+      });
+      return send(res, 200, decision);
     }
     case "GET /ledger": {
       const records = (await core.ledgerRecords()).map(toDto);
