@@ -106,6 +106,13 @@ export class CosignCore {
     return this.controller.freezeAll(reason);
   }
 
+  /** Lift a freeze across every backend (demo/replay; real product needs it too). */
+  async unfreezeAll(): Promise<void> {
+    await Promise.all(
+      this.registrations.map((r) => Promise.resolve(r.provider.unfreeze({ kind: "provider-all" })).catch(() => {})),
+    );
+  }
+
   async health(): Promise<ProviderHealth[]> {
     return Promise.all(
       this.registrations.map(async (reg) => {
