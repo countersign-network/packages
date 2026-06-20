@@ -8,3 +8,4 @@ export * from "./hash-chain";
 export * from "./port";
 export * from "./in-memory";
 export * from "./pg";
+export * from "./postgres";

@@ -1,0 +1,36 @@
+# Cosign Core — Render Blueprint (Infrastructure as Code).
+# In Render: New → Blueprint → connect this repo. It provisions an always-on web service + a
+# managed Postgres and wires DATABASE_URL between them. Deploys the DEMO Core (mock fleet + live
+# activity) — the hosted free-tier playground the dashboard + `cosign-mcp` (COSIGN_URL) point at.
+# For a real deploy serving actual agents: set COSIGN_DEMO_TRAFFIC=off and wire real adapters.
+#
+# Verify plan slugs in the Render dashboard before applying — Render's plan names change.
+
+services:
+  - type: web
+    name: cosign-core
+    runtime: node
+    plan: starter # ALWAYS-ON. Do NOT use the free plan: it sleeps, and a sleeping control plane can't freeze.
+    region: oregon
+    branch: main
+    autoDeploy: true
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @cosign/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render injects PORT and the app binds it (main.ts reads process.env.PORT). Do not hardcode PORT.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cosign-ledger
+          property: connectionString # internal URL (same region) — no public SSL needed
+      # Flip to "off" for a production Core (otherwise the ledger fills with synthetic demo spends).
+      - key: COSIGN_DEMO_TRAFFIC
+        value: "on"
+
+databases:
+  - name: cosign-ledger
+    plan: basic-256mb # the hash-chained audit ledger. 'free' works to trial but is deleted after ~30 days.
+    databaseName: cosign
+    region: oregon

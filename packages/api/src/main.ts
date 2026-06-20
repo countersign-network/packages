@@ -7,10 +7,17 @@
  * watch every backend stop and subsequent spends get blocked. Unfreeze to replay.
  */
 
+import type { LedgerEvent } from "@cosign/core";
 import { definePolicy, type SpendAttempt } from "@cosign/policy";
+import { PostgresLedger } from "@cosign/ledger";
 import { AnomalyMonitor, createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
 
-const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false });
+// Durable Postgres ledger when DATABASE_URL is set (Render managed PG); in-memory otherwise.
+const databaseUrl = process.env["DATABASE_URL"];
+const ledger = databaseUrl ? await PostgresLedger.create<LedgerEvent>(databaseUrl) : undefined;
+
+const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ...(ledger ? { ledger } : {}) });
+console.log(ledger ? "  ledger: Postgres (DATABASE_URL)" : "  ledger: in-memory (set DATABASE_URL for a durable ledger)");
 // A policy with an approval band so the live dashboard surfaces pending approvals to act on.
 await core.applyPolicy(
   definePolicy({
@@ -42,14 +49,17 @@ const spendKinds: ((m: DemoFleetMember) => SpendAttempt)[] = [
   (m) => ({ amount: "30000000", asset: "USDC", counterparty: "0xSTRANGER", venue: m.venue }), // blocked: allowlist
 ];
 
-// Drive the agents (allowed / blocked) so the ledger streams live.
-setInterval(() => {
-  const m = pick(fleet);
-  void m.provider.attemptSpend(m.agentId, pick(spendKinds)(m)).catch(() => {});
-}, 1200);
+// Synthetic activity so the dashboard has something to show. Set COSIGN_DEMO_TRAFFIC=off for a
+// real deploy that serves actual agents (otherwise the ledger fills with demo spends).
+if (process.env["COSIGN_DEMO_TRAFFIC"] !== "off") {
+  setInterval(() => {
+    const m = pick(fleet);
+    void m.provider.attemptSpend(m.agentId, pick(spendKinds)(m)).catch(() => {});
+  }, 1200);
 
-// Occasionally request a spend in the approval band so the dashboard's approvals queue fills.
-setInterval(() => {
-  const m = pick(fleet);
-  void core.evaluateSpend(m.agentId, { amount: "75000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }).catch(() => {});
-}, 4000);
+  // Occasionally request a spend in the approval band so the dashboard's approvals queue fills.
+  setInterval(() => {
+    const m = pick(fleet);
+    void core.evaluateSpend(m.agentId, { amount: "75000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }).catch(() => {});
+  }, 4000);
+}
