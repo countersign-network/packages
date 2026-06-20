@@ -1,0 +1,8 @@
+packages:
+  - 'packages/*'
+  - 'packages/providers/*'
+  - 'api-contract'
+allowBuilds:
+  esbuild: true
+
+# client/ is the Flutter app (Dart), not a pnpm workspace member.

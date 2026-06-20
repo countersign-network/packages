@@ -1,0 +1,17 @@
+{
+  "name": "@cosign/ledger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cosign/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.13"
+  }
+}

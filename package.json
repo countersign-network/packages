@@ -1,0 +1,24 @@
+{
+  "name": "cosign",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Neutral, cross-vendor control plane for AI agents that spend money.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "tsx packages/agent-harness/src/demo.ts",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

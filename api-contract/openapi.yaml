@@ -1,0 +1,176 @@
+openapi: 3.1.0
+info:
+  title: Cosign Core API
+  version: 0.1.0
+  description: >
+    The neutral control plane the (key-less) Cosign client talks to. The client renders state and
+    fires approve / freeze; all crypto and vendor SDK weight lives behind this API. Source of truth
+    for the generated Dart client. The websocket event stream is typed in index.ts (WsServerMessage).
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Liveness + per-backend health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+  /agents:
+    get:
+      summary: List provisioned agents across all backends
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentsResponse" }
+  /policy:
+    post:
+      summary: Compile + apply one unified policy across backends (fail-closed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplyPolicyRequest" }
+      responses:
+        "200":
+          description: Per-backend apply results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplyPolicyResult" }
+  /freeze:
+    post:
+      summary: The kill switch — freeze every agent on every backend, concurrently
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FreezeRequest" }
+      responses:
+        "200":
+          description: Aggregate freeze report (sub-second, fail-closed)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FreezeReport" }
+  /ledger:
+    get:
+      summary: The append-only, hash-chained audit ledger (re-verified at read time)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LedgerResponse" }
+components:
+  schemas:
+    ProviderHealth:
+      type: object
+      required: [id, mode, healthy]
+      properties:
+        id: { type: string }
+        mode: { type: string, enum: [native-session-caps, pre-sign-policy, onchain-policy] }
+        healthy: { type: boolean }
+        detail: { type: string }
+    HealthResponse:
+      type: object
+      required: [ok, providers]
+      properties:
+        ok: { type: boolean }
+        providers: { type: array, items: { $ref: "#/components/schemas/ProviderHealth" } }
+    AgentsResponse:
+      type: object
+      required: [agents]
+      properties:
+        agents:
+          type: array
+          items:
+            type: object
+            required: [providerId, agentId, wallet, venue, mode]
+            properties:
+              providerId: { type: string }
+              agentId: { type: string }
+              wallet: { type: string }
+              venue: { type: string }
+              mode: { type: string }
+    UnifiedPolicy:
+      type: object
+      required: [schemaVersion, asset]
+      properties:
+        schemaVersion: { type: integer, enum: [1] }
+        asset: { type: string }
+        perTxCap: { type: string, description: base units }
+        dailyCap: { type: string, description: base units }
+        allowlist: { type: array, items: { type: string } }
+        denylist: { type: array, items: { type: string } }
+        approvalThreshold: { type: string, description: base units }
+        frozen: { type: boolean }
+        venues: { type: array, items: { type: string } }
+    ApplyPolicyRequest:
+      type: object
+      required: [policy]
+      properties:
+        agentId: { type: string }
+        policy: { $ref: "#/components/schemas/UnifiedPolicy" }
+    ApplyPolicyResult:
+      type: object
+      required: [applied, failed]
+      properties:
+        applied:
+          type: array
+          items:
+            type: object
+            properties:
+              providerId: { type: string }
+              agentId: { type: string }
+              policyId: { type: string }
+        failed:
+          type: array
+          items:
+            type: object
+            properties:
+              providerId: { type: string }
+              agentId: { type: string }
+              error: { type: string }
+    FreezeRequest:
+      type: object
+      properties:
+        reason: { type: string }
+    FreezeReport:
+      type: object
+      required: [freezeId, requestedAt, windowMs, allStopped, providers]
+      properties:
+        freezeId: { type: string }
+        requestedAt: { type: integer }
+        windowMs: { type: integer }
+        allStopped: { type: boolean }
+        providers:
+          type: array
+          items:
+            type: object
+            properties:
+              providerId: { type: string }
+              mode: { type: string }
+              outcome: { type: string, enum: [confirmed, unconfirmed, failed] }
+              mechanism: { type: string }
+              stopped: { type: boolean }
+              dangerousAgents: { type: array, items: { type: string } }
+              latencyMs: { type: integer }
+    LedgerResponse:
+      type: object
+      required: [records, verified]
+      properties:
+        verified: { type: boolean }
+        records:
+          type: array
+          items:
+            type: object
+            required: [index, prevHash, payloadHash, rowHash, payload]
+            properties:
+              index: { type: integer }
+              prevHash: { type: string }
+              payloadHash: { type: string }
+              rowHash: { type: string }
+              payload: { type: object, additionalProperties: true }
