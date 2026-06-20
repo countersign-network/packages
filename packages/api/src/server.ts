@@ -5,6 +5,9 @@
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { asAgentId } from "@cosign/core";
 import {
@@ -24,6 +27,9 @@ export interface CosignServer {
   listen(port?: number): Promise<number>;
   close(): Promise<void>;
 }
+
+// The first-demo web dashboard (handoff: "a plain web dashboard is fine for the very first demo").
+const DASHBOARD_HTML = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "dashboard.html"), "utf8");
 
 function send(res: ServerResponse, status: number, body: unknown): void {
   const json = JSON.stringify(body);
@@ -79,6 +85,10 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
   const route = `${req.method} ${url.pathname}`;
 
   switch (route) {
+    case "GET /": {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      return void res.end(DASHBOARD_HTML);
+    }
     case "GET /health": {
       const providers = await core.health();
       const body: HealthResponse = { ok: providers.every((p) => p.healthy), providers };
@@ -103,8 +113,12 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     }
     case "POST /freeze": {
       const reqBody = await readJson<FreezeRequest>(req);
-      const report = await core.freezeAll(reqBody.reason ?? "freeze via API");
+      const report = await core.freezeAll(reqBody.reason ?? "freeze via dashboard");
       return send(res, 200, report);
+    }
+    case "POST /unfreeze": {
+      await core.unfreezeAll();
+      return send(res, 200, { ok: true });
     }
     case "GET /ledger": {
       const records = (await core.ledgerRecords()).map(toDto);
