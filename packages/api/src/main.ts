@@ -8,9 +8,16 @@
  */
 
 import type { SpendAttempt } from "@cosign/policy";
-import { createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
+import { AnomalyMonitor, createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
 
 const { core, fleet } = await createDemoCore();
+
+// Heuristic circuit breakers in ALERT mode — detections stream to the dashboard without halting the
+// live demo. (Switch action to "freeze" to watch it auto-fire the kill switch.)
+new AnomalyMonitor(core, {
+  velocity: { maxSpends: 6, windowMs: 15_000, action: "alert" },
+  blockedBurst: { maxBlocked: 4, windowMs: 15_000, action: "alert" },
+});
 
 const server = createCosignServer(core);
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));

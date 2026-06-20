@@ -61,10 +61,11 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested (75 tests):** core + freeze controller, policy compiler,
+- **Done, credential-free & tested (79 tests):** core + freeze controller, policy compiler,
   hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
   guard** (`POST /evaluate`), typed **SDK** + **MCP server** (zero-config embedded mode — one
-  command, no creds), **x402 governance**, agent harness, demo.
+  command, no creds), **x402 governance**, **anomaly-freeze v0** (heuristic circuit breakers →
+  auto-freeze), agent harness, demo.
 - **Skeletons (need vendor creds):** `packages/providers/{coinbase,turnkey,openfort}` — accurate
   signatures + real `capabilities()`, every live call throws `NotImplementedError`. To finish one:
   install its SDK, fill the methods per `docs/sdk-research/<vendor>.md`, supply credentials.
@@ -73,9 +74,9 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Roadmap & next steps
 
-`docs/NEXT-STEPS.md` (morning checklist) · `docs/moat-and-integration-roadmap.md` (moat + Tier 0–4
-integration order). The build is roadmap **Tier 0** (three enforcement backends + the SDK front
-door + freeze/policy/ledger), proven against mocks.
+`docs/NEXT-STEPS.md` (checklist) · `docs/moat-and-integration-roadmap.md` (moat + Tier 0–4 integration
+order) · `docs/pricing-and-gtm.md` (pricing + growth). The build is roadmap **Tier 0** (three
+enforcement backends + the SDK/MCP front door + freeze/policy/ledger/guard/anomaly), proven against mocks.
 
 ## Next (the §7 decisions are yours — see `docs/handoff.md`)
 

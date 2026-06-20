@@ -58,6 +58,16 @@ export type LedgerEvent =
       windowMs: number;
       ts: number;
     }
+  // ---- anomaly monitor (heuristic circuit breakers) ----
+  | {
+      kind: "anomaly_detected";
+      agentId: AgentId;
+      providerId?: ProviderId | undefined;
+      rule: "velocity" | "blocked_burst" | "new_counterparty" | "cumulative";
+      detail: string;
+      action: "alert" | "freeze";
+      ts: number;
+    }
   | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number };
 
 export type LedgerEventKind = LedgerEvent["kind"];

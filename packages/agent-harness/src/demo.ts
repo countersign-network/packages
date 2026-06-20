@@ -11,6 +11,7 @@
  */
 
 import type { LedgerEvent } from "@cosign/core";
+import { AnomalyMonitor } from "@cosign/api";
 import { compile, definePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
 import { buildMockFleet } from "./fleet";
 import { SpendingAgent } from "./agent";
@@ -85,6 +86,8 @@ function formatEvent(e: LedgerEvent): string {
       return `STILL DANGEROUS after ${ms(e.windowMs)}: ${e.dangerous.map((d) => `${d.providerId}${d.agentId ? `/${d.agentId}` : ""}`).join(", ")}`;
     case "session_revoked":
       return `session revoked ${e.agentId}`;
+    case "anomaly_detected":
+      return `⚠ ANOMALY [${e.rule}] ${e.agentId}: ${e.detail} → ${e.action.toUpperCase()}`;
     case "error":
       return `! error ${e.providerId ?? ""} ${e.message}`;
     default:
@@ -173,8 +176,30 @@ async function chaos(): Promise<void> {
   line("  The freeze that couldn't confirm was NEVER reported as safe — it was escalated. Default deny.");
 }
 
+async function anomaly(): Promise<void> {
+  section("[6] ANOMALY-FREEZE v0 — a heuristic circuit breaker auto-fires the kill switch");
+  const { core, members } = await buildMockFleet();
+  await core.applyPolicy(POLICY);
+  const monitor = new AnomalyMonitor(core, { velocity: { maxSpends: 3, windowMs: 60_000, action: "freeze" } });
+  const ops = members[2]!; // ops-bot
+  line();
+  line("  Rule: > 3 spends / 60s ⇒ auto-freeze. Driving 4 rapid in-policy spends from ops-bot…");
+  for (let i = 0; i < 4; i++) {
+    await ops.provider.attemptSpend(ops.agentId, { amount: "10000000", asset: "USDC", counterparty: TREASURY, venue: "polygon-amoy" });
+  }
+  await new Promise((r) => setTimeout(r, 100)); // let the fired-and-forgotten auto-freeze settle
+  line();
+  for (const r of await core.ledgerRecords()) {
+    if (r.payload.kind === "anomaly_detected" || r.payload.kind.startsWith("freeze")) line(`  ${formatEvent(r.payload)}`);
+  }
+  monitor.stop();
+  line();
+  line("  No human touched the button — the breaker tripped and froze every backend on its own.");
+}
+
 await headline();
 await chaos();
+await anomaly();
 line();
 line("  Done. This is the whole thesis: one freeze, every vendor, sub-second, fully audited.");
 line();

@@ -59,6 +59,7 @@
       .k-freeze_requested .msg, .k-freeze_resolved .msg, .k-freeze_result .msg,
       .k-freeze_partial .msg, .k-escalation_revoke_session .msg, .k-still_dangerous .msg { color: var(--purple); }
       .k-error .msg { color: var(--red); }
+      .k-anomaly_detected .msg { color: var(--amber); font-weight: 700; }
     </style>
   </head>
   <body>
@@ -112,6 +113,7 @@
           case "freeze_resolved": return "FREEZE RESOLVED — all " + e.providerCount + " backends stopped in " + e.windowMs + "ms";
           case "still_dangerous": return "STILL DANGEROUS: " + e.dangerous.map((d) => d.providerId).join(", ");
           case "session_revoked": return "session revoked " + e.agentId;
+          case "anomaly_detected": return "⚠ ANOMALY [" + e.rule + "] " + e.agentId + ": " + e.detail;
           case "error": return "! error " + (e.providerId || "") + " " + e.message;
           default: return e.kind;
         }
