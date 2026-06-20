@@ -1,0 +1,89 @@
+import { describe, it, expect } from "vitest";
+import { asProviderId, type LedgerEvent } from "@cosign/core";
+import { GENESIS_HASH, InMemoryLedger, PgLedger, type LedgerPort } from "@cosign/ledger";
+
+type Tamperable = LedgerPort<LedgerEvent> & {
+  __danger_corruptPayload(index: number, payload: LedgerEvent): Promise<void>;
+  __danger_deleteAt(index: number): Promise<void>;
+};
+
+const COINBASE = asProviderId("coinbase");
+
+const freezeReq = (i: number): LedgerEvent => ({
+  kind: "freeze_requested",
+  freezeId: `frz_${i}`,
+  targets: [COINBASE],
+  reason: `attempt ${i}`,
+  ts: 1_000 + i,
+});
+
+const adapters: { name: string; make: () => Promise<Tamperable> }[] = [
+  { name: "InMemoryLedger", make: async () => new InMemoryLedger<LedgerEvent>() },
+  { name: "PgLedger (pglite)", make: async () => await PgLedger.create<LedgerEvent>() },
+];
+
+for (const adapter of adapters) {
+  describe(`hash-chained ledger conformance — ${adapter.name}`, () => {
+    it("appends link prev->row hashes and verify() passes", async () => {
+      const l = await adapter.make();
+      const a = await l.append(freezeReq(0));
+      const b = await l.append(freezeReq(1));
+      const c = await l.append(freezeReq(2));
+
+      expect(a.index).toBe(0);
+      expect(a.prevHash).toBe(GENESIS_HASH);
+      expect(b.prevHash).toBe(a.rowHash);
+      expect(c.prevHash).toBe(b.rowHash);
+      expect(await l.size()).toBe(3);
+      expect((await l.getHead())!.index).toBe(2);
+      expect(await l.verify()).toEqual({ ok: true });
+    });
+
+    it("detects a tampered payload and localizes the break", async () => {
+      const l = await adapter.make();
+      await l.append(freezeReq(0));
+      await l.append(freezeReq(1));
+      await l.append(freezeReq(2));
+
+      await l.__danger_corruptPayload(1, {
+        kind: "freeze_requested",
+        freezeId: "frz_1",
+        targets: [COINBASE],
+        reason: "TAMPERED",
+        ts: 1_001,
+      });
+
+      expect(await l.verify()).toEqual({ ok: false, brokenAt: 1 });
+    });
+
+    it("detects a deleted/reordered row as a gap", async () => {
+      const l = await adapter.make();
+      await l.append(freezeReq(0));
+      await l.append(freezeReq(1));
+      await l.append(freezeReq(2));
+
+      await l.__danger_deleteAt(1);
+
+      const v = await l.verify();
+      expect(v.ok).toBe(false);
+      expect(v.brokenAt).toBe(1);
+    });
+
+    it("query filters by payload predicate", async () => {
+      const l = await adapter.make();
+      await l.append(freezeReq(0));
+      await l.append({ kind: "freeze_resolved", freezeId: "frz_0", providerCount: 1, windowMs: 42, ts: 2_000 });
+      await l.append(freezeReq(1));
+
+      const resolved = await l.query((e) => e.kind === "freeze_resolved");
+      expect(resolved).toHaveLength(1);
+      expect(resolved[0]!.payload.kind).toBe("freeze_resolved");
+    });
+
+    it("is append-only: exposes no update/delete on the port", async () => {
+      const l = await adapter.make();
+      expect((l as unknown as Record<string, unknown>)["update"]).toBeUndefined();
+      expect((l as unknown as Record<string, unknown>)["delete"]).toBeUndefined();
+    });
+  });
+}
