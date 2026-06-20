@@ -9,9 +9,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*"
+    "@cosign/core": "workspace:*",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.2.13"
+    "@electric-sql/pglite": "^0.2.13",
+    "@types/pg": "^8.11.10"
   }
 }

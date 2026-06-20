@@ -5,9 +5,10 @@
  * and by embedded mode, so "one command, no config" works everywhere.
  */
 
-import { asAgentId, type AgentId, type EnforcementMode } from "@cosign/core";
+import { asAgentId, type AgentId, type EnforcementMode, type LedgerEvent } from "@cosign/core";
 import { definePolicy } from "@cosign/policy";
 import { MockProvider } from "@cosign/provider-mock";
+import type { LedgerPort } from "@cosign/ledger";
 import type { AgentDTO, CosignApi } from "@cosign/api-contract";
 import { CosignCore } from "./core-service";
 
@@ -77,8 +78,11 @@ export interface DemoFleetMember {
 }
 
 /** Build a ready-to-use Core over the standard 3-backend mock fleet (one per enforcement mode). */
-export async function createDemoCore(opts?: { applyDefaultPolicy?: boolean }): Promise<{ core: CosignCore; fleet: DemoFleetMember[] }> {
-  const core = new CosignCore();
+export async function createDemoCore(opts?: {
+  applyDefaultPolicy?: boolean;
+  ledger?: LedgerPort<LedgerEvent>;
+}): Promise<{ core: CosignCore; fleet: DemoFleetMember[] }> {
+  const core = new CosignCore(opts?.ledger ? { ledger: opts.ledger } : {});
   const specs: { id: string; mode: EnforcementMode; venue: string; label: string }[] = [
     { id: "coinbase", mode: "native-session-caps", venue: "base-sepolia", label: "payments-bot" },
     { id: "turnkey", mode: "pre-sign-policy", venue: "ethereum-sepolia", label: "trading-bot" },
