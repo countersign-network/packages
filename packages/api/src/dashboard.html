@@ -60,6 +60,18 @@
       .k-freeze_partial .msg, .k-escalation_revoke_session .msg, .k-still_dangerous .msg { color: var(--purple); }
       .k-error .msg { color: var(--red); }
       .k-anomaly_detected .msg { color: var(--amber); font-weight: 700; }
+      .k-needs_approval .msg { color: var(--amber); }
+      .k-approval_resolved .msg { color: var(--purple); }
+      .col { display: flex; flex-direction: column; gap: 16px; }
+      #approvals .empty { padding: 12px 14px; color: var(--muted); }
+      .appr { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+      .appr:last-child { border-bottom: none; }
+      .appr .who { color: var(--amber); }
+      .appr .why { color: var(--muted); font-size: 12px; margin: 2px 0 7px; }
+      .appr .btns { display: flex; gap: 8px; }
+      .appr button { padding: 4px 12px; font-size: 12px; }
+      .appr button.ok { border-color: var(--green); color: var(--green); }
+      .appr button.no { border-color: var(--red); color: var(--red); }
     </style>
   </head>
   <body>
@@ -73,10 +85,16 @@
     </header>
 
     <div class="wrap">
-      <section class="panel">
-        <h2>Backends &amp; agents</h2>
-        <div id="backends"></div>
-      </section>
+      <div class="col">
+        <section class="panel">
+          <h2>Backends &amp; agents</h2>
+          <div id="backends"></div>
+        </section>
+        <section class="panel">
+          <h2>Pending approvals</h2>
+          <div id="approvals"><div class="empty">none</div></div>
+        </section>
+      </div>
 
       <section class="panel">
         <h2>Unified ledger — live (hash-chained, append-only)</h2>
@@ -113,6 +131,8 @@
           case "freeze_resolved": return "FREEZE RESOLVED — all " + e.providerCount + " backends stopped in " + e.windowMs + "ms";
           case "still_dangerous": return "STILL DANGEROUS: " + e.dangerous.map((d) => d.providerId).join(", ");
           case "session_revoked": return "session revoked " + e.agentId;
+          case "needs_approval": return "⏸ NEEDS APPROVAL " + e.agentId + " " + usdc(e.action.amount);
+          case "approval_resolved": return "↳ approval " + e.decision.toUpperCase();
           case "anomaly_detected": return "⚠ ANOMALY [" + e.rule + "] " + e.agentId + ": " + e.detail;
           case "error": return "! error " + (e.providerId || "") + " " + e.message;
           default: return e.kind;
@@ -172,6 +192,29 @@
         $("cVerified").style.color = r.verified ? "var(--green)" : "var(--red)";
       }
 
+      async function loadApprovals() {
+        const { approvals } = await fetch("/approvals").then((r) => r.json());
+        const el = $("approvals");
+        if (!approvals.length) { el.innerHTML = '<div class="empty">none</div>'; return; }
+        el.innerHTML = approvals
+          .map((a) =>
+            '<div class="appr"><div class="who">' + a.agentId + " · " + usdc(a.amount) + " → " + (a.counterparty || "?") + "</div>" +
+            '<div class="why">' + a.reason + "</div>" +
+            '<div class="btns"><button class="ok" data-ok="' + a.approvalToken + '">Approve</button>' +
+            '<button class="no" data-no="' + a.approvalToken + '">Deny</button></div></div>',
+          )
+          .join("");
+      }
+      $("approvals").addEventListener("click", async (e) => {
+        const el = e.target;
+        const ok = el.getAttribute && el.getAttribute("data-ok");
+        const no = el.getAttribute && el.getAttribute("data-no");
+        const post = (path, token) => fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ approvalToken: token }) });
+        if (ok) await post("/approve", ok);
+        else if (no) await post("/deny", no);
+        if (ok || no) loadApprovals();
+      });
+
       $("freezeBtn").onclick = freeze;
       $("unfreezeBtn").onclick = unfreeze;
       $("verifyBtn").onclick = verify;
@@ -186,6 +229,8 @@
       }
 
       loadBackends();
+      loadApprovals();
+      setInterval(loadApprovals, 3000);
       verify();
       connect();
     </script>

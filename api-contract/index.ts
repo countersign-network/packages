@@ -74,6 +74,39 @@ export interface EvaluateResponse {
   policyId: string;
 }
 
+/** A spend held pending human approval (the Turnkey-style consensus path). */
+export interface PendingApprovalDTO {
+  approvalToken: string;
+  agentId: string;
+  providerId: string;
+  amount: string;
+  asset: string;
+  counterparty?: string;
+  venue: string;
+  reason: string;
+  ts: number;
+}
+
+export interface ApprovalsResponse {
+  approvals: PendingApprovalDTO[];
+}
+
+export interface ApproveRequest {
+  approvalToken: string;
+}
+
+export interface DenyRequest {
+  approvalToken: string;
+  reason?: string;
+}
+
+export interface ApprovalResolution {
+  outcome: "approved" | "denied";
+  agentId: string;
+  approvalToken: string;
+  reason?: string;
+}
+
 export interface LedgerRecordDTO {
   index: number;
   prevHash: string;
@@ -104,6 +137,9 @@ export interface CosignApi {
   agents(): Promise<AgentsResponse>;
   applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult>;
   evaluate(req: EvaluateRequest): Promise<EvaluateResponse>;
+  approvals(): Promise<ApprovalsResponse>;
+  approve(req: ApproveRequest): Promise<ApprovalResolution>;
+  deny(req: DenyRequest): Promise<ApprovalResolution>;
   freeze(req?: FreezeRequest): Promise<FreezeResponse>;
   unfreeze(): Promise<{ ok: boolean }>;
   ledger(): Promise<LedgerResponse>;

@@ -21,7 +21,14 @@ import {
 } from "@cosign/core";
 import { InMemoryLedger, type LedgerPort, type LedgerRecord } from "@cosign/ledger";
 import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
-import type { ApplyPolicyResult, EvaluateResponse, ProviderHealth } from "@cosign/api-contract";
+import type {
+  ApplyPolicyResult,
+  ApprovalResolution,
+  ApprovalsResponse,
+  EvaluateResponse,
+  PendingApprovalDTO,
+  ProviderHealth,
+} from "@cosign/api-contract";
 
 export interface CosignCoreOptions {
   ledger?: LedgerPort<LedgerEvent>;
@@ -42,6 +49,10 @@ export class CosignCore {
   private readonly policies = new Map<AgentId, UnifiedPolicy>();
   private readonly policyIds = new Map<AgentId, string>();
   private readonly dailySpent = new Map<AgentId, string>();
+  // Spends held pending human approval (the consensus path), keyed by approval token.
+  private readonly pending = new Map<string, { agentId: AgentId; providerId: ProviderId; action: ActionRequest; attempt: SpendAttempt; policyId: string; reason: string }>();
+  // Frozen posture — fail-closed: while frozen, pending approvals cannot be approved through.
+  private frozen = false;
 
   constructor(opts: CosignCoreOptions = {}) {
     this.ledger = opts.ledger ?? new InMemoryLedger<LedgerEvent>();
@@ -116,7 +127,9 @@ export class CosignCore {
    * layer additionally delivers the aggregate report (so a phone sees the verdict immediately).
    */
   async freezeAll(reason = "manual freeze"): Promise<FreezeReport> {
-    return this.controller.freezeAll(reason);
+    const report = await this.controller.freezeAll(reason);
+    this.frozen = true; // fail-closed posture: blocks approving pending spends through
+    return report;
   }
 
   /** Lift a freeze across every backend (demo/replay; real product needs it too). */
@@ -124,6 +137,7 @@ export class CosignCore {
     await Promise.all(
       this.registrations.map((r) => Promise.resolve(r.provider.unfreeze({ kind: "provider-all" })).catch(() => {})),
     );
+    this.frozen = false;
   }
 
   /**
@@ -169,8 +183,60 @@ export class CosignCore {
       return { outcome: "deny", reason: res.reason, policyId };
     }
     const approvalToken = nextId("appr");
+    this.pending.set(approvalToken, { agentId, providerId, action, attempt, policyId, reason: res.reason });
     await this.append({ kind: "needs_approval", providerId, agentId, action, approvalToken, reason: res.reason, ts: Date.now() });
     return { outcome: "needs_approval", reason: res.reason, approvalToken, policyId };
+  }
+
+  /** Spends currently held pending human approval. */
+  approvals(): ApprovalsResponse {
+    return {
+      approvals: [...this.pending.entries()].map(([approvalToken, p]): PendingApprovalDTO => ({
+        approvalToken,
+        agentId: p.agentId,
+        providerId: p.providerId,
+        amount: p.action.amount,
+        asset: p.action.asset,
+        venue: p.action.venue,
+        reason: p.reason,
+        ts: p.action.ts,
+        ...(p.action.counterparty !== undefined ? { counterparty: p.action.counterparty } : {}),
+      })),
+    };
+  }
+
+  /**
+   * Approve a pending spend. Fail-closed: if the system is frozen, approval is REJECTED (a freeze
+   * overrides any in-flight approval — you can't approve money out the door mid-kill-switch).
+   */
+  async approve(approvalToken: string): Promise<ApprovalResolution> {
+    const p = this.pending.get(approvalToken);
+    if (!p) throw new Error(`unknown approval token: ${approvalToken}`);
+    this.pending.delete(approvalToken);
+
+    if (this.frozen) {
+      await this.append({ kind: "approval_resolved", providerId: p.providerId, agentId: p.agentId, approvalToken, decision: "denied", ts: Date.now() });
+      await this.append({ kind: "action_blocked", providerId: p.providerId, agentId: p.agentId, action: p.action, policyId: p.policyId, reason: "frozen — approval rejected", ts: Date.now() });
+      return { outcome: "denied", agentId: p.agentId, approvalToken, reason: "frozen — approval rejected" };
+    }
+
+    const policy = this.policies.get(p.agentId);
+    if (policy && p.attempt.asset === policy.asset) {
+      const prior = this.dailySpent.get(p.agentId) ?? "0";
+      this.dailySpent.set(p.agentId, (BigInt(prior) + BigInt(p.attempt.amount)).toString());
+    }
+    await this.append({ kind: "approval_resolved", providerId: p.providerId, agentId: p.agentId, approvalToken, decision: "approved", ts: Date.now() });
+    await this.append({ kind: "action_allowed", providerId: p.providerId, agentId: p.agentId, action: p.action, policyId: p.policyId, ts: Date.now() });
+    return { outcome: "approved", agentId: p.agentId, approvalToken };
+  }
+
+  async deny(approvalToken: string, reason = "denied by approver"): Promise<ApprovalResolution> {
+    const p = this.pending.get(approvalToken);
+    if (!p) throw new Error(`unknown approval token: ${approvalToken}`);
+    this.pending.delete(approvalToken);
+    await this.append({ kind: "approval_resolved", providerId: p.providerId, agentId: p.agentId, approvalToken, decision: "denied", ts: Date.now() });
+    await this.append({ kind: "action_blocked", providerId: p.providerId, agentId: p.agentId, action: p.action, policyId: p.policyId, reason, ts: Date.now() });
+    return { outcome: "denied", agentId: p.agentId, approvalToken, reason };
   }
 
   async health(): Promise<ProviderHealth[]> {

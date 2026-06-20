@@ -39,6 +39,15 @@ export function createLocalApi(core: CosignCore): CosignApi {
         ...(req.counterparty !== undefined ? { counterparty: req.counterparty } : {}),
       });
     },
+    async approvals() {
+      return core.approvals();
+    },
+    approve(req) {
+      return core.approve(req.approvalToken);
+    },
+    deny(req) {
+      return core.deny(req.approvalToken, req.reason);
+    },
     async freeze(req) {
       return core.freezeAll(req?.reason ?? "freeze (embedded)");
     },

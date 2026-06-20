@@ -7,10 +7,20 @@
  * watch every backend stop and subsequent spends get blocked. Unfreeze to replay.
  */
 
-import type { SpendAttempt } from "@cosign/policy";
+import { definePolicy, type SpendAttempt } from "@cosign/policy";
 import { AnomalyMonitor, createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
 
-const { core, fleet } = await createDemoCore();
+const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false });
+// A policy with an approval band so the live dashboard surfaces pending approvals to act on.
+await core.applyPolicy(
+  definePolicy({
+    asset: "USDC",
+    perTxCap: "100000000", // 100 USDC
+    dailyCap: "100000000000", // 100,000 USDC (generous for a long-running demo)
+    allowlist: ["0xTREASURY"],
+    approvalThreshold: "60000000", // > 60 USDC needs human approval
+  }),
+);
 
 // Heuristic circuit breakers in ALERT mode — detections stream to the dashboard without halting the
 // live demo. (Switch action to "freeze" to watch it auto-fire the kill switch.)
@@ -32,7 +42,14 @@ const spendKinds: ((m: DemoFleetMember) => SpendAttempt)[] = [
   (m) => ({ amount: "30000000", asset: "USDC", counterparty: "0xSTRANGER", venue: m.venue }), // blocked: allowlist
 ];
 
+// Drive the agents (allowed / blocked) so the ledger streams live.
 setInterval(() => {
   const m = pick(fleet);
   void m.provider.attemptSpend(m.agentId, pick(spendKinds)(m)).catch(() => {});
 }, 1200);
+
+// Occasionally request a spend in the approval band so the dashboard's approvals queue fills.
+setInterval(() => {
+  const m = pick(fleet);
+  void core.evaluateSpend(m.agentId, { amount: "75000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }).catch(() => {});
+}, 4000);

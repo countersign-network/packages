@@ -100,6 +100,35 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
+      name: "cosign_list_approvals",
+      description: "List spends currently held pending human approval (the consensus path).",
+      schema: {},
+      handler: async () => {
+        const { approvals } = await client.approvals();
+        if (approvals.length === 0) return "No pending approvals.";
+        return `${approvals.length} pending:\n` + approvals.map((a) => `• ${a.approvalToken} — ${a.agentId} wants ${a.amount} ${a.asset} to ${a.counterparty ?? "?"} (${a.reason})`).join("\n");
+      },
+    },
+    {
+      name: "cosign_approve",
+      description: "Approve a pending spend by its token. Rejected if the system is frozen (fail-closed).",
+      schema: { approvalToken: z.string() },
+      handler: async (args) => {
+        const r = await client.approve({ approvalToken: String(args["approvalToken"]) });
+        return `${r.outcome.toUpperCase()} ${r.approvalToken} (${r.agentId})${r.reason ? ` — ${r.reason}` : ""}`;
+      },
+    },
+    {
+      name: "cosign_deny",
+      description: "Deny a pending spend by its token.",
+      schema: { approvalToken: z.string(), reason: z.string().optional() },
+      handler: async (args) => {
+        const reason = str(args["reason"]);
+        const r = await client.deny({ approvalToken: String(args["approvalToken"]), ...(reason !== undefined ? { reason } : {}) });
+        return `${r.outcome.toUpperCase()} ${r.approvalToken} (${r.agentId})${r.reason ? ` — ${r.reason}` : ""}`;
+      },
+    },
+    {
       name: "cosign_freeze",
       description: "THE KILL SWITCH. Freeze every agent on every backend at once, in under a second.",
       schema: { reason: z.string().optional() },

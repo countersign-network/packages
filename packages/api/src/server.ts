@@ -14,6 +14,8 @@ import {
   WS_PATH,
   type AgentsResponse,
   type ApplyPolicyRequest,
+  type ApproveRequest,
+  type DenyRequest,
   type EvaluateRequest,
   type FreezeRequest,
   type HealthResponse,
@@ -130,6 +132,17 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
         ...(b.counterparty !== undefined ? { counterparty: b.counterparty } : {}),
       });
       return send(res, 200, decision);
+    }
+    case "GET /approvals": {
+      return send(res, 200, core.approvals());
+    }
+    case "POST /approve": {
+      const b = await readJson<ApproveRequest>(req);
+      return send(res, 200, await core.approve(b.approvalToken));
+    }
+    case "POST /deny": {
+      const b = await readJson<DenyRequest>(req);
+      return send(res, 200, await core.deny(b.approvalToken, b.reason));
     }
     case "GET /ledger": {
       const records = (await core.ledgerRecords()).map(toDto);

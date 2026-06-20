@@ -15,7 +15,11 @@ import {
   type AgentsResponse,
   type ApplyPolicyRequest,
   type ApplyPolicyResult,
+  type ApprovalResolution,
+  type ApprovalsResponse,
+  type ApproveRequest,
   type CosignApi,
+  type DenyRequest,
   type EvaluateRequest,
   type EvaluateResponse,
   type FreezeRequest,
@@ -31,7 +35,11 @@ export type {
   AgentsResponse,
   ApplyPolicyRequest,
   ApplyPolicyResult,
+  ApprovalResolution,
+  ApprovalsResponse,
+  ApproveRequest,
   CosignApi,
+  DenyRequest,
   EvaluateRequest,
   EvaluateResponse,
   FreezeRequest,
@@ -39,6 +47,7 @@ export type {
   HealthResponse,
   LedgerRecordDTO,
   LedgerResponse,
+  PendingApprovalDTO,
   ProviderHealth,
   WsServerMessage,
 } from "@cosign/api-contract";
@@ -91,6 +100,21 @@ export class CosignClient implements CosignApi {
   /** Pre-flight guard: ask Cosign whether a spend is allowed BEFORE touching the wallet. */
   evaluate(req: EvaluateRequest): Promise<EvaluateResponse> {
     return this.request<EvaluateResponse>("POST", "/evaluate", req);
+  }
+
+  /** Spends currently held pending human approval. */
+  approvals(): Promise<ApprovalsResponse> {
+    return this.request<ApprovalsResponse>("GET", "/approvals");
+  }
+
+  /** Approve a pending spend (rejected if the system is frozen — fail-closed). */
+  approve(req: ApproveRequest): Promise<ApprovalResolution> {
+    return this.request<ApprovalResolution>("POST", "/approve", req);
+  }
+
+  /** Deny a pending spend. */
+  deny(req: DenyRequest): Promise<ApprovalResolution> {
+    return this.request<ApprovalResolution>("POST", "/deny", req);
   }
 
   /** Lift a freeze (replay / recover). */
