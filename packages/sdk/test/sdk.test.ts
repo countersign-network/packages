@@ -71,6 +71,16 @@ describe("@cosign/sdk — typed client over the Core API", () => {
     expect(messages.some((m) => m.type === "ledger_append")).toBe(true);
   });
 
+  it("approval workflow round-trips over HTTP (evaluate -> approvals -> approve)", async () => {
+    await client.unfreeze(); // earlier tests left the shared Core frozen
+    await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" }) });
+    const d = await client.evaluate({ agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    expect(d.outcome).toBe("needs_approval");
+    expect((await client.approvals()).approvals.length).toBeGreaterThan(0);
+    const r = await client.approve({ approvalToken: d.approvalToken! });
+    expect(r.outcome).toBe("approved");
+  });
+
   it("surfaces non-2xx responses as CosignApiError", async () => {
     const failing = new CosignClient({
       baseUrl: "http://example.invalid",

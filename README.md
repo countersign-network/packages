@@ -61,9 +61,10 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested (79 tests):** core + freeze controller, policy compiler,
+- **Done, credential-free & tested (85 tests):** core + freeze controller, policy compiler,
   hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
-  guard** (`POST /evaluate`), typed **SDK** + **MCP server** (zero-config embedded mode — one
+  guard** (`POST /evaluate`) + **human-in-the-loop approval workflow** (fail-closed: a freeze
+  overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one
   command, no creds), **x402 governance**, **anomaly-freeze v0** (heuristic circuit breakers →
   auto-freeze), agent harness, demo.
 - **Skeletons (need vendor creds):** `packages/providers/{coinbase,turnkey,openfort}` — accurate

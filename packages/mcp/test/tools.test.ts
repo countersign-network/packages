@@ -64,6 +64,16 @@ describe("@cosign/mcp — Cosign as MCP tools", () => {
     expect(stranger).toContain("DENY");
   });
 
+  it("approval tools: a spend needing approval can be listed and approved from chat", async () => {
+    await call("cosign_apply_policy", { asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" });
+    const res = await call("cosign_request_spend", { agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    expect(res).toContain("NEEDS_APPROVAL");
+    const token = res.match(/approvalToken (\S+)\)/)?.[1];
+    expect(token).toBeTruthy();
+    expect(await call("cosign_list_approvals")).toContain(token!);
+    expect(await call("cosign_approve", { approvalToken: token })).toContain("APPROVED");
+  });
+
   it("the freeze tool is the kill switch, and the ledger verifies", async () => {
     const frozen = await call("cosign_freeze", { reason: "mcp test" });
     expect(frozen).toContain("stopped=true");

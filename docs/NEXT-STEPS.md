@@ -36,10 +36,12 @@ B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s 
 ~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
 ~~E. Anomaly-freeze v0~~ **DONE** ✅ (`AnomalyMonitor` — velocity / blocked-burst / new-counterparty / cumulative → alert or auto-freeze; wired into the demo + live dashboard).
+~~H. Approval workflow~~ **DONE** ✅ (`/approvals` `/approve` `/deny` — list + resolve `needs_approval`; fail-closed: a freeze overrides a pending approval; wired into the dashboard + MCP tools).
 G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + publish `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
-H. **Approval workflow** (`/approve` + `/deny`): resolve the `needs_approval` decisions the guard already emits (Turnkey's native consensus path). *(unblocked)*
 
-> Fully-unblocked next build (no creds): **(H)** the approval workflow. (A)/(B) wait on vendor sandbox credentials; (G) needs a hosting target.
+> Almost everything credential-free in Tier 0–1 is now built. The big unblocks left are YOURS:
+> (A)/(B) wiring the **real vendor adapters** needs Coinbase/Turnkey/Openfort **sandbox credentials**;
+> (G) the **hosted free tier** needs a **deploy target**. Then the proof runs on a live testnet wallet.
 
 ## ③ The one risk to kill this week
 

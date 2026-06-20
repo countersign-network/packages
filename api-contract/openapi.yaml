@@ -69,6 +69,43 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/EvaluateResponse" }
+  /approvals:
+    get:
+      summary: Spends currently held pending human approval
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalsResponse" }
+  /approve:
+    post:
+      summary: Approve a pending spend (rejected if the system is frozen — fail-closed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [approvalToken], properties: { approvalToken: { type: string } } }
+      responses:
+        "200":
+          description: Resolution
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalResolution" }
+  /deny:
+    post:
+      summary: Deny a pending spend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [approvalToken], properties: { approvalToken: { type: string }, reason: { type: string } } }
+      responses:
+        "200":
+          description: Resolution
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalResolution" }
   /ledger:
     get:
       summary: The append-only, hash-chained audit ledger (re-verified at read time)
@@ -169,6 +206,33 @@ components:
         reason: { type: string }
         approvalToken: { type: string }
         policyId: { type: string }
+    ApprovalsResponse:
+      type: object
+      required: [approvals]
+      properties:
+        approvals:
+          type: array
+          items:
+            type: object
+            required: [approvalToken, agentId, providerId, amount, asset, venue, reason, ts]
+            properties:
+              approvalToken: { type: string }
+              agentId: { type: string }
+              providerId: { type: string }
+              amount: { type: string }
+              asset: { type: string }
+              counterparty: { type: string }
+              venue: { type: string }
+              reason: { type: string }
+              ts: { type: integer }
+    ApprovalResolution:
+      type: object
+      required: [outcome, agentId, approvalToken]
+      properties:
+        outcome: { type: string, enum: [approved, denied] }
+        agentId: { type: string }
+        approvalToken: { type: string }
+        reason: { type: string }
     FreezeReport:
       type: object
       required: [freezeId, requestedAt, windowMs, allStopped, providers]
