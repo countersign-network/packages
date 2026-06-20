@@ -35,10 +35,11 @@ B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s 
 ~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
 ~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
-E. **Anomaly-freeze v0** [handoff Phase 3 / roadmap moat #2] — heuristic circuit breakers (spend velocity, new counterparty) → auto-freeze. *(unblocked)*
-G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + a real publish of `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
+~~E. Anomaly-freeze v0~~ **DONE** ✅ (`AnomalyMonitor` — velocity / blocked-burst / new-counterparty / cumulative → alert or auto-freeze; wired into the demo + live dashboard).
+G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + publish `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
+H. **Approval workflow** (`/approve` + `/deny`): resolve the `needs_approval` decisions the guard already emits (Turnkey's native consensus path). *(unblocked)*
 
-> Fully-unblocked next build (no creds): **(E)** anomaly-freeze v0. (A)/(B) still wait on vendor sandbox credentials; (G) needs a hosting target.
+> Fully-unblocked next build (no creds): **(H)** the approval workflow. (A)/(B) wait on vendor sandbox credentials; (G) needs a hosting target.
 
 ## ③ The one risk to kill this week
 

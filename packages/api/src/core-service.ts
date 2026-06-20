@@ -195,6 +195,11 @@ export class CosignCore {
     return (await this.ledger.verify()).ok;
   }
 
+  /** Append a controller/monitor-origin event to the ledger (e.g. anomaly detections). */
+  async recordEvent(event: LedgerEvent): Promise<void> {
+    await this.append(event);
+  }
+
   /** Subscribe to ledger appends (the websocket layer uses this to push to clients). */
   onLedgerAppend(cb: LedgerSubscriber): () => void {
     this.subscribers.add(cb);
