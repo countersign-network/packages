@@ -15,6 +15,7 @@ import {
   type AgentsResponse,
   type ApplyPolicyRequest,
   type ApplyPolicyResult,
+  type CosignApi,
   type EvaluateRequest,
   type EvaluateResponse,
   type FreezeRequest,
@@ -30,6 +31,7 @@ export type {
   AgentsResponse,
   ApplyPolicyRequest,
   ApplyPolicyResult,
+  CosignApi,
   EvaluateRequest,
   EvaluateResponse,
   FreezeRequest,
@@ -57,7 +59,7 @@ export interface CosignClientOptions {
   fetch?: typeof fetch;
 }
 
-export class CosignClient {
+export class CosignClient implements CosignApi {
   private readonly baseUrl: string;
   private readonly doFetch: typeof fetch;
 

@@ -38,6 +38,8 @@ are skeletons until credentials exist (see §"Status" below).
 - `packages/agent-harness` — reference spending agents + the headline demo runner.
 - `packages/sdk` — `@cosign/sdk`: typed client over the Core API + live ledger subscribe (front door).
 - `packages/mcp` — `@cosign/mcp`: Cosign as MCP tools (kill switch + spend guard in any MCP client).
+  Zero-config embedded mode (`pnpm --filter @cosign/mcp start`, no creds) or remote via `COSIGN_URL`.
+- `packages/x402` — `@cosign/x402`: govern x402 machine-payments (guard a payment before it pays).
 - `api-contract/` — OpenAPI + ws event schema (source of truth; generates the Dart client).
 - `client/` — Flutter app (scaffold; Phase 3).
 

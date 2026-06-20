@@ -33,11 +33,12 @@ The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **pr
 A. **Real Coinbase adapter** [Tier 0 #1] → Phase-0 single-stop spike on Base Sepolia → **measure real freeze latency** (the number that validates the <1s claim under real network + on-chain lag). *Needs creds (item ①.2).*
 B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s freeze (the headline / handoff Phase 2). *Needs creds.*
 ~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
-D. **x402 + USDC first-class** [Tier 1 #5/#6] → govern the dominant machine-payment rail + the settlement asset. *(unblocked — public protocol)*
-E. **Anomaly-freeze v0 + design-partner onboarding** [handoff Phase 3 / roadmap moat #2].
-F. **Self-serve onboarding + free testnet tier** → the product-led growth surface (see the flywheel note).
+~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
+~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
+E. **Anomaly-freeze v0** [handoff Phase 3 / roadmap moat #2] — heuristic circuit breakers (spend velocity, new counterparty) → auto-freeze. *(unblocked)*
+G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + a real publish of `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
 
-> Fully-unblocked next build (no creds): **(D)** x402/USDC, or **(F)** the self-serve sign-up flow. Everything in (A)/(B) waits on credentials.
+> Fully-unblocked next build (no creds): **(E)** anomaly-freeze v0. (A)/(B) still wait on vendor sandbox credentials; (G) needs a hosting target.
 
 ## ③ The one risk to kill this week
 

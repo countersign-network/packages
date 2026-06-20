@@ -99,6 +99,12 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@cosign/api':
+        specifier: workspace:*
+        version: link:../api
+      '@cosign/api-contract':
+        specifier: workspace:*
+        version: link:../../api-contract
       '@cosign/policy':
         specifier: workspace:*
         version: link:../policy
@@ -112,9 +118,6 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
-      '@cosign/api':
-        specifier: workspace:*
-        version: link:../api
       '@cosign/core':
         specifier: workspace:*
         version: link:../core
@@ -182,6 +185,25 @@ importers:
       '@cosign/policy':
         specifier: workspace:*
         version: link:../policy
+      '@cosign/provider-mock':
+        specifier: workspace:*
+        version: link:../providers/mock
+
+  packages/x402:
+    dependencies:
+      '@cosign/api-contract':
+        specifier: workspace:*
+        version: link:../../api-contract
+      '@cosign/policy':
+        specifier: workspace:*
+        version: link:../policy
+    devDependencies:
+      '@cosign/api':
+        specifier: workspace:*
+        version: link:../api
+      '@cosign/core':
+        specifier: workspace:*
+        version: link:../core
       '@cosign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock

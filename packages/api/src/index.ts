@@ -5,3 +5,4 @@
 
 export * from "./core-service";
 export * from "./server";
+export * from "./local";
