@@ -39,9 +39,11 @@ B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s 
 ~~H. Approval workflow~~ **DONE** ✅ (`/approvals` `/approve` `/deny` — list + resolve `needs_approval`; fail-closed: a freeze overrides a pending approval; wired into the dashboard + MCP tools).
 G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + publish `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
 
-~~A. Real Coinbase adapter + Phase-0 spike~~ **DONE** ✅ — LIVE on Base Sepolia. `spike.ts` proves:
-apply policy → in-policy spend lands on-chain → freeze → next spend provably blocked. Cosign-layer
-enforcement today; pushing caps into Coinbase MPC (Spend Permissions) is the hardening step.
+~~A. Real Coinbase adapter + Phase-0 spike~~ **DONE** ✅ — LIVE on Base Sepolia (`spike.ts`).
+~~Coinbase native hardening~~ **DONE** ✅ — per-tx cap pushed into Coinbase's MPC (CDP account
+Policy); `harden-spike.ts` proves a direct over-cap send bypassing Cosign is rejected by Coinbase
+itself. (API key needs the Non-custodial Manage / `policies#manage` scope.)
+~~Deploy~~ **DONE** ✅ — live demo Core at https://cosign-b7ru.onrender.com (Render Docker, Free plan).
 
 > Remaining: (B) Turnkey + Openfort real adapters (need their sandbox creds); (G) hosted free tier
 > (needs a deploy target); and the Coinbase hardening (native Spend Permissions, multi-backend <1s
