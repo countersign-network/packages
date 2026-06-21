@@ -67,9 +67,12 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
   overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one
   command, no creds), **x402 governance**, **anomaly-freeze v0** (heuristic circuit breakers →
   auto-freeze), agent harness, demo.
-- **Skeletons (need vendor creds):** `packages/providers/{coinbase,turnkey,openfort}` — accurate
-  signatures + real `capabilities()`, every live call throws `NotImplementedError`. To finish one:
-  install its SDK, fill the methods per `docs/sdk-research/<vendor>.md`, supply credentials.
+- **Coinbase: LIVE on Base Sepolia** — real CDP wallet + on-chain sends, Cosign-gated. Phase-0
+  proven (`packages/providers/coinbase/spike.ts`): apply policy → spend within it (real tx) →
+  freeze → next spend provably blocked. (`smoke.ts` verifies creds; needs `.env` — see
+  `docs/setup-coinbase.md`.)
+- **Skeletons (need vendor creds):** `packages/providers/{turnkey,openfort}` — accurate signatures
+  + real `capabilities()`; live calls throw `NotImplementedError`. Finish per `docs/sdk-research/<vendor>.md`.
 - **Deferred:** Flutter client beyond scaffold, FCM/APNs push, anomaly detection, Postgres via
   testcontainers (pglite stands in for tests).
 

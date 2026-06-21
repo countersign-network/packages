@@ -157,6 +157,10 @@ importers:
       viem:
         specifier: ^2.52.2
         version: 2.52.2(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
+      '@cosign/api':
+        specifier: workspace:*
+        version: link:../../api
 
   packages/providers/mock:
     dependencies:
