@@ -190,8 +190,11 @@ export class CoinbaseProvider implements EnforcementProvider {
       policy: {
         scope: "account",
         description: "cosign per tx cap",
+        // An operation with any rule defaults to DENY unless an `accept` matches — so we ACCEPT only
+        // transactions at/under the cap; over-cap finds no accept rule and is denied by Coinbase.
         rules: [
-          { action: "reject", operation: "signEvmTransaction", criteria: [{ type: "ethValue", ethValue: policy.perTxCap!, operator: ">" }] },
+          { action: "accept", operation: "signEvmTransaction", criteria: [{ type: "ethValue", ethValue: policy.perTxCap!, operator: "<=" }] },
+          { action: "accept", operation: "sendEvmTransaction", criteria: [{ type: "ethValue", ethValue: policy.perTxCap!, operator: "<=" }] },
         ],
       },
     });
@@ -205,7 +208,14 @@ export class CoinbaseProvider implements EnforcementProvider {
     const acct = this.accounts.get(agentId);
     if (!acct) return;
     const created = await this.client().policies.createPolicy({
-      policy: { scope: "account", description: "cosign freeze deny all", rules: [{ action: "reject", operation: "signEvmTransaction", criteria: [] }] },
+      policy: {
+        scope: "account",
+        description: "cosign freeze deny all",
+        rules: [
+          { action: "reject", operation: "signEvmTransaction", criteria: [] },
+          { action: "reject", operation: "sendEvmTransaction", criteria: [] },
+        ],
+      },
     });
     await this.client().evm.updateAccount({ address: acct.address, update: { accountPolicy: created.id } });
   }
