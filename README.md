@@ -67,10 +67,12 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
   overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one
   command, no creds), **x402 governance**, **anomaly-freeze v0** (heuristic circuit breakers →
   auto-freeze), agent harness, demo.
-- **Coinbase: LIVE on Base Sepolia** — real CDP wallet + on-chain sends, Cosign-gated. Phase-0
-  proven (`packages/providers/coinbase/spike.ts`): apply policy → spend within it (real tx) →
-  freeze → next spend provably blocked. (`smoke.ts` verifies creds; needs `.env` — see
-  `docs/setup-coinbase.md`.)
+- **Coinbase: LIVE + HARDENED on Base Sepolia** — real CDP wallet + on-chain sends. Phase-0 proven
+  (`spike.ts`): apply policy → in-policy spend lands → freeze → next spend blocked. **Native
+  enforcement proven** (`harden-spike.ts`): the per-tx cap is pushed into Coinbase's MPC (a CDP
+  account Policy), so a direct over-cap send that **bypasses Cosign is rejected by Coinbase itself**
+  — even a compromised agent can't exceed the cap. (Needs the API key's Non-custodial Manage scope;
+  `smoke.ts` verifies creds — see `docs/setup-coinbase.md`.)
 - **Skeletons (need vendor creds):** `packages/providers/{turnkey,openfort}` — accurate signatures
   + real `capabilities()`; live calls throw `NotImplementedError`. Finish per `docs/sdk-research/<vendor>.md`.
 - **Deferred:** Flutter client beyond scaffold, FCM/APNs push, anomaly detection, Postgres via
