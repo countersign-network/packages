@@ -9,8 +9,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.51.2",
     "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@cosign/policy": "workspace:*",
+    "dotenv": "^17.4.2",
+    "viem": "^2.52.2"
   },
   "comment": "Skeleton. To finish: `pnpm add @coinbase/cdp-sdk` and fill methods per docs/sdk-research/coinbase.md"
 }
