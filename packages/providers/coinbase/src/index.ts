@@ -48,6 +48,9 @@ export class CoinbaseProvider implements EnforcementProvider {
   private readonly frozenAgents = new Set<AgentId>();
   private providerFrozen = false;
   private readonly handlers = new Set<(e: ProviderEvent) => void>();
+  /** Native CDP policy id attached to each agent's account (the cap enforced in Coinbase's MPC). */
+  private readonly nativePolicyId = new Map<AgentId, string>();
+  private readonly nativeStatus = new Map<AgentId, string>();
 
   /** Lazy — so the provider can be constructed (and capabilities() read) without credentials. */
   private client(): CdpClient {
@@ -91,6 +94,17 @@ export class CoinbaseProvider implements EnforcementProvider {
     const policyId = nextId("pol");
     this.policyIds.set(agentId, policyId);
     if (!this.dailySpent.has(agentId)) this.dailySpent.set(agentId, "0");
+    // HARDENING — push the per-tx cap into Coinbase's own MPC (an account policy) so it's enforced
+    // even if Cosign's pre-check is bypassed. Best-effort: a failure leaves Cosign-layer enforcement.
+    let status = policy.perTxCap ? "pending" : "n/a (no per-tx cap)";
+    if (policy.perTxCap) {
+      try {
+        status = `native cap active (policy ${await this.pushNative(agentId, policy)})`;
+      } catch (err) {
+        status = `native push failed (Cosign-layer still enforces): ${err instanceof Error ? err.message : String(err)}`;
+      }
+    }
+    this.nativeStatus.set(agentId, status);
     this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });
     return { policyId };
   }
@@ -98,8 +112,10 @@ export class CoinbaseProvider implements EnforcementProvider {
   async freeze(scope: FreezeScope): Promise<FreezeResult> {
     if (scope.kind === "provider-all") this.providerFrozen = true;
     else this.frozenAgents.add(scope.agentId);
-    this.emit({ type: "frozen", scope, mechanism: "policy-deny", ts: Date.now() });
     const frozenAgents = scope.kind === "provider-all" ? [...this.accounts.keys()] : [scope.agentId];
+    // Best-effort NATIVE freeze: attach a deny-all account policy so Coinbase rejects even a direct send.
+    await Promise.all(frozenAgents.map((a) => this.nativeFreeze(a).catch(() => undefined)));
+    this.emit({ type: "frozen", scope, mechanism: "policy-deny", ts: Date.now() });
     return { confirmed: true, frozenAgents, mechanism: "policy-deny", at: Date.now() };
   }
 
@@ -163,6 +179,58 @@ export class CoinbaseProvider implements EnforcementProvider {
 
   async health(): Promise<HealthStatus> {
     return { healthy: true, detail: "coinbase: live (Base Sepolia)" };
+  }
+
+  /* ---- native hardening (caps enforced inside Coinbase's MPC, not just Cosign's pre-check) ---- */
+
+  /** Create a CDP account policy for the per-tx cap and attach it to the agent's account. */
+  private async pushNative(agentId: AgentId, policy: UnifiedPolicy): Promise<string> {
+    const acct = this.require(agentId);
+    const created = await this.client().policies.createPolicy({
+      policy: {
+        scope: "account",
+        description: "cosign per tx cap",
+        rules: [
+          { action: "reject", operation: "signEvmTransaction", criteria: [{ type: "ethValue", ethValue: policy.perTxCap!, operator: ">" }] },
+        ],
+      },
+    });
+    await this.client().evm.updateAccount({ address: acct.address, update: { accountPolicy: created.id } });
+    this.nativePolicyId.set(agentId, created.id);
+    return created.id;
+  }
+
+  /** Attach a deny-all account policy so Coinbase rejects every signature for this agent. */
+  private async nativeFreeze(agentId: AgentId): Promise<void> {
+    const acct = this.accounts.get(agentId);
+    if (!acct) return;
+    const created = await this.client().policies.createPolicy({
+      policy: { scope: "account", description: "cosign freeze deny all", rules: [{ action: "reject", operation: "signEvmTransaction", criteria: [] }] },
+    });
+    await this.client().evm.updateAccount({ address: acct.address, update: { accountPolicy: created.id } });
+  }
+
+  /**
+   * Send a transaction DIRECTLY, bypassing Cosign's pre-flight gate — used to prove the native
+   * account policy enforces the cap inside Coinbase even when Cosign is skipped (a stand-in for a
+   * compromised agent). Throws if Coinbase's policy rejects the signature.
+   */
+  async nativeSendUnchecked(agentId: AgentId, opts: { to: string; amountWei: string; venue: Venue }): Promise<string> {
+    const acct = this.require(agentId);
+    const { transactionHash } = await this.client().evm.sendTransaction({
+      address: acct.address,
+      transaction: { to: opts.to as `0x${string}`, value: BigInt(opts.amountWei) },
+      network: opts.venue as "base-sepolia",
+    });
+    return transactionHash;
+  }
+
+  getNativeStatus(agentId: AgentId): string {
+    return this.nativeStatus.get(agentId) ?? "none";
+  }
+
+  getNativePolicyId(agentId: AgentId): string | undefined {
+    return this.nativePolicyId.get(agentId);
   }
 
   /* ---- internals ---- */
