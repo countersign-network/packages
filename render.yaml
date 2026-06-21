@@ -9,13 +9,12 @@
 services:
   - type: web
     name: cosign-core
-    runtime: node
-    plan: starter # ALWAYS-ON. Do NOT use the free plan: it sleeps, and a sleeping control plane can't freeze.
+    runtime: docker # builds ./Dockerfile (portable; also works on Fly/Akash/local)
+    dockerfilePath: ./Dockerfile
+    plan: starter # ALWAYS-ON. The free plan sleeps, and a sleeping control plane can't freeze.
     region: oregon
     branch: main
     autoDeploy: true
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm --filter @cosign/api start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
