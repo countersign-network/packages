@@ -1,19 +1,25 @@
 /**
- * Coinbase Agentic Wallets adapter — SKELETON. EnforcementMode = native-session-caps.
+ * Coinbase Agentic Wallets adapter — LIVE on Base Sepolia (testnet). EnforcementMode =
+ * native-session-caps.
  *
- * Signatures and capabilities are real; the live SDK calls throw NotImplementedError until
- * credentials exist. To finish: `pnpm add @coinbase/cdp-sdk` and fill the TODOs per
- * docs/sdk-research/coinbase.md. NEVER reconstruct keys (prime directive #1) — the Wallet Secret
- * signs inside Coinbase's TEE; we only orchestrate spend permissions + policies.
+ * What's real here: provisioning a CDP wallet (`createAccount`), funding it (`requestFaucet`), and
+ * sending actual on-chain transactions (`sendTransaction`) — all verified against the installed SDK.
+ * Cosign governs each spend: a spend only executes if the unified policy allows it and the agent
+ * isn't frozen/revoked. So a Cosign freeze provably prevents the next transaction (it is never sent).
+ *
+ * Enforcement here is at the COSIGN layer (the agent transacts through Cosign). Pushing the caps
+ * down into Coinbase's own MPC (Spend Permissions + Policy engine) so even a compromised agent can't
+ * bypass them is the hardening step — verify `createSpendPermission` / `policies.createPolicy`
+ * against the installed SDK first (see docs/sdk-research/coinbase.md). Testnet only (directive #6).
  */
 
+import { CdpClient } from "@coinbase/cdp-sdk";
 import {
-  NotImplementedError,
   asProviderId,
+  nextId,
   type ActionRequest,
   type AgentId,
   type AgentRef,
-  type Decision,
   type EnforcementProvider,
   type FreezeResult,
   type FreezeScope,
@@ -23,71 +29,169 @@ import {
   type Unsubscribe,
   type Venue,
 } from "@cosign/core";
-import { compile, type UnifiedPolicy } from "@cosign/policy";
+import { compile, evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
 
-export interface CoinbaseConfig {
-  apiKeyId?: string;
-  apiKeySecret?: string;
-  walletSecret?: string;
-}
+export type CoinbaseSpendResult =
+  | { outcome: "allowed"; action: ActionRequest; transactionHash: string }
+  | { outcome: "blocked"; action: ActionRequest; reason: string }
+  | { outcome: "needs_approval"; action: ActionRequest; approvalToken: string; reason: string };
 
 export class CoinbaseProvider implements EnforcementProvider {
   readonly id = asProviderId("coinbase");
-  constructor(private readonly config: CoinbaseConfig = {}) {}
+
+  private cdp: CdpClient | undefined;
+  private readonly accounts = new Map<AgentId, { address: `0x${string}` }>();
+  private readonly policies = new Map<AgentId, UnifiedPolicy>();
+  private readonly policyIds = new Map<AgentId, string>();
+  private readonly dailySpent = new Map<AgentId, string>();
+  private readonly revoked = new Set<AgentId>();
+  private readonly frozenAgents = new Set<AgentId>();
+  private providerFrozen = false;
+  private readonly handlers = new Set<(e: ProviderEvent) => void>();
+
+  /** Lazy — so the provider can be constructed (and capabilities() read) without credentials. */
+  private client(): CdpClient {
+    return (this.cdp ??= new CdpClient());
+  }
 
   async capabilities(): Promise<ProviderCapabilities> {
     return {
       enforcementMode: "native-session-caps",
-      supportsInlineApproval: false, // caps are autonomous; breaches surface as action_blocked
-      supportsOnchainGuard: false, // enforced in MPC + Spend Permission Manager, not a custom guard
-      supportsSessionRevocation: true, // revokeSpendPermission
-      realtimeEvents: false, // webhooks only (no ws) — adapter must poll/reconcile
+      supportsInlineApproval: false,
+      supportsOnchainGuard: false,
+      supportsSessionRevocation: true,
+      realtimeEvents: false, // CDP is webhook-based; this adapter mediates spends synchronously
       venues: ["base-sepolia"],
     };
   }
 
-  async provisionWallet(_agentId: AgentId, _opts: { venue: Venue }): Promise<AgentRef> {
-    // TODO(creds): cdp.evm.createAccount() then cdp.evm.createSmartAccount({ owner }).
-    throw new NotImplementedError("CoinbaseProvider.provisionWallet");
+  async provisionWallet(agentId: AgentId, opts: { venue: Venue }): Promise<AgentRef> {
+    const account = await this.client().evm.createAccount();
+    this.accounts.set(agentId, { address: account.address });
+    this.dailySpent.set(agentId, "0");
+    return { provider: this.id, agentId, wallet: account.address, venue: opts.venue };
   }
 
-  async applyPolicy(_agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
-    const native = compile(policy, "native-session-caps");
-    // TODO(creds): push `native` via @coinbase/cdp-sdk:
-    //   native.spendPermission -> cdp.evm.createSpendPermission({ network, spendPermission })  (daily cap)
-    //   native.policy.rules    -> cdp.policies.createPolicy({ policy: { scope, rules } })        (per-tx + allow/deny)
-    //   native.unsupported (e.g. approvalThreshold) is enforced by Cosign, not Coinbase.
-    void native;
-    throw new NotImplementedError("CoinbaseProvider.applyPolicy");
+  /** Fund an agent wallet from the testnet faucet. Returns the faucet tx hash. */
+  async fund(agentId: AgentId, opts: { venue: Venue; token?: "eth" | "usdc" }): Promise<string> {
+    const acct = this.require(agentId);
+    const { transactionHash } = await this.client().evm.requestFaucet({
+      address: acct.address,
+      network: opts.venue as "base-sepolia",
+      token: opts.token ?? "eth",
+    });
+    return transactionHash;
   }
 
-  // No native inline approval on caps-only backends — evaluate/approve/deny intentionally omitted.
-  async evaluate(_action: ActionRequest): Promise<Decision> {
-    throw new NotImplementedError("CoinbaseProvider.evaluate (caps are enforced autonomously)");
+  async applyPolicy(agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
+    // Cosign retains the policy and governs each spend (pre-flight). The compiled native controls
+    // below are what a future hardening step pushes into Coinbase's MPC; not relied on for the gate.
+    void compile(policy, "native-session-caps");
+    this.policies.set(agentId, policy);
+    const policyId = nextId("pol");
+    this.policyIds.set(agentId, policyId);
+    if (!this.dailySpent.has(agentId)) this.dailySpent.set(agentId, "0");
+    this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });
+    return { policyId };
   }
 
-  async freeze(_scope: FreezeScope): Promise<FreezeResult> {
-    // TODO(creds): cdp.evm.revokeSpendPermission({ address, permissionHash, network })  (idempotent)
-    //   — or attach a reject-all Policy. Return { confirmed:false } if the userOp can't be confirmed.
-    throw new NotImplementedError("CoinbaseProvider.freeze");
+  async freeze(scope: FreezeScope): Promise<FreezeResult> {
+    if (scope.kind === "provider-all") this.providerFrozen = true;
+    else this.frozenAgents.add(scope.agentId);
+    this.emit({ type: "frozen", scope, mechanism: "policy-deny", ts: Date.now() });
+    const frozenAgents = scope.kind === "provider-all" ? [...this.accounts.keys()] : [scope.agentId];
+    return { confirmed: true, frozenAgents, mechanism: "policy-deny", at: Date.now() };
   }
 
-  async unfreeze(_scope: FreezeScope): Promise<void> {
-    throw new NotImplementedError("CoinbaseProvider.unfreeze");
+  async unfreeze(scope: FreezeScope): Promise<void> {
+    if (scope.kind === "provider-all") {
+      this.providerFrozen = false;
+      this.frozenAgents.clear();
+    } else {
+      this.frozenAgents.delete(scope.agentId);
+    }
+    this.emit({ type: "unfrozen", scope, ts: Date.now() });
   }
 
-  async revokeSession(_agentId: AgentId): Promise<void> {
-    // TODO(creds): revoke the spender's Spend Permission for a hard stop.
-    throw new NotImplementedError("CoinbaseProvider.revokeSession");
+  async revokeSession(agentId: AgentId): Promise<void> {
+    this.revoked.add(agentId);
+    this.emit({ type: "session_revoked", agentId, ts: Date.now() });
   }
 
-  subscribe(_handler: (event: ProviderEvent) => void): Unsubscribe {
-    // TODO(creds): cdp.webhooks.createSubscription({ eventTypes, targetUrl }); poll to reconcile
-    // the 3-min monitoring window. Skeleton emits nothing.
-    return () => {};
+  /**
+   * The gated spend: Cosign decides, then — only if allowed — a REAL transaction is sent on-chain.
+   * When frozen/over-policy, no transaction is ever sent: the freeze provably prevents it.
+   */
+  async attemptSpend(agentId: AgentId, attempt: SpendAttempt): Promise<CoinbaseSpendResult> {
+    const action = this.toAction(agentId, attempt);
+    const policyId = this.policyIds.get(agentId) ?? "none";
+    this.emit({ type: "action_requested", agentId, action, ts: Date.now() });
+
+    if (this.revoked.has(agentId)) return this.block(agentId, action, policyId, "session revoked");
+    if (this.providerFrozen || this.frozenAgents.has(agentId)) return this.block(agentId, action, policyId, "frozen");
+    const policy = this.policies.get(agentId);
+    if (!policy) return this.block(agentId, action, policyId, "no policy (default deny)");
+
+    const decision = evaluatePolicy(policy, attempt, { dailySpent: this.dailySpent.get(agentId) });
+    if (decision.outcome === "deny") return this.block(agentId, action, policyId, decision.reason);
+    if (decision.outcome === "needs_approval") {
+      const approvalToken = nextId("appr");
+      this.emit({ type: "needs_approval", agentId, action, approvalToken, reason: decision.reason, ts: Date.now() });
+      return { outcome: "needs_approval", action, approvalToken, reason: decision.reason };
+    }
+
+    const acct = this.require(agentId);
+    const to = (attempt.counterparty ?? acct.address) as `0x${string}`;
+    const { transactionHash } = await this.client().evm.sendTransaction({
+      address: acct.address,
+      transaction: { to, value: BigInt(attempt.amount) },
+      network: attempt.venue as "base-sepolia",
+    });
+    if (attempt.asset === policy.asset) {
+      const prior = this.dailySpent.get(agentId) ?? "0";
+      this.dailySpent.set(agentId, (BigInt(prior) + BigInt(attempt.amount)).toString());
+    }
+    const allowedAction: ActionRequest = { ...action, raw: { transactionHash } };
+    this.emit({ type: "action_allowed", agentId, action: allowedAction, policyId, ts: Date.now() });
+    return { outcome: "allowed", action: allowedAction, transactionHash };
+  }
+
+  subscribe(handler: (event: ProviderEvent) => void): Unsubscribe {
+    this.handlers.add(handler);
+    return () => this.handlers.delete(handler);
   }
 
   async health(): Promise<HealthStatus> {
-    return { healthy: false, detail: "coinbase adapter: skeleton, no credentials configured" };
+    return { healthy: true, detail: "coinbase: live (Base Sepolia)" };
+  }
+
+  /* ---- internals ---- */
+
+  private require(agentId: AgentId): { address: `0x${string}` } {
+    const acct = this.accounts.get(agentId);
+    if (!acct) throw new Error(`coinbase: agent ${agentId} has no provisioned wallet`);
+    return acct;
+  }
+
+  private block(agentId: AgentId, action: ActionRequest, policyId: string, reason: string): CoinbaseSpendResult {
+    this.emit({ type: "action_blocked", agentId, action, policyId, reason, ts: Date.now() });
+    return { outcome: "blocked", action, reason };
+  }
+
+  private toAction(agentId: AgentId, attempt: SpendAttempt): ActionRequest {
+    return {
+      id: nextId("act"),
+      agentId,
+      kind: "transfer",
+      asset: attempt.asset,
+      amount: attempt.amount,
+      venue: attempt.venue,
+      ts: Date.now(),
+      ...(attempt.counterparty !== undefined ? { counterparty: attempt.counterparty } : {}),
+    };
+  }
+
+  private emit(event: ProviderEvent): void {
+    for (const h of this.handlers) h(event);
   }
 }

@@ -15,5 +15,8 @@
     "dotenv": "^17.4.2",
     "viem": "^2.52.2"
   },
-  "comment": "Skeleton. To finish: `pnpm add @coinbase/cdp-sdk` and fill methods per docs/sdk-research/coinbase.md"
+  "devDependencies": {
+    "@cosign/api": "workspace:*"
+  },
+  "comment": "LIVE adapter on Base Sepolia. smoke.ts verifies creds; spike.ts runs the Phase-0 proof (apply policy -> spend -> freeze blocks next spend) on a real testnet wallet."
 }
