@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # JS deps (pnpm via the npm ecosystem) — keeps vendor SDKs + tooling patched.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        patterns: ["vitest", "@vitest/*", "vite", "tsx", "typescript", "@types/*"]
+  # Keep GitHub Actions pinned + patched.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
