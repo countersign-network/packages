@@ -24,6 +24,7 @@ import {
   type WsServerMessage,
 } from "@cosign/api-contract";
 import { CosignCore } from "./core-service";
+import type { CoreResolver } from "./tenants";
 
 export interface CosignServer {
   http: Server;
@@ -79,7 +80,9 @@ function apiKeyFrom(req: IncomingMessage): string {
 // Mutating / spend-decision routes need operator+; everything else is read-only (viewer+).
 const WRITE_ROUTES = new Set(["POST /policy", "POST /freeze", "POST /unfreeze", "POST /evaluate", "POST /approve", "POST /deny"]);
 
-export function createCosignServer(core: CosignCore, opts: CosignServerOptions = {}): CosignServer {
+export function createCosignServer(coreOrResolver: CosignCore | CoreResolver, opts: CosignServerOptions = {}): CosignServer {
+  // A single Core => single-tenant (the demo). A resolver => one isolated Core per tenant.
+  const resolveCore: CoreResolver = typeof coreOrResolver === "function" ? coreOrResolver : () => coreOrResolver;
   const apiKeys = opts.apiKeys ?? {};
   const authEnabled = Object.keys(apiKeys).length > 0;
   if (!authEnabled && process.env["NODE_ENV"] !== "test") {
@@ -127,21 +130,26 @@ export function createCosignServer(core: CosignCore, opts: CosignServerOptions =
       }
     }
     res.setHeader("x-cosign-tenant", tenantId);
-    handle(core, req, res, tenantId).catch((err) => {
-      send(res, 500, { error: err instanceof Error ? err.message : String(err) });
+    Promise.resolve(resolveCore(tenantId))
+      .then((core) => handle(core, req, res, tenantId))
+      .catch((err) => {
+        send(res, 500, { error: err instanceof Error ? err.message : String(err) });
     });
   });
 
   const wss = new WebSocketServer({ server: http, path: WS_PATH });
   wss.on("connection", async (socket, req) => {
+    let tenantId = "default";
     if (authEnabled) {
       // Browsers can't set ws headers, so the event stream takes the key as ?key=<key> when auth is on.
-      const key = new URL(req.url ?? "/", "http://localhost").searchParams.get("key") ?? "";
-      if (!apiKeys[key]) {
+      const info = apiKeys[new URL(req.url ?? "/", "http://localhost").searchParams.get("key") ?? ""];
+      if (!info) {
         socket.close(1008, "unauthorized");
         return;
       }
+      tenantId = info.tenant;
     }
+    const core = await resolveCore(tenantId); // stream this tenant's ledger only
     const tx = (m: WsServerMessage) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(m));
     tx({ type: "hello", providers: await core.health() });
     const unsub = core.onLedgerAppend((record) => tx({ type: "ledger_append", record: toDto(record) }));

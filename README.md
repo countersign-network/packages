@@ -13,7 +13,7 @@ aggregation is the moat.
 pnpm install
 pnpm demo        # 3 agents / 3 backends / 3 venues — one freeze < 1s, fully audited
 pnpm typecheck   # strict TS across the workspace
-pnpm test        # 62 tests: compiler, hash-chain (+pglite), fail-closed matrix, <1s SLO, REST+ws
+pnpm test        # 100 tests: compiler, signed hash-chain, fail-closed matrix, <1s SLO, auth/RBAC, multi-tenancy, MCP, x402, anomaly
 ```
 
 ## What `pnpm demo` shows
@@ -68,7 +68,7 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested (98 tests):** core + freeze controller, policy compiler,
+- **Done, credential-free & tested (100 tests):** core + freeze controller, policy compiler,
   hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
   guard** (`POST /evaluate`) + **human-in-the-loop approval workflow** (fail-closed: a freeze
   overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one
