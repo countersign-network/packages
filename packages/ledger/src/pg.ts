@@ -22,10 +22,14 @@ interface Row {
 }
 
 export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
+  readonly publicKey: string | undefined;
+
   private constructor(
     private readonly db: PGlite,
     private readonly signer?: LedgerSigner,
-  ) {}
+  ) {
+    this.publicKey = signer?.publicKey;
+  }
 
   /** Create an embedded (pglite) ledger. Pass a connection string for a real Postgres later. */
   static async create<T = LedgerEvent>(dataDir?: string, signer?: LedgerSigner): Promise<PgLedger<T>> {

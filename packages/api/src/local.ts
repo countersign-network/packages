@@ -64,7 +64,8 @@ export function createLocalApi(core: CosignCore): CosignApi {
         rowHash: r.rowHash,
         payload: r.payload,
       }));
-      return { records, verified: await core.verifyLedger() };
+      const publicKey = core.ledgerPublicKey();
+      return { records, verified: await core.verifyLedger(), ...(publicKey ? { publicKey } : {}) };
     },
   };
 }

@@ -258,6 +258,7 @@ components:
       required: [records, verified]
       properties:
         verified: { type: boolean }
+        publicKey: { type: string, description: Ed25519 public key (base64) to independently verify the signed ledger }
         records:
           type: array
           items:

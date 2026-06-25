@@ -261,6 +261,11 @@ export class CosignCore {
     return (await this.ledger.verify()).ok;
   }
 
+  /** The ledger signer's public key (base64), if signed — for independent third-party verification. */
+  ledgerPublicKey(): string | undefined {
+    return this.ledger.publicKey;
+  }
+
   /** Append a controller/monitor-origin event to the ledger (e.g. anomaly detections). */
   async recordEvent(event: LedgerEvent): Promise<void> {
     await this.append(event);
