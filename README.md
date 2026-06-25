@@ -32,6 +32,9 @@ pnpm test        # 62 tests: compiler, hash-chain (+pglite), fail-closed matrix,
 A TypeScript **Core** (the brain) that a thin **Flutter client** talks to. All crypto/SDK weight
 lives in Core; the client holds no keys. The language boundary is the trust boundary.
 
+**Diagrams:** see [`docs/architecture.md`](docs/architecture.md) — system overview + the spend-guard
+and cross-vendor-freeze flows (Mermaid, renders on GitHub).
+
 | Package | Role |
 |---|---|
 | `packages/core` | `EnforcementProvider` interface, branded ids, the fail-closed **freeze controller** |
