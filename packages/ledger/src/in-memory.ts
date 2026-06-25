@@ -1,5 +1,5 @@
 import type { LedgerEvent } from "@cosign/core";
-import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type VerifyResult } from "./hash-chain";
+import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
 import type { LedgerPort } from "./port";
 
 /**
@@ -9,9 +9,11 @@ import type { LedgerPort } from "./port";
 export class InMemoryLedger<T = LedgerEvent> implements LedgerPort<T> {
   private readonly rows: LedgerRecord<T>[] = [];
 
+  constructor(private readonly signer?: LedgerSigner) {}
+
   async append(payload: T): Promise<LedgerRecord<T>> {
     const prev = this.rows.length > 0 ? this.rows[this.rows.length - 1]!.rowHash : GENESIS_HASH;
-    const rec = makeRecord<T>(this.rows.length, prev, payload);
+    const rec = makeRecord<T>(this.rows.length, prev, payload, this.signer);
     this.rows.push(rec);
     return rec;
   }
@@ -33,7 +35,7 @@ export class InMemoryLedger<T = LedgerEvent> implements LedgerPort<T> {
   }
 
   async verify(): Promise<VerifyResult> {
-    return verifyChain(this.rows);
+    return verifyChain(this.rows, this.signer);
   }
 
   async query(predicate: (payload: T) => boolean): Promise<LedgerRecord<T>[]> {

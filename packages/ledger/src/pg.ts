@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import type { LedgerEvent } from "@cosign/core";
-import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type VerifyResult } from "./hash-chain";
+import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
 import type { LedgerPort } from "./port";
 
 /**
@@ -18,13 +18,17 @@ interface Row {
   payload_hash: string;
   row_hash: string;
   payload: unknown;
+  signature: string | null;
 }
 
 export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
-  private constructor(private readonly db: PGlite) {}
+  private constructor(
+    private readonly db: PGlite,
+    private readonly signer?: LedgerSigner,
+  ) {}
 
   /** Create an embedded (pglite) ledger. Pass a connection string for a real Postgres later. */
-  static async create<T = LedgerEvent>(dataDir?: string): Promise<PgLedger<T>> {
+  static async create<T = LedgerEvent>(dataDir?: string, signer?: LedgerSigner): Promise<PgLedger<T>> {
     const { PGlite } = await import("@electric-sql/pglite");
     const db = dataDir ? new PGlite(dataDir) : new PGlite();
     await db.exec(`
@@ -33,20 +37,21 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
         prev_hash    TEXT NOT NULL,
         payload_hash TEXT NOT NULL,
         row_hash     TEXT NOT NULL,
-        payload      JSONB NOT NULL
+        payload      JSONB NOT NULL,
+        signature    TEXT
       );
     `);
-    return new PgLedger<T>(db);
+    return new PgLedger<T>(db, signer);
   }
 
   async append(payload: T): Promise<LedgerRecord<T>> {
     const head = await this.getHead();
     const prev = head?.rowHash ?? GENESIS_HASH;
     const index = head ? head.index + 1 : 0;
-    const rec = makeRecord<T>(index, prev, payload);
+    const rec = makeRecord<T>(index, prev, payload, this.signer);
     await this.db.query(
-      "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload) VALUES ($1, $2, $3, $4, $5::jsonb)",
-      [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload)],
+      "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload, signature) VALUES ($1, $2, $3, $4, $5::jsonb, $6)",
+      [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload), rec.signature ?? null],
     );
     return rec;
   }
@@ -58,6 +63,7 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
       payloadHash: r.payload_hash,
       rowHash: r.row_hash,
       payload: r.payload as T,
+      ...(r.signature ? { signature: r.signature } : {}),
     };
   }
 
@@ -84,7 +90,7 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
   }
 
   async verify(): Promise<VerifyResult> {
-    return verifyChain(await this.all());
+    return verifyChain(await this.all(), this.signer);
   }
 
   async query(predicate: (payload: T) => boolean): Promise<LedgerRecord<T>[]> {
