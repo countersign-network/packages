@@ -37,7 +37,10 @@ B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s 
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
 ~~E. Anomaly-freeze v0~~ **DONE** ✅ (`AnomalyMonitor` — velocity / blocked-burst / new-counterparty / cumulative → alert or auto-freeze; wired into the demo + live dashboard).
 ~~H. Approval workflow~~ **DONE** ✅ (`/approvals` `/approve` `/deny` — list + resolve `needs_approval`; fail-closed: a freeze overrides a pending approval; wired into the dashboard + MCP tools).
-G. **Hosted free-tier deploy** of the Core (so `cosign-mcp` can default to a public testnet Core, not just embedded) + publish `@cosign/mcp` to npm for true one-line install. *(needs a deploy target from you)*
+~~G. Hosted Core + durable Postgres~~ **DONE** ✅ — live at https://cosign-b7ru.onrender.com (Render
+Docker), now backed by a **signed Postgres ledger** (managed PG `dpg-d8uevjgk1i2s73esmeu0-a`, free plan
+→ upgrade to basic-256mb for >30-day retention; `DATABASE_URL` wired). `/ledger` verifies + exposes the
+public key. ⬜ Optional: publish `@cosign/mcp` to npm for a true one-line install; off-Free always-on.
 
 ~~A. Real Coinbase adapter + Phase-0 spike~~ **DONE** ✅ — LIVE on Base Sepolia (`spike.ts`).
 ~~Coinbase native hardening~~ **DONE** ✅ — per-tx cap pushed into Coinbase's MPC (CDP account
