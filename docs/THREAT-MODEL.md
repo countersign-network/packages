@@ -57,10 +57,12 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds
   (`COSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
   attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
-  ⬜ Still to do: **external anchoring** of the head hash (transparency log / on-chain) + DB-level
-  append-only (block UPDATE/DELETE).
+  **Anchoring seam in place**: `LedgerAnchor` (+ `FileAnchor` reference) publishes the head after
+  each freeze; swap in an on-chain / transparency-log anchor for a real cross-trust-domain guarantee.
+  ⬜ Still to do: a real external anchor target + DB-level append-only (block UPDATE/DELETE).
 - ✅ **Rate limiting** — fixed-window cap on mutating routes (per API key / per IP), 429 + Retry-After. Tested.
 - ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
   Forced a patched `ws` via a `pnpm-workspace.yaml` override (GHSA-96hv-2xvq-fx4p). Prod tree is clean.
-- ⬜ **invariant #5** test (compiled policy never weaker than the unified policy).
+- ✅ **invariant #5** — property test: every set policy field is natively enforced OR flagged
+  `unsupported` (Cosign-enforced) — the compiler can't silently drop/weaken a field. All 3 modes.
 - ⬜ **Third-party security audit** before mainnet / real funds.

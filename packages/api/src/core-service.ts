@@ -19,7 +19,7 @@ import {
   type ProviderRegistration,
   type Venue,
 } from "@cosign/core";
-import { InMemoryLedger, type LedgerPort, type LedgerRecord } from "@cosign/ledger";
+import { InMemoryLedger, anchorHead, type AnchorPoint, type LedgerAnchor, type LedgerPort, type LedgerRecord } from "@cosign/ledger";
 import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
 import type {
   ApplyPolicyResult,
@@ -32,6 +32,8 @@ import type {
 
 export interface CosignCoreOptions {
   ledger?: LedgerPort<LedgerEvent>;
+  /** External anchor for the ledger head (published after each freeze). See ledger/anchor.ts. */
+  anchor?: LedgerAnchor;
   freezeTimeoutMs?: number;
   escalateTimeoutMs?: number;
   now?: () => number;
@@ -53,9 +55,11 @@ export class CosignCore {
   private readonly pending = new Map<string, { agentId: AgentId; providerId: ProviderId; action: ActionRequest; attempt: SpendAttempt; policyId: string; reason: string }>();
   // Frozen posture — fail-closed: while frozen, pending approvals cannot be approved through.
   private frozen = false;
+  private readonly anchor?: LedgerAnchor;
 
   constructor(opts: CosignCoreOptions = {}) {
     this.ledger = opts.ledger ?? new InMemoryLedger<LedgerEvent>();
+    if (opts.anchor) this.anchor = opts.anchor;
     this.controller = new FreezeController(this.registrations, {
       record: (e) => this.append(e),
       ...(opts.freezeTimeoutMs !== undefined ? { freezeTimeoutMs: opts.freezeTimeoutMs } : {}),
@@ -129,7 +133,14 @@ export class CosignCore {
   async freezeAll(reason = "manual freeze"): Promise<FreezeReport> {
     const report = await this.controller.freezeAll(reason);
     this.frozen = true; // fail-closed posture: blocks approving pending spends through
+    // Anchor the ledger head at the freeze moment (best-effort; the critical point to externalise).
+    if (this.anchor) await anchorHead(this.ledger, this.anchor).catch(() => undefined);
     return report;
+  }
+
+  /** Publish the current ledger head to the external anchor (no-op if no anchor configured). */
+  async anchorNow(): Promise<AnchorPoint | undefined> {
+    return this.anchor ? anchorHead(this.ledger, this.anchor) : undefined;
   }
 
   /** Lift a freeze across every backend (demo/replay; real product needs it too). */
