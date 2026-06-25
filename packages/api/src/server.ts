@@ -50,13 +50,21 @@ async function readJson<T>(req: IncomingMessage): Promise<T> {
 const toDto = (r: { index: number; prevHash: string; payloadHash: string; rowHash: string; payload: unknown }): LedgerRecordDTO =>
   ({ index: r.index, prevHash: r.prevHash, payloadHash: r.payloadHash, rowHash: r.rowHash, payload: r.payload as LedgerRecordDTO["payload"] });
 
+export type Role = "viewer" | "operator" | "admin";
+const ROLE_RANK: Record<Role, number> = { viewer: 1, operator: 2, admin: 3 };
+
+export interface ApiKeyInfo {
+  tenant: string;
+  role: Role;
+}
+
 export interface CosignServerOptions {
   /**
-   * Map of API key -> tenant id. If non-empty, every JSON API route requires a valid key
-   * (Authorization: Bearer <key>, or x-api-key). Empty => OPEN (demo mode). The resolved tenant is
-   * the seam for multi-tenancy (today: one Core; next: a Core per tenant — see THREAT-MODEL.md).
+   * Map of API key -> { tenant, role }. If non-empty, every JSON route requires a valid key
+   * (Authorization: Bearer <key>, or x-api-key). Empty => OPEN (demo mode). Roles: viewer (read),
+   * operator (+ policy/freeze/approve/evaluate), admin. The tenant is the multi-tenancy seam (THREAT-MODEL.md).
    */
-  apiKeys?: Record<string, string>;
+  apiKeys?: Record<string, ApiKeyInfo>;
 }
 
 function apiKeyFrom(req: IncomingMessage): string {
@@ -65,6 +73,9 @@ function apiKeyFrom(req: IncomingMessage): string {
   const x = req.headers["x-api-key"];
   return typeof x === "string" ? x : "";
 }
+
+// Mutating / spend-decision routes need operator+; everything else is read-only (viewer+).
+const WRITE_ROUTES = new Set(["POST /policy", "POST /freeze", "POST /unfreeze", "POST /evaluate", "POST /approve", "POST /deny"]);
 
 export function createCosignServer(core: CosignCore, opts: CosignServerOptions = {}): CosignServer {
   const apiKeys = opts.apiKeys ?? {};
@@ -79,11 +90,15 @@ export function createCosignServer(core: CosignCore, opts: CosignServerOptions =
     const isOpen = req.method === "GET" && (url.pathname === "/" || url.pathname === "/health");
     let tenantId = "default";
     if (authEnabled && !isOpen) {
-      const tenant = apiKeys[apiKeyFrom(req)];
-      if (!tenant) {
+      const info = apiKeys[apiKeyFrom(req)];
+      if (!info) {
         return send(res, 401, { error: "unauthorized: provide a valid API key via 'Authorization: Bearer <key>'" });
       }
-      tenantId = tenant;
+      const need: Role = WRITE_ROUTES.has(`${req.method} ${url.pathname}`) ? "operator" : "viewer";
+      if (ROLE_RANK[info.role] < ROLE_RANK[need]) {
+        return send(res, 403, { error: `forbidden: '${need}' role required (this key is '${info.role}')` });
+      }
+      tenantId = info.tenant;
     }
     res.setHeader("x-cosign-tenant", tenantId);
     handle(core, req, res, tenantId).catch((err) => {
@@ -188,7 +203,8 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     }
     case "GET /ledger": {
       const records = (await core.ledgerRecords()).map(toDto);
-      const body: LedgerResponse = { records, verified: await core.verifyLedger() };
+      const publicKey = core.ledgerPublicKey();
+      const body: LedgerResponse = { records, verified: await core.verifyLedger(), ...(publicKey ? { publicKey } : {}) };
       return send(res, 200, body);
     }
     default:

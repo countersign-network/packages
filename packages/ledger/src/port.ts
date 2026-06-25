@@ -10,6 +10,8 @@ import type { LedgerRecord, VerifyResult } from "./hash-chain";
  * be handed straight to the FreezeController as its `record` sink.
  */
 export interface LedgerPort<T = LedgerEvent> {
+  /** The signer's public key (base64 SPKI), if the ledger is signed — publish it for verification. */
+  readonly publicKey?: string | undefined;
   append(payload: T): Promise<LedgerRecord<T>>;
   getByIndex(index: number): Promise<LedgerRecord<T> | undefined>;
   getHead(): Promise<LedgerRecord<T> | undefined>;

@@ -10,7 +10,7 @@
 import type { LedgerEvent } from "@cosign/core";
 import { definePolicy, type SpendAttempt } from "@cosign/policy";
 import { InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
-import { AnomalyMonitor, createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
+import { AnomalyMonitor, createCosignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
 
 // Sign the ledger so it's tamper-evident even against the DB owner. Set COSIGN_LEDGER_KEY (base64
 // PKCS8) for a stable identity; otherwise a fresh key is generated each boot.
@@ -41,16 +41,17 @@ new AnomalyMonitor(core, {
   blockedBurst: { maxBlocked: 4, windowMs: 15_000, action: "alert" },
 });
 
-// API auth: COSIGN_API_KEYS="key1:tenantA,key2:tenantB" (or COSIGN_API_KEY=<key> for tenant "default").
-// Unset => OPEN demo mode. Set it to lock the hosted Core down.
-function parseApiKeys(): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const pair of (process.env["COSIGN_API_KEYS"] ?? "").split(",")) {
-    const [key, tenant] = pair.split(":");
-    if (key?.trim()) map[key.trim()] = (tenant ?? "default").trim();
+// API auth: COSIGN_API_KEYS="key1:tenantA:operator,key2:tenantB:viewer" (role optional, defaults
+// operator). Or COSIGN_API_KEY=<key> for tenant "default", operator. Unset => OPEN demo mode.
+function parseApiKeys(): Record<string, ApiKeyInfo> {
+  const map: Record<string, ApiKeyInfo> = {};
+  const roleOf = (r?: string): Role => (r === "viewer" || r === "admin" ? r : "operator");
+  for (const entry of (process.env["COSIGN_API_KEYS"] ?? "").split(",")) {
+    const [key, tenant, role] = entry.split(":");
+    if (key?.trim()) map[key.trim()] = { tenant: (tenant ?? "default").trim(), role: roleOf(role?.trim()) };
   }
   const single = process.env["COSIGN_API_KEY"]?.trim();
-  if (single) map[single] = "default";
+  if (single) map[single] = { tenant: "default", role: "operator" };
   return map;
 }
 

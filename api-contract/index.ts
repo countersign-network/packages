@@ -117,8 +117,10 @@ export interface LedgerRecordDTO {
 
 export interface LedgerResponse {
   records: LedgerRecordDTO[];
-  /** Result of re-verifying the hash chain at read time. */
+  /** Result of re-verifying the hash chain (and signatures, if signed) at read time. */
   verified: boolean;
+  /** Ed25519 public key (base64 SPKI) to independently verify the signed ledger, if signed. */
+  publicKey?: string;
 }
 
 /** Messages the Core pushes to the client over the websocket. */

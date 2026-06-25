@@ -52,10 +52,12 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ **Secret scanning** in CI (gitleaks) + `.gitleaks.toml`; `.env` gitignored.
 - ⬜ **Full multi-tenancy** — today one Core; next: a Core (or row-level `tenant_id`) per tenant,
   selected by the API key. The auth→tenant resolution is the seam.
-- ⬜ **RBAC** — distinguish freeze vs view vs apply-policy per key.
+- ✅ **RBAC** — keys carry a role (`viewer` / `operator` / `admin`); mutating + spend-decision routes
+  require operator+, read routes viewer+ (403 otherwise). Tested.
 - ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds
   (`COSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
-  attack by a DB owner (tested). ⬜ Still to do: **external anchoring** of the head hash (transparency
-  log / on-chain), DB-level append-only (block UPDATE/DELETE), and exposing the public key via the API.
+  attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
+  ⬜ Still to do: **external anchoring** of the head hash (transparency log / on-chain) + DB-level
+  append-only (block UPDATE/DELETE).
 - ⬜ **Rate limiting** on mutating endpoints; **invariant #5** test; **`pnpm audit` + Dependabot** in CI.
 - ⬜ **Third-party security audit** before mainnet / real funds.

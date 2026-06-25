@@ -92,15 +92,19 @@ describe("Cosign Core server (REST + ws)", () => {
   });
 });
 
-describe("API auth + tenant seam", () => {
+describe("API auth + RBAC + tenant seam", () => {
   let authServer: CosignServer;
   let authBase: string;
+  const opKey = { authorization: "Bearer op-key" };
+  const viewKey = { authorization: "Bearer view-key" };
 
   beforeAll(async () => {
     const core = new CosignCore();
     await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
     await core.provisionAgent("coinbase", asAgentId("a"), "base-sepolia");
-    authServer = createCosignServer(core, { apiKeys: { "test-key-123": "acme" } });
+    authServer = createCosignServer(core, {
+      apiKeys: { "op-key": { tenant: "acme", role: "operator" }, "view-key": { tenant: "acme", role: "viewer" } },
+    });
     authBase = `http://localhost:${await authServer.listen(0)}`;
   });
 
@@ -112,18 +116,20 @@ describe("API auth + tenant seam", () => {
     expect((await fetch(`${authBase}/health`)).status).toBe(200);
   });
 
-  it("a protected route returns 401 without a key", async () => {
+  it("no key / wrong key is 401", async () => {
     expect((await fetch(`${authBase}/agents`)).status).toBe(401);
-    expect((await fetch(`${authBase}/freeze`, { method: "POST" })).status).toBe(401);
+    expect((await fetch(`${authBase}/agents`, { headers: { authorization: "Bearer nope" } })).status).toBe(401);
   });
 
   it("a valid key passes and resolves the tenant", async () => {
-    const res = await fetch(`${authBase}/agents`, { headers: { authorization: "Bearer test-key-123" } });
+    const res = await fetch(`${authBase}/agents`, { headers: opKey });
     expect(res.status).toBe(200);
     expect(res.headers.get("x-cosign-tenant")).toBe("acme");
   });
 
-  it("a wrong key is rejected", async () => {
-    expect((await fetch(`${authBase}/agents`, { headers: { authorization: "Bearer nope" } })).status).toBe(401);
+  it("RBAC: viewer can read but cannot freeze (403); operator can", async () => {
+    expect((await fetch(`${authBase}/agents`, { headers: viewKey })).status).toBe(200); // read ok
+    expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: viewKey })).status).toBe(403); // write denied
+    expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: opKey })).status).toBe(200); // operator ok
   });
 });

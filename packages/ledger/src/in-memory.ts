@@ -8,8 +8,11 @@ import type { LedgerPort } from "./port";
  */
 export class InMemoryLedger<T = LedgerEvent> implements LedgerPort<T> {
   private readonly rows: LedgerRecord<T>[] = [];
+  readonly publicKey: string | undefined;
 
-  constructor(private readonly signer?: LedgerSigner) {}
+  constructor(private readonly signer?: LedgerSigner) {
+    this.publicKey = signer?.publicKey;
+  }
 
   async append(payload: T): Promise<LedgerRecord<T>> {
     const prev = this.rows.length > 0 ? this.rows[this.rows.length - 1]!.rowHash : GENESIS_HASH;

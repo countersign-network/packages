@@ -23,11 +23,14 @@ interface Row {
 
 export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
   private tail: Promise<unknown> = Promise.resolve();
+  readonly publicKey: string | undefined;
 
   private constructor(
     private readonly pool: Pool,
     private readonly signer?: LedgerSigner,
-  ) {}
+  ) {
+    this.publicKey = signer?.publicKey;
+  }
 
   static async create<T = LedgerEvent>(connectionString: string, signer?: LedgerSigner): Promise<PostgresLedger<T>> {
     const { Pool } = await import("pg");
