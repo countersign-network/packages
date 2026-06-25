@@ -68,7 +68,7 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested (94 tests):** core + freeze controller, policy compiler,
+- **Done, credential-free & tested (98 tests):** core + freeze controller, policy compiler,
   hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
   guard** (`POST /evaluate`) + **human-in-the-loop approval workflow** (fail-closed: a freeze
   overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one

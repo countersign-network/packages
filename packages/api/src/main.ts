@@ -9,7 +9,7 @@
 
 import type { LedgerEvent } from "@cosign/core";
 import { definePolicy, type SpendAttempt } from "@cosign/policy";
-import { InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
+import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
 import { AnomalyMonitor, createCosignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
 
 // Sign the ledger so it's tamper-evident even against the DB owner. Set COSIGN_LEDGER_KEY (base64
@@ -21,8 +21,13 @@ const ledger = databaseUrl
   ? await PostgresLedger.create<LedgerEvent>(databaseUrl, signer)
   : new InMemoryLedger<LedgerEvent>(signer);
 
-const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger });
-console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)`);
+// Optional external anchor for the ledger head (set COSIGN_ANCHOR_FILE). For a real cross-trust-domain
+// guarantee, swap FileAnchor for an on-chain / transparency-log anchor (see ledger/anchor.ts).
+const anchorFile = process.env["COSIGN_ANCHOR_FILE"];
+const anchor = anchorFile ? new FileAnchor(anchorFile) : undefined;
+
+const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}) });
+console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)${anchor ? ` · anchoring → ${anchorFile}` : ""}`);
 // A policy with an approval band so the live dashboard surfaces pending approvals to act on.
 await core.applyPolicy(
   definePolicy({

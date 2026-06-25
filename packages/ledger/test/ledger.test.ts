@@ -1,6 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { asProviderId, type LedgerEvent } from "@cosign/core";
-import { GENESIS_HASH, InMemoryLedger, PgLedger, createEd25519Signer, makeRecord, verifyChain, type LedgerPort } from "@cosign/ledger";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { rm } from "node:fs/promises";
+import {
+  FileAnchor,
+  GENESIS_HASH,
+  InMemoryLedger,
+  PgLedger,
+  anchorHead,
+  createEd25519Signer,
+  makeRecord,
+  verifyChain,
+  type LedgerPort,
+} from "@cosign/ledger";
 
 type Tamperable = LedgerPort<LedgerEvent> & {
   __danger_corruptPayload(index: number, payload: LedgerEvent): Promise<void>;
@@ -121,5 +134,24 @@ describe("ledger signing (tamper-evident even against the DB owner)", () => {
     const r0 = makeRecord(0, GENESIS_HASH, freezeReq(0), a);
     expect(verifyChain([r0], a)).toEqual({ ok: true });
     expect(verifyChain([r0], b).ok).toBe(false);
+  });
+});
+
+describe("external anchoring seam", () => {
+  it("anchorHead publishes the ledger head to a separate store (FileAnchor)", async () => {
+    const path = join(tmpdir(), "cosign-anchor-test.jsonl");
+    await rm(path, { force: true });
+
+    const ledger = new InMemoryLedger<LedgerEvent>();
+    await ledger.append(freezeReq(0));
+    await ledger.append(freezeReq(1));
+
+    const anchor = new FileAnchor(path);
+    const point = await anchorHead(ledger, anchor, () => 12345);
+    const head = await ledger.getHead();
+
+    expect(point).toEqual({ index: 1, rowHash: head!.rowHash, ts: 12345 });
+    expect(await anchor.read()).toEqual([point]); // recorded in the external store
+    await rm(path, { force: true });
   });
 });
