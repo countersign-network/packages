@@ -133,3 +133,31 @@ describe("API auth + RBAC + tenant seam", () => {
     expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: opKey })).status).toBe(200); // operator ok
   });
 });
+
+describe("rate limiting on mutating routes", () => {
+  let rlServer: CosignServer;
+  let rlBase: string;
+
+  beforeAll(async () => {
+    const core = new CosignCore();
+    await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
+    rlServer = createCosignServer(core, { rateLimit: { windowMs: 60_000, max: 2 } });
+    rlBase = `http://localhost:${await rlServer.listen(0)}`;
+  });
+
+  afterAll(async () => {
+    await rlServer.close();
+  });
+
+  it("allows up to the limit, then returns 429 with Retry-After", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 3; i++) statuses.push((await fetch(`${rlBase}/freeze`, { method: "POST" })).status);
+    expect(statuses).toEqual([200, 200, 429]);
+    const blocked = await fetch(`${rlBase}/freeze`, { method: "POST" });
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
+  });
+
+  it("does not rate-limit reads", async () => {
+    for (let i = 0; i < 5; i++) expect((await fetch(`${rlBase}/health`)).status).toBe(200);
+  });
+});

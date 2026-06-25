@@ -4,5 +4,8 @@ packages:
   - 'api-contract'
 allowBuilds:
   esbuild: true
+# Force a patched ws everywhere (transitive vulnerable ws via viem/isows — GHSA-96hv-2xvq-fx4p).
+overrides:
+  ws: '>=8.21.0'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.

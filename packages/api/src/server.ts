@@ -65,6 +65,8 @@ export interface CosignServerOptions {
    * operator (+ policy/freeze/approve/evaluate), admin. The tenant is the multi-tenancy seam (THREAT-MODEL.md).
    */
   apiKeys?: Record<string, ApiKeyInfo>;
+  /** Fixed-window rate limit on mutating routes, per API key (or per client IP when open). max<=0 disables. */
+  rateLimit?: { windowMs?: number; max?: number };
 }
 
 function apiKeyFrom(req: IncomingMessage): string {
@@ -84,8 +86,25 @@ export function createCosignServer(core: CosignCore, opts: CosignServerOptions =
     console.warn("[cosign] no API keys configured — the API is OPEN. Set COSIGN_API_KEYS to lock it down.");
   }
 
+  // Fixed-window rate limiter for mutating routes — a basic DoS / runaway-agent guard.
+  const windowMs = opts.rateLimit?.windowMs ?? 60_000;
+  const maxWrites = opts.rateLimit?.max ?? 120;
+  const hits = new Map<string, { count: number; reset: number }>();
+  const allowWrite = (key: string): boolean => {
+    if (maxWrites <= 0) return true;
+    const now = Date.now();
+    const e = hits.get(key);
+    if (!e || now >= e.reset) {
+      hits.set(key, { count: 1, reset: now + windowMs });
+      return true;
+    }
+    e.count += 1;
+    return e.count <= maxWrites;
+  };
+
   const http = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
+    const route = `${req.method} ${url.pathname}`;
     // GET / (dashboard) and GET /health stay open: liveness probes + the demo UI. Everything else gated.
     const isOpen = req.method === "GET" && (url.pathname === "/" || url.pathname === "/health");
     let tenantId = "default";
@@ -94,11 +113,18 @@ export function createCosignServer(core: CosignCore, opts: CosignServerOptions =
       if (!info) {
         return send(res, 401, { error: "unauthorized: provide a valid API key via 'Authorization: Bearer <key>'" });
       }
-      const need: Role = WRITE_ROUTES.has(`${req.method} ${url.pathname}`) ? "operator" : "viewer";
+      const need: Role = WRITE_ROUTES.has(route) ? "operator" : "viewer";
       if (ROLE_RANK[info.role] < ROLE_RANK[need]) {
         return send(res, 403, { error: `forbidden: '${need}' role required (this key is '${info.role}')` });
       }
       tenantId = info.tenant;
+    }
+    if (WRITE_ROUTES.has(route)) {
+      const rlKey = apiKeyFrom(req) || `${req.socket.remoteAddress ?? "anon"}:${tenantId}`;
+      if (!allowWrite(rlKey)) {
+        res.setHeader("retry-after", String(Math.ceil(windowMs / 1000)));
+        return send(res, 429, { error: "rate limit exceeded — slow down" });
+      }
     }
     res.setHeader("x-cosign-tenant", tenantId);
     handle(core, req, res, tenantId).catch((err) => {

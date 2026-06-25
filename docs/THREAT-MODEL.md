@@ -59,5 +59,8 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
   attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
   ⬜ Still to do: **external anchoring** of the head hash (transparency log / on-chain) + DB-level
   append-only (block UPDATE/DELETE).
-- ⬜ **Rate limiting** on mutating endpoints; **invariant #5** test; **`pnpm audit` + Dependabot** in CI.
+- ✅ **Rate limiting** — fixed-window cap on mutating routes (per API key / per IP), 429 + Retry-After. Tested.
+- ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
+  Forced a patched `ws` via a `pnpm-workspace.yaml` override (GHSA-96hv-2xvq-fx4p). Prod tree is clean.
+- ⬜ **invariant #5** test (compiled policy never weaker than the unified policy).
 - ⬜ **Third-party security audit** before mainnet / real funds.
