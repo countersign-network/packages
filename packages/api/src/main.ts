@@ -36,7 +36,20 @@ new AnomalyMonitor(core, {
   blockedBurst: { maxBlocked: 4, windowMs: 15_000, action: "alert" },
 });
 
-const server = createCosignServer(core);
+// API auth: COSIGN_API_KEYS="key1:tenantA,key2:tenantB" (or COSIGN_API_KEY=<key> for tenant "default").
+// Unset => OPEN demo mode. Set it to lock the hosted Core down.
+function parseApiKeys(): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const pair of (process.env["COSIGN_API_KEYS"] ?? "").split(",")) {
+    const [key, tenant] = pair.split(":");
+    if (key?.trim()) map[key.trim()] = (tenant ?? "default").trim();
+  }
+  const single = process.env["COSIGN_API_KEY"]?.trim();
+  if (single) map[single] = "default";
+  return map;
+}
+
+const server = createCosignServer(core, { apiKeys: parseApiKeys() });
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));
 console.log(`\n  Cosign dashboard:  http://localhost:${port}`);
 console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);
