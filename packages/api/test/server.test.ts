@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { asAgentId } from "@cosign/core";
 import { definePolicy } from "@cosign/policy";
 import { MockProvider } from "@cosign/provider-mock";
-import { CosignCore, createCosignServer, type CosignServer } from "@cosign/api";
+import { CosignCore, TenantRegistry, createCosignServer, type CosignServer } from "@cosign/api";
 import type { AgentsResponse, HealthResponse, LedgerResponse, WsServerMessage } from "@cosign/api-contract";
 import type { FreezeReport } from "@cosign/core";
 
@@ -159,5 +159,45 @@ describe("rate limiting on mutating routes", () => {
 
   it("does not rate-limit reads", async () => {
     for (let i = 0; i < 5; i++) expect((await fetch(`${rlBase}/health`)).status).toBe(200);
+  });
+});
+
+describe("multi-tenancy (one isolated Core per tenant)", () => {
+  let mtServer: CosignServer;
+  let mtBase: string;
+  const acme = { authorization: "Bearer acme-key" };
+  const globex = { authorization: "Bearer globex-key" };
+
+  beforeAll(async () => {
+    // A Core per tenant, each with its own provider + a tenant-named agent + its own ledger.
+    const registry = new TenantRegistry(async (tenantId) => {
+      const core = new CosignCore();
+      await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
+      await core.provisionAgent("coinbase", asAgentId(`${tenantId}-bot`), "base-sepolia");
+      return core;
+    });
+    mtServer = createCosignServer(registry.resolver(), {
+      apiKeys: { "acme-key": { tenant: "acme", role: "operator" }, "globex-key": { tenant: "globex", role: "operator" } },
+    });
+    mtBase = `http://localhost:${await mtServer.listen(0)}`;
+  });
+
+  afterAll(async () => {
+    await mtServer.close();
+  });
+
+  it("each tenant sees only its own agents", async () => {
+    const a = (await (await fetch(`${mtBase}/agents`, { headers: acme })).json()) as AgentsResponse;
+    const g = (await (await fetch(`${mtBase}/agents`, { headers: globex })).json()) as AgentsResponse;
+    expect(a.agents.map((x) => x.agentId)).toEqual(["acme-bot"]);
+    expect(g.agents.map((x) => x.agentId)).toEqual(["globex-bot"]);
+  });
+
+  it("freezing one tenant does not touch another (isolated ledgers)", async () => {
+    await fetch(`${mtBase}/freeze`, { method: "POST", headers: acme });
+    const aLedger = (await (await fetch(`${mtBase}/ledger`, { headers: acme })).json()) as LedgerResponse;
+    const gLedger = (await (await fetch(`${mtBase}/ledger`, { headers: globex })).json()) as LedgerResponse;
+    expect(aLedger.records.some((r) => r.payload.kind === "freeze_requested")).toBe(true);
+    expect(gLedger.records.some((r) => r.payload.kind === "freeze_requested")).toBe(false);
   });
 });

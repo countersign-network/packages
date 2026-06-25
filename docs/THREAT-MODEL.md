@@ -50,8 +50,10 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ **API auth + tenant seam** — JSON API requires an API key (`Authorization: Bearer`) when
   `COSIGN_API_KEYS` is set; resolves a tenant id. (Open in demo mode.)
 - ✅ **Secret scanning** in CI (gitleaks) + `.gitleaks.toml`; `.env` gitignored.
-- ⬜ **Full multi-tenancy** — today one Core; next: a Core (or row-level `tenant_id`) per tenant,
-  selected by the API key. The auth→tenant resolution is the seam.
+- ✅ **Full multi-tenancy** — each tenant gets its own isolated `CosignCore` (providers, policies,
+  ledger), created lazily by `TenantRegistry` and selected per request from the API key's tenant.
+  Tested: tenants see only their own agents, and a freeze in one tenant never touches another's
+  ledger. (A single Core is still accepted for the single-tenant demo.)
 - ✅ **RBAC** — keys carry a role (`viewer` / `operator` / `admin`); mutating + spend-decision routes
   require operator+, read routes viewer+ (403 otherwise). Tested.
 - ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds

@@ -7,3 +7,4 @@ export * from "./core-service";
 export * from "./server";
 export * from "./local";
 export * from "./anomaly";
+export * from "./tenants";
