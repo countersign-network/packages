@@ -1,0 +1,12 @@
+title = "Cosign secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reference docs use placeholder/example values, not real secrets"
+paths = [
+  '''docs/sdk-research/.*\.md''',
+  '''docs/setup-coinbase\.md''',
+  '''\.env\.example''',
+]

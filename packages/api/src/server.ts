@@ -50,15 +50,57 @@ async function readJson<T>(req: IncomingMessage): Promise<T> {
 const toDto = (r: { index: number; prevHash: string; payloadHash: string; rowHash: string; payload: unknown }): LedgerRecordDTO =>
   ({ index: r.index, prevHash: r.prevHash, payloadHash: r.payloadHash, rowHash: r.rowHash, payload: r.payload as LedgerRecordDTO["payload"] });
 
-export function createCosignServer(core: CosignCore): CosignServer {
+export interface CosignServerOptions {
+  /**
+   * Map of API key -> tenant id. If non-empty, every JSON API route requires a valid key
+   * (Authorization: Bearer <key>, or x-api-key). Empty => OPEN (demo mode). The resolved tenant is
+   * the seam for multi-tenancy (today: one Core; next: a Core per tenant — see THREAT-MODEL.md).
+   */
+  apiKeys?: Record<string, string>;
+}
+
+function apiKeyFrom(req: IncomingMessage): string {
+  const auth = req.headers["authorization"];
+  if (typeof auth === "string" && auth.startsWith("Bearer ")) return auth.slice(7).trim();
+  const x = req.headers["x-api-key"];
+  return typeof x === "string" ? x : "";
+}
+
+export function createCosignServer(core: CosignCore, opts: CosignServerOptions = {}): CosignServer {
+  const apiKeys = opts.apiKeys ?? {};
+  const authEnabled = Object.keys(apiKeys).length > 0;
+  if (!authEnabled && process.env["NODE_ENV"] !== "test") {
+    console.warn("[cosign] no API keys configured — the API is OPEN. Set COSIGN_API_KEYS to lock it down.");
+  }
+
   const http = createServer((req, res) => {
-    handle(core, req, res).catch((err) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    // GET / (dashboard) and GET /health stay open: liveness probes + the demo UI. Everything else gated.
+    const isOpen = req.method === "GET" && (url.pathname === "/" || url.pathname === "/health");
+    let tenantId = "default";
+    if (authEnabled && !isOpen) {
+      const tenant = apiKeys[apiKeyFrom(req)];
+      if (!tenant) {
+        return send(res, 401, { error: "unauthorized: provide a valid API key via 'Authorization: Bearer <key>'" });
+      }
+      tenantId = tenant;
+    }
+    res.setHeader("x-cosign-tenant", tenantId);
+    handle(core, req, res, tenantId).catch((err) => {
       send(res, 500, { error: err instanceof Error ? err.message : String(err) });
     });
   });
 
   const wss = new WebSocketServer({ server: http, path: WS_PATH });
-  wss.on("connection", async (socket) => {
+  wss.on("connection", async (socket, req) => {
+    if (authEnabled) {
+      // Browsers can't set ws headers, so the event stream takes the key as ?key=<key> when auth is on.
+      const key = new URL(req.url ?? "/", "http://localhost").searchParams.get("key") ?? "";
+      if (!apiKeys[key]) {
+        socket.close(1008, "unauthorized");
+        return;
+      }
+    }
     const tx = (m: WsServerMessage) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(m));
     tx({ type: "hello", providers: await core.health() });
     const unsub = core.onLedgerAppend((record) => tx({ type: "ledger_append", record: toDto(record) }));
@@ -83,7 +125,7 @@ export function createCosignServer(core: CosignCore): CosignServer {
   };
 }
 
-async function handle(core: CosignCore, req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handle(core: CosignCore, req: IncomingMessage, res: ServerResponse, tenantId: string): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = `${req.method} ${url.pathname}`;
 
@@ -116,7 +158,7 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     }
     case "POST /freeze": {
       const reqBody = await readJson<FreezeRequest>(req);
-      const report = await core.freezeAll(reqBody.reason ?? "freeze via dashboard");
+      const report = await core.freezeAll(reqBody.reason ?? `freeze via API (tenant ${tenantId})`);
       return send(res, 200, report);
     }
     case "POST /unfreeze": {

@@ -35,6 +35,10 @@ lives in Core; the client holds no keys. The language boundary is the trust boun
 **Diagrams:** see [`docs/architecture.md`](docs/architecture.md) — system overview + the spend-guard
 and cross-vendor-freeze flows (Mermaid, renders on GitHub).
 
+**Security:** [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) + [`SECURITY.md`](SECURITY.md) — assets,
+trust boundaries, invariants. API auth via `COSIGN_API_KEYS` (Bearer key → tenant); secrets scanned
+in CI (gitleaks).
+
 | Package | Role |
 |---|---|
 | `packages/core` | `EnforcementProvider` interface, branded ids, the fail-closed **freeze controller** |

@@ -91,3 +91,39 @@ describe("Cosign Core server (REST + ws)", () => {
     expect(messages.some((m) => m.type === "ledger_append")).toBe(true);
   });
 });
+
+describe("API auth + tenant seam", () => {
+  let authServer: CosignServer;
+  let authBase: string;
+
+  beforeAll(async () => {
+    const core = new CosignCore();
+    await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
+    await core.provisionAgent("coinbase", asAgentId("a"), "base-sepolia");
+    authServer = createCosignServer(core, { apiKeys: { "test-key-123": "acme" } });
+    authBase = `http://localhost:${await authServer.listen(0)}`;
+  });
+
+  afterAll(async () => {
+    await authServer.close();
+  });
+
+  it("GET /health stays open (liveness needs no key)", async () => {
+    expect((await fetch(`${authBase}/health`)).status).toBe(200);
+  });
+
+  it("a protected route returns 401 without a key", async () => {
+    expect((await fetch(`${authBase}/agents`)).status).toBe(401);
+    expect((await fetch(`${authBase}/freeze`, { method: "POST" })).status).toBe(401);
+  });
+
+  it("a valid key passes and resolves the tenant", async () => {
+    const res = await fetch(`${authBase}/agents`, { headers: { authorization: "Bearer test-key-123" } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-cosign-tenant")).toBe("acme");
+  });
+
+  it("a wrong key is rejected", async () => {
+    expect((await fetch(`${authBase}/agents`, { headers: { authorization: "Bearer nope" } })).status).toBe(401);
+  });
+});
