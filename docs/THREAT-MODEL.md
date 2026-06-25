@@ -53,8 +53,9 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ⬜ **Full multi-tenancy** — today one Core; next: a Core (or row-level `tenant_id`) per tenant,
   selected by the API key. The auth→tenant resolution is the seam.
 - ⬜ **RBAC** — distinguish freeze vs view vs apply-policy per key.
-- ⬜ **Ledger signing + external anchoring** — sign the head with a key the DB can't see; periodically
-  anchor the head hash (transparency log / on-chain) so it's tamper-evident even against the DB owner.
-  Enforce append-only at the DB (block UPDATE/DELETE).
+- ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds
+  (`COSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
+  attack by a DB owner (tested). ⬜ Still to do: **external anchoring** of the head hash (transparency
+  log / on-chain), DB-level append-only (block UPDATE/DELETE), and exposing the public key via the API.
 - ⬜ **Rate limiting** on mutating endpoints; **invariant #5** test; **`pnpm audit` + Dependabot** in CI.
 - ⬜ **Third-party security audit** before mainnet / real funds.

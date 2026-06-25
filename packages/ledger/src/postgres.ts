@@ -1,6 +1,6 @@
 import type { Pool } from "pg";
 import type { LedgerEvent } from "@cosign/core";
-import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type VerifyResult } from "./hash-chain";
+import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
 import type { LedgerPort } from "./port";
 
 /**
@@ -18,14 +18,18 @@ interface Row {
   payload_hash: string;
   row_hash: string;
   payload: unknown;
+  signature: string | null;
 }
 
 export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
   private tail: Promise<unknown> = Promise.resolve();
 
-  private constructor(private readonly pool: Pool) {}
+  private constructor(
+    private readonly pool: Pool,
+    private readonly signer?: LedgerSigner,
+  ) {}
 
-  static async create<T = LedgerEvent>(connectionString: string): Promise<PostgresLedger<T>> {
+  static async create<T = LedgerEvent>(connectionString: string, signer?: LedgerSigner): Promise<PostgresLedger<T>> {
     const { Pool } = await import("pg");
     const ssl = /sslmode=require/.test(connectionString) ? { rejectUnauthorized: false } : false;
     const pool = new Pool({ connectionString, ssl });
@@ -35,10 +39,11 @@ export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
         prev_hash    TEXT NOT NULL,
         payload_hash TEXT NOT NULL,
         row_hash     TEXT NOT NULL,
-        payload      JSONB NOT NULL
+        payload      JSONB NOT NULL,
+        signature    TEXT
       );
     `);
-    return new PostgresLedger<T>(pool);
+    return new PostgresLedger<T>(pool, signer);
   }
 
   append(payload: T): Promise<LedgerRecord<T>> {
@@ -51,16 +56,23 @@ export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
     const head = await this.getHead();
     const prev = head?.rowHash ?? GENESIS_HASH;
     const index = head ? head.index + 1 : 0;
-    const rec = makeRecord<T>(index, prev, payload);
+    const rec = makeRecord<T>(index, prev, payload, this.signer);
     await this.pool.query(
-      "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload) VALUES ($1, $2, $3, $4, $5::jsonb)",
-      [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload)],
+      "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload, signature) VALUES ($1, $2, $3, $4, $5::jsonb, $6)",
+      [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload), rec.signature ?? null],
     );
     return rec;
   }
 
   private toRecord(r: Row): LedgerRecord<T> {
-    return { index: r.idx, prevHash: r.prev_hash, payloadHash: r.payload_hash, rowHash: r.row_hash, payload: r.payload as T };
+    return {
+      index: r.idx,
+      prevHash: r.prev_hash,
+      payloadHash: r.payload_hash,
+      rowHash: r.row_hash,
+      payload: r.payload as T,
+      ...(r.signature ? { signature: r.signature } : {}),
+    };
   }
 
   async getByIndex(index: number): Promise<LedgerRecord<T> | undefined> {
@@ -86,7 +98,7 @@ export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
   }
 
   async verify(): Promise<VerifyResult> {
-    return verifyChain(await this.all());
+    return verifyChain(await this.all(), this.signer);
   }
 
   async query(predicate: (payload: T) => boolean): Promise<LedgerRecord<T>[]> {

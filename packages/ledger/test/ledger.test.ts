@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { asProviderId, type LedgerEvent } from "@cosign/core";
-import { GENESIS_HASH, InMemoryLedger, PgLedger, type LedgerPort } from "@cosign/ledger";
+import { GENESIS_HASH, InMemoryLedger, PgLedger, createEd25519Signer, makeRecord, verifyChain, type LedgerPort } from "@cosign/ledger";
 
 type Tamperable = LedgerPort<LedgerEvent> & {
   __danger_corruptPayload(index: number, payload: LedgerEvent): Promise<void>;
@@ -87,3 +87,39 @@ for (const adapter of adapters) {
     });
   });
 }
+
+describe("ledger signing (tamper-evident even against the DB owner)", () => {
+  it("a signed ledger appends + verifies, and every row carries a signature", async () => {
+    const signer = createEd25519Signer();
+    const l = new InMemoryLedger<LedgerEvent>(signer);
+    const a = await l.append(freezeReq(0));
+    await l.append(freezeReq(1));
+    expect(a.signature).toBeTruthy();
+    expect(await l.verify()).toEqual({ ok: true });
+  });
+
+  it("signatures defeat a RECOMPUTED-chain attack that fools hash-only verification", () => {
+    const signer = createEd25519Signer();
+    const r0 = makeRecord(0, GENESIS_HASH, freezeReq(0), signer);
+    const r1 = makeRecord(1, r0.rowHash, freezeReq(1), signer);
+    const r2 = makeRecord(2, r1.rowHash, freezeReq(2), signer);
+    expect(verifyChain([r0, r1, r2], signer)).toEqual({ ok: true });
+
+    // Attacker with full DB access tampers row 1 and RECOMPUTES the hashes forward — but has no key.
+    const t1 = makeRecord(1, r0.rowHash, { ...freezeReq(1), reason: "TAMPERED" }); // valid hashes, NO signature
+    const t2 = makeRecord(2, t1.rowHash, freezeReq(2)); // re-chained
+
+    // Hash-only verification is fooled (the recomputed chain is internally consistent):
+    expect(verifyChain([r0, t1, t2])).toEqual({ ok: true });
+    // But signature verification catches it at the first forged row:
+    expect(verifyChain([r0, t1, t2], signer)).toEqual({ ok: false, brokenAt: 1 });
+  });
+
+  it("a different key cannot verify another signer's ledger", () => {
+    const a = createEd25519Signer();
+    const b = createEd25519Signer();
+    const r0 = makeRecord(0, GENESIS_HASH, freezeReq(0), a);
+    expect(verifyChain([r0], a)).toEqual({ ok: true });
+    expect(verifyChain([r0], b).ok).toBe(false);
+  });
+});

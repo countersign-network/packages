@@ -9,15 +9,20 @@
 
 import type { LedgerEvent } from "@cosign/core";
 import { definePolicy, type SpendAttempt } from "@cosign/policy";
-import { PostgresLedger } from "@cosign/ledger";
+import { InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
 import { AnomalyMonitor, createCosignServer, createDemoCore, type DemoFleetMember } from "./index";
 
+// Sign the ledger so it's tamper-evident even against the DB owner. Set COSIGN_LEDGER_KEY (base64
+// PKCS8) for a stable identity; otherwise a fresh key is generated each boot.
+const signer = createEd25519Signer(process.env["COSIGN_LEDGER_KEY"]);
 // Durable Postgres ledger when DATABASE_URL is set (Render managed PG); in-memory otherwise.
 const databaseUrl = process.env["DATABASE_URL"];
-const ledger = databaseUrl ? await PostgresLedger.create<LedgerEvent>(databaseUrl) : undefined;
+const ledger = databaseUrl
+  ? await PostgresLedger.create<LedgerEvent>(databaseUrl, signer)
+  : new InMemoryLedger<LedgerEvent>(signer);
 
-const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ...(ledger ? { ledger } : {}) });
-console.log(ledger ? "  ledger: Postgres (DATABASE_URL)" : "  ledger: in-memory (set DATABASE_URL for a durable ledger)");
+const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger });
+console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)`);
 // A policy with an approval band so the live dashboard surfaces pending approvals to act on.
 await core.applyPolicy(
   definePolicy({
