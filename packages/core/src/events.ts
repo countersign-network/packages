@@ -68,7 +68,9 @@ export type LedgerEvent =
       action: "alert" | "freeze";
       ts: number;
     }
-  | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number };
+  | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number }
+  // ---- operational provenance (a backend brought under the control plane) ----
+  | { kind: "backend_connected"; providerId: ProviderId; ts: number };
 
 export type LedgerEventKind = LedgerEvent["kind"];
 

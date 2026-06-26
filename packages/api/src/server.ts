@@ -24,7 +24,7 @@ import {
   type WsServerMessage,
 } from "@cosign/api-contract";
 import { CosignCore } from "./core-service";
-import { backendsView, connectBackend, metricsOf, recordFreeze } from "./connect";
+import { backendsView, connectBackend, metricsOf } from "./connect";
 import type { CoreResolver } from "./tenants";
 
 export interface CosignServer {
@@ -209,12 +209,11 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     case "POST /freeze": {
       const reqBody = await readJson<FreezeRequest>(req);
       const report = await core.freezeAll(reqBody.reason ?? `freeze via API (tenant ${tenantId})`);
-      recordFreeze(core, report.windowMs);
       return send(res, 200, report);
     }
     case "GET /backends": {
       // The connectable-backend catalog + moat metrics — drives the "connect a 2nd backend" demo.
-      return send(res, 200, backendsView(core));
+      return send(res, 200, await backendsView(core));
     }
     case "POST /connect": {
       const b = await readJson<{ providerId?: string }>(req);
@@ -226,7 +225,7 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
       }
     }
     case "GET /metrics": {
-      return send(res, 200, metricsOf(core));
+      return send(res, 200, await metricsOf(core));
     }
     case "POST /unfreeze": {
       await core.unfreezeAll();
