@@ -30,8 +30,16 @@ function req(key: string): string {
 async function simulate(client: Lithic, pan: string, amount: number): Promise<{ outcome: "approved" | "declined"; detail: string }> {
   const res = await client.transactions.simulateAuthorization({ amount, descriptor: "COUNTERSIGN TEST", pan });
   if (!res.token) return { outcome: "declined", detail: "declined (no transaction created)" };
-  const tx = await client.transactions.retrieve(res.token);
-  return { outcome: tx.result === "APPROVED" ? "approved" : "declined", detail: tx.result };
+  // Sandbox: the transaction record isn't queryable instantly — retry briefly.
+  for (let i = 0; i < 10; i++) {
+    try {
+      const tx = await client.transactions.retrieve(res.token);
+      return { outcome: tx.result === "APPROVED" ? "approved" : "declined", detail: tx.result };
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  return { outcome: "declined", detail: "transaction not retrievable (treated as declined)" };
 }
 
 let pass = 0;
