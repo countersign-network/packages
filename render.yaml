@@ -24,9 +24,10 @@ services:
         fromDatabase:
           name: cosign-ledger
           property: connectionString # internal URL (same region) — no public SSL needed
-      # Flip to "off" for a production Core (otherwise the ledger fills with synthetic demo spends).
+      # "on" = ambient fleet + synthetic traffic; anything else = the interactive CONNECT demo
+      # (start empty, operator connects backends). The moat-validation demo runs in connect mode.
       - key: COSIGN_DEMO_TRAFFIC
-        value: "on"
+        value: "off"
 
 databases:
   - name: cosign-ledger
