@@ -54,6 +54,9 @@ importers:
       '@countersign/provider-coinbase':
         specifier: workspace:*
         version: link:../providers/coinbase
+      '@countersign/provider-lithic':
+        specifier: workspace:*
+        version: link:../providers/lithic
       '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock

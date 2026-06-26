@@ -17,6 +17,7 @@
     "@countersign/ledger": "workspace:*",
     "@countersign/policy": "workspace:*",
     "@countersign/provider-coinbase": "workspace:*",
+    "@countersign/provider-lithic": "workspace:*",
     "@countersign/provider-mock": "workspace:*",
     "@countersign/provider-openfort": "workspace:*",
     "@countersign/provider-turnkey": "workspace:*",
