@@ -1,7 +1,7 @@
 import type { PGlite } from "@electric-sql/pglite";
 import type { LedgerEvent } from "@countersign/core";
 import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
-import type { LedgerPort } from "./port";
+import { APPEND_ONLY_TRIGGER_SQL, type LedgerPort } from "./port";
 
 /**
  * Postgres-backed ledger. For tests + local dev it runs on pglite (embedded Postgres, in-process,
@@ -9,8 +9,10 @@ import type { LedgerPort } from "./port";
  * connection. The chain integrity logic is shared with the in-memory adapter (hash-chain.ts), so
  * the DB is only ever dumb append storage.
  *
- * Append-only is enforced two ways: the LedgerPort exposes no update/delete, and the only write
- * path is INSERT. (A DB-level trigger blocking UPDATE/DELETE is the prod-hardening follow-up.)
+ * Append-only is enforced THREE ways (defense in depth): the LedgerPort exposes no update/delete; the
+ * only write path is INSERT; and a DB-level trigger RAISES on any UPDATE/DELETE, so even a direct
+ * SQL attacker with the connection is blocked. If they somehow bypass the trigger (e.g. superuser
+ * disabling it), the Ed25519-signed hash chain still DETECTS the tamper on the next verify().
  */
 interface Row {
   idx: number;
@@ -44,6 +46,7 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
         payload      JSONB NOT NULL,
         signature    TEXT
       );
+      ${APPEND_ONLY_TRIGGER_SQL}
     `);
     return new PgLedger<T>(db, signer);
   }
@@ -101,13 +104,27 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
     return (await this.all()).filter((r) => predicate(r.payload));
   }
 
-  /** TEST ONLY — simulate an attacker with DB write access editing a row (bypassing append-only). */
+  /**
+   * TEST ONLY — simulate a SOPHISTICATED attacker who has bypassed the DB-level append-only trigger
+   * (e.g. a superuser who disabled it) and edits a row directly. Proves the signed hash chain still
+   * DETECTS the tamper even past the trigger. Normal UPDATEs (trigger active) are rejected — see
+   * __danger_attemptBlockedUpdate.
+   */
   async __danger_corruptPayload(index: number, payload: T): Promise<void> {
+    await this.db.exec("ALTER TABLE ledger DISABLE TRIGGER USER");
     await this.db.query("UPDATE ledger SET payload = $1::jsonb WHERE idx = $2", [JSON.stringify(payload), index]);
+    await this.db.exec("ALTER TABLE ledger ENABLE TRIGGER USER");
   }
 
-  /** TEST ONLY — delete a row to prove gap detection. */
+  /** TEST ONLY — delete a row (bypassing the trigger) to prove gap detection by the hash chain. */
   async __danger_deleteAt(index: number): Promise<void> {
+    await this.db.exec("ALTER TABLE ledger DISABLE TRIGGER USER");
     await this.db.query("DELETE FROM ledger WHERE idx = $1", [index]);
+    await this.db.exec("ALTER TABLE ledger ENABLE TRIGGER USER");
+  }
+
+  /** TEST ONLY — a direct UPDATE with the trigger ACTIVE; must be rejected by the append-only guard. */
+  async __danger_attemptBlockedUpdate(index: number): Promise<void> {
+    await this.db.query("UPDATE ledger SET payload = '{}'::jsonb WHERE idx = $1", [index]);
   }
 }

@@ -20,3 +20,19 @@ export interface LedgerPort<T = LedgerEvent> {
   verify(): Promise<VerifyResult>;
   query(predicate: (payload: T) => boolean): Promise<LedgerRecord<T>[]>;
 }
+
+/**
+ * DB-level append-only guard for the Postgres-backed ledgers (pglite + real Postgres). A trigger
+ * RAISES on any UPDATE/DELETE, so even a direct-SQL attacker is blocked at the storage layer — not
+ * just by the absence of mutators on the port. Idempotent (safe to run on every connect). The
+ * signed hash chain remains the backstop if the trigger is ever bypassed (e.g. a superuser disabling
+ * it). Applies to the `ledger` table.
+ */
+export const APPEND_ONLY_TRIGGER_SQL = `
+  CREATE OR REPLACE FUNCTION ledger_append_only() RETURNS trigger AS $$
+  BEGIN RAISE EXCEPTION 'ledger is append-only: % is not permitted', TG_OP; END;
+  $$ LANGUAGE plpgsql;
+  DROP TRIGGER IF EXISTS ledger_no_mutate ON ledger;
+  CREATE TRIGGER ledger_no_mutate BEFORE UPDATE OR DELETE ON ledger
+    FOR EACH ROW EXECUTE FUNCTION ledger_append_only();
+`;

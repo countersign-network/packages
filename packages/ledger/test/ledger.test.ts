@@ -101,6 +101,23 @@ for (const adapter of adapters) {
   });
 }
 
+describe("DB-level append-only guard (PgLedger trigger)", () => {
+  it("rejects a direct UPDATE even with full SQL access — the trigger RAISES, ledger stays intact", async () => {
+    const l = await PgLedger.create<LedgerEvent>();
+    await l.append(freezeReq(0));
+    await l.append(freezeReq(1));
+
+    // A raw UPDATE with the append-only trigger ACTIVE must be blocked at the storage layer.
+    await expect(
+      (l as unknown as { __danger_attemptBlockedUpdate(i: number): Promise<void> }).__danger_attemptBlockedUpdate(0),
+    ).rejects.toThrow(/append-only/i);
+
+    // History is untouched and still verifies (the guard prevented the tamper outright).
+    expect(await l.size()).toBe(2);
+    expect(await l.verify()).toEqual({ ok: true });
+  });
+});
+
 describe("ledger signing (tamper-evident even against the DB owner)", () => {
   it("a signed ledger appends + verifies, and every row carries a signature", async () => {
     const signer = createEd25519Signer();
