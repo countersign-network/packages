@@ -62,12 +62,17 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds
   (`COUNTERSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
   attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
-  **Anchoring seam in place**: `LedgerAnchor` (+ `FileAnchor` reference) publishes the head after
-  each freeze; swap in an on-chain / transparency-log anchor for a real cross-trust-domain guarantee.
+- ✅ **External anchor (cross-trust-domain) — on-chain**: `OnChainAnchor` commits the ledger head
+  (index + rowHash) into a public-chain transaction (calldata); the chain is a trust domain
+  Countersign doesn't control, so a silent history rewind is detectable by anyone comparing the
+  on-chain anchors to the live `/ledger`. The sender is injectable (vendor-agnostic) — proven live on
+  Base Sepolia (`anchor-spike.ts`: head anchored, then read BACK FROM CHAIN and decoded to match).
+  `FileAnchor` remains as a local audit trail (NOT cross-trust-domain on its own). Anchored after each
+  freeze via the seam. ⬜ Transparency-log target (Rekor/OTS) is an alternative drop-in.
 - ✅ **DB-level append-only** — a plpgsql trigger RAISES on any UPDATE/DELETE to the `ledger` table
   (pglite + real Postgres), so a direct-SQL attacker is blocked at the storage layer, not just by the
   port having no mutators. Tested. If the trigger is bypassed (superuser disable), the signed hash
-  chain still detects the tamper (defense in depth). ⬜ Still to do: a real external anchor target.
+  chain still detects the tamper (defense in depth).
 - ✅ **Rate limiting** — fixed-window cap on mutating routes (per API key / per IP), 429 + Retry-After. Tested.
 - ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
   Forced-patched transitive deps via `pnpm-workspace.yaml` overrides: `ws` (GHSA-96hv-2xvq-fx4p, via

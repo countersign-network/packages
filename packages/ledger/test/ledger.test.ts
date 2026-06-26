@@ -7,9 +7,12 @@ import {
   FileAnchor,
   GENESIS_HASH,
   InMemoryLedger,
+  OnChainAnchor,
   PgLedger,
   anchorHead,
   createEd25519Signer,
+  decodeAnchorCalldata,
+  encodeAnchorCalldata,
   makeRecord,
   verifyChain,
   type LedgerPort,
@@ -170,5 +173,36 @@ describe("external anchoring seam", () => {
     expect(point).toEqual({ index: 1, rowHash: head!.rowHash, ts: 12345 });
     expect(await anchor.read()).toEqual([point]); // recorded in the external store
     await rm(path, { force: true });
+  });
+
+  it("on-chain anchor calldata round-trips and rejects foreign calldata", () => {
+    const point = { index: 7, rowHash: "a".repeat(64), ts: 1 };
+    const data = encodeAnchorCalldata(point);
+    expect(data.startsWith("0x434e5452")).toBe(true); // "CNTR" tag
+    expect(decodeAnchorCalldata(data)).toEqual({ index: 7, rowHash: "a".repeat(64) });
+    expect(decodeAnchorCalldata("0xdeadbeef")).toBeUndefined(); // not an anchor tx
+  });
+
+  it("OnChainAnchor commits the head to a chain; an independent verifier can decode the tx", async () => {
+    const ledger = new InMemoryLedger<LedgerEvent>();
+    await ledger.append(freezeReq(0));
+    await ledger.append(freezeReq(1));
+    const head = await ledger.getHead();
+
+    // A mock chain sender captures the calldata and returns a tx hash.
+    const sent: string[] = [];
+    const anchor = new OnChainAnchor({
+      async send(dataHex) {
+        sent.push(dataHex);
+        return "0xtxhash";
+      },
+    });
+
+    const point = await anchorHead(ledger, anchor, () => 999);
+    expect(point).toEqual({ index: 1, rowHash: head!.rowHash, ts: 999 });
+    expect(anchor.last()).toEqual({ point, txHash: "0xtxhash" });
+
+    // The on-chain bytes decode back to the live head — anyone can verify without Countersign.
+    expect(decodeAnchorCalldata(sent[0]!)).toEqual({ index: 1, rowHash: head!.rowHash });
   });
 });
