@@ -70,7 +70,9 @@ export type LedgerEvent =
     }
   | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number }
   // ---- operational provenance (a backend brought under the control plane) ----
-  | { kind: "backend_connected"; providerId: ProviderId; ts: number };
+  | { kind: "backend_connected"; providerId: ProviderId; ts: number }
+  // ---- the countersignature: the ledger head published to an external trust domain (e.g. on-chain) ----
+  | { kind: "ledger_anchored"; index: number; rowHash: string; ref?: string | undefined; ts: number };
 
 export type LedgerEventKind = LedgerEvent["kind"];
 

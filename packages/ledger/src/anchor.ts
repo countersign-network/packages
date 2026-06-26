@@ -19,20 +19,24 @@ export interface AnchorPoint {
 }
 
 export interface LedgerAnchor {
-  anchor(point: AnchorPoint): Promise<void>;
+  /** Publish the head; resolve an external REFERENCE (tx hash, log id, …) if the target has one. */
+  anchor(point: AnchorPoint): Promise<string | undefined>;
 }
+
+/** The anchored point plus the external reference the anchor produced (if any). */
+export type AnchoredPoint = AnchorPoint & { ref?: string };
 
 /** Read the ledger head and publish it via the anchor. Returns the anchored point (undefined if empty). */
 export async function anchorHead(
   ledger: LedgerPort,
   anchor: LedgerAnchor,
   now: () => number = () => Date.now(),
-): Promise<AnchorPoint | undefined> {
+): Promise<AnchoredPoint | undefined> {
   const head = await ledger.getHead();
   if (!head) return undefined;
   const point: AnchorPoint = { index: head.index, rowHash: head.rowHash, ts: now() };
-  await anchor.anchor(point);
-  return point;
+  const ref = await anchor.anchor(point);
+  return ref ? { ...point, ref } : point;
 }
 
 /* ------------------------------------------------------------------ */
@@ -76,9 +80,10 @@ export class OnChainAnchor implements LedgerAnchor {
   private readonly records: { point: AnchorPoint; txHash: string }[] = [];
   constructor(private readonly sender: OnChainSender) {}
 
-  async anchor(point: AnchorPoint): Promise<void> {
+  async anchor(point: AnchorPoint): Promise<string> {
     const txHash = await this.sender.send(encodeAnchorCalldata(point));
     this.records.push({ point, txHash });
+    return txHash;
   }
 
   anchored(): readonly { point: AnchorPoint; txHash: string }[] {
@@ -94,9 +99,10 @@ export class OnChainAnchor implements LedgerAnchor {
 export class FileAnchor implements LedgerAnchor {
   constructor(private readonly path: string) {}
 
-  async anchor(point: AnchorPoint): Promise<void> {
+  async anchor(point: AnchorPoint): Promise<undefined> {
     const { appendFile } = await import("node:fs/promises");
     await appendFile(this.path, `${JSON.stringify(point)}\n`, "utf8");
+    return undefined; // a local file is not an external reference
   }
 
   async read(): Promise<AnchorPoint[]> {
