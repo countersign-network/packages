@@ -22,5 +22,8 @@
     "@cosign/provider-openfort": "workspace:*",
     "@cosign/provider-turnkey": "workspace:*",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@cosign/provider-lithic": "workspace:*"
   }
 }
