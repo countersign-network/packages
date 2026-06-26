@@ -57,6 +57,7 @@
       .k-action_requested .msg { color: var(--muted); }
       .k-policy_applied .msg { color: var(--blue); }
       .k-backend_connected .msg { color: var(--green); font-weight: 700; }
+      .k-ledger_anchored .msg { color: var(--purple); font-weight: 700; }
       .k-freeze_requested .msg, .k-freeze_resolved .msg, .k-freeze_result .msg,
       .k-freeze_partial .msg, .k-escalation_revoke_session .msg, .k-still_dangerous .msg { color: var(--purple); }
       .k-error .msg { color: var(--red); }
@@ -151,6 +152,7 @@
           case "approval_resolved": return "↳ approval " + e.decision.toUpperCase();
           case "anomaly_detected": return "⚠ ANOMALY [" + e.rule + "] " + e.agentId + ": " + e.detail;
           case "backend_connected": return "🔌 backend connected — " + e.providerId + " (under one control plane)";
+          case "ledger_anchored": return "⚓ COUNTERSIGNED head #" + e.index + " → " + (e.ref ? e.ref.slice(0, 22) + "…" : "external anchor");
           case "error": return "! error " + (e.providerId || "") + " " + e.message;
           default: return e.kind;
         }

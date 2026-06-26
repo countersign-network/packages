@@ -138,8 +138,21 @@ export class CountersignCore {
   async freezeAll(reason = "manual freeze"): Promise<FreezeReport> {
     const report = await this.controller.freezeAll(reason);
     this.frozen = true; // fail-closed posture: blocks approving pending spends through
-    // Anchor the ledger head at the freeze moment (best-effort; the critical point to externalise).
-    if (this.anchor) await anchorHead(this.ledger, this.anchor).catch(() => undefined);
+    // Countersign the freeze: publish the post-freeze head to the external anchor (best-effort — a
+    // freeze must never be held up by anchoring) and record the countersignature in the ledger itself
+    // so it's auditable + visible. The recorded head includes the freeze; the next anchor covers this row.
+    if (this.anchor) {
+      const anchored = await anchorHead(this.ledger, this.anchor).catch(() => undefined);
+      if (anchored) {
+        await this.append({
+          kind: "ledger_anchored",
+          index: anchored.index,
+          rowHash: anchored.rowHash,
+          ...(anchored.ref ? { ref: anchored.ref } : {}),
+          ts: this.nowTs(),
+        }).catch(() => undefined);
+      }
+    }
     return report;
   }
 

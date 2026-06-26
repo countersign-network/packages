@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { asAgentId, type AgentId, type LedgerEvent } from "@countersign/core";
 import { definePolicy, type SpendAttempt } from "@countersign/policy";
 import { MockProvider, type MockScenario } from "@countersign/provider-mock";
+import { OnChainAnchor } from "@countersign/ledger";
 import { CountersignCore } from "@countersign/api";
 
 const POLICY = definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "1000", allowlist: ["0xTREASURY"] });
@@ -117,5 +118,31 @@ describe("CountersignCore — the headline: 3 agents / 3 backends / 3 venues", (
     expect(result.applied.map((a) => a.providerId)).toEqual(["coinbase"]);
     expect(result.failed.map((f) => f.providerId)).toEqual(["openfort"]);
     expect(kindsOf(await core.ledgerRecords())).toContain("error");
+  });
+});
+
+describe("freeze countersigns the ledger (external anchor wired into the freeze path)", () => {
+  it("records a ledger_anchored event with the head + on-chain ref after a freeze", async () => {
+    const sent: string[] = [];
+    const anchor = new OnChainAnchor({
+      async send(dataHex) {
+        sent.push(dataHex);
+        return "0xanchortx";
+      },
+    });
+    const core = new CountersignCore({ anchor, freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
+    await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
+    await core.provisionAgent("coinbase", asAgentId("a"), "base-sepolia");
+
+    await core.freezeAll("kill switch");
+
+    const records = await core.ledgerRecords();
+    const anchored = records.find((r) => r.payload.kind === "ledger_anchored");
+    expect(anchored).toBeTruthy();
+    const payload = anchored!.payload as Extract<LedgerEvent, { kind: "ledger_anchored" }>;
+    expect(payload.ref).toBe("0xanchortx"); // the on-chain countersignature reference
+    expect(sent).toHaveLength(1); // exactly one anchor per freeze
+    expect(typeof payload.rowHash).toBe("string");
+    expect(await core.verifyLedger()).toBe(true); // chain still intact after recording the countersignature
   });
 });

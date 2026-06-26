@@ -198,9 +198,10 @@ describe("external anchoring seam", () => {
       },
     });
 
-    const point = await anchorHead(ledger, anchor, () => 999);
-    expect(point).toEqual({ index: 1, rowHash: head!.rowHash, ts: 999 });
-    expect(anchor.last()).toEqual({ point, txHash: "0xtxhash" });
+    const anchored = await anchorHead(ledger, anchor, () => 999);
+    // anchorHead now surfaces the external reference (the tx hash) alongside the point.
+    expect(anchored).toEqual({ index: 1, rowHash: head!.rowHash, ts: 999, ref: "0xtxhash" });
+    expect(anchor.last()?.txHash).toBe("0xtxhash");
 
     // The on-chain bytes decode back to the live head — anyone can verify without Countersign.
     expect(decodeAnchorCalldata(sent[0]!)).toEqual({ index: 1, rowHash: head!.rowHash });
