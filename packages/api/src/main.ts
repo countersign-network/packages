@@ -10,7 +10,7 @@
 import type { LedgerEvent } from "@cosign/core";
 import { definePolicy, type SpendAttempt } from "@cosign/policy";
 import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
-import { AnomalyMonitor, createCosignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
+import { AnomalyMonitor, CosignCore, createCosignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
 
 // Sign the ledger so it's tamper-evident even against the DB owner. Set COSIGN_LEDGER_KEY (base64
 // PKCS8) for a stable identity; otherwise a fresh key is generated each boot.
@@ -26,18 +26,32 @@ const ledger = databaseUrl
 const anchorFile = process.env["COSIGN_ANCHOR_FILE"];
 const anchor = anchorFile ? new FileAnchor(anchorFile) : undefined;
 
-const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}) });
+// Two demo shapes:
+//  - AMBIENT (COSIGN_DEMO_TRAFFIC=on, what the deployed core runs): pre-connected 3-backend fleet
+//    with synthetic spend traffic, so the ledger streams live on its own.
+//  - CONNECT (default, the moat-validation demo): an EMPTY core — the operator connects backends one
+//    at a time in the dashboard, and the headline action is connecting a SECOND backend.
+const ambient = process.env["COSIGN_DEMO_TRAFFIC"] === "on";
+
+let core: CosignCore;
+let fleet: DemoFleetMember[] = [];
+if (ambient) {
+  ({ core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}) }));
+  // A policy with an approval band so the live dashboard surfaces pending approvals to act on.
+  await core.applyPolicy(
+    definePolicy({
+      asset: "USDC",
+      perTxCap: "100000000", // 100 USDC
+      dailyCap: "100000000000", // 100,000 USDC (generous for a long-running demo)
+      allowlist: ["0xTREASURY"],
+      approvalThreshold: "60000000", // > 60 USDC needs human approval
+    }),
+  );
+} else {
+  core = new CosignCore({ ledger, ...(anchor ? { anchor } : {}) });
+}
+console.log(`  mode: ${ambient ? "ambient fleet demo" : "connect demo (start empty → connect backends)"}`);
 console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)${anchor ? ` · anchoring → ${anchorFile}` : ""}`);
-// A policy with an approval band so the live dashboard surfaces pending approvals to act on.
-await core.applyPolicy(
-  definePolicy({
-    asset: "USDC",
-    perTxCap: "100000000", // 100 USDC
-    dailyCap: "100000000000", // 100,000 USDC (generous for a long-running demo)
-    allowlist: ["0xTREASURY"],
-    approvalThreshold: "60000000", // > 60 USDC needs human approval
-  }),
-);
 
 // Heuristic circuit breakers in ALERT mode — detections stream to the dashboard without halting the
 // live demo. (Switch action to "freeze" to watch it auto-fire the kill switch.)
@@ -73,9 +87,9 @@ const spendKinds: ((m: DemoFleetMember) => SpendAttempt)[] = [
   (m) => ({ amount: "30000000", asset: "USDC", counterparty: "0xSTRANGER", venue: m.venue }), // blocked: allowlist
 ];
 
-// Synthetic activity so the dashboard has something to show. Set COSIGN_DEMO_TRAFFIC=off for a
-// real deploy that serves actual agents (otherwise the ledger fills with demo spends).
-if (process.env["COSIGN_DEMO_TRAFFIC"] !== "off") {
+// Synthetic activity (ambient demo only) so the deployed dashboard streams on its own. The connect
+// demo stays quiet until the operator connects backends and drives the freeze themselves.
+if (ambient) {
   setInterval(() => {
     const m = pick(fleet);
     void m.provider.attemptSpend(m.agentId, pick(spendKinds)(m)).catch(() => {});

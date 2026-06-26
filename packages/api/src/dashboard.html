@@ -72,6 +72,20 @@
       .appr button { padding: 4px 12px; font-size: 12px; }
       .appr button.ok { border-color: var(--green); color: var(--green); }
       .appr button.no { border-color: var(--red); color: var(--red); }
+      /* connect-a-backend (moat demo) */
+      .bk { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+      .bk:last-child { border-bottom: none; }
+      .bk .info { flex: 1; min-width: 0; }
+      .bk .name { font-weight: 700; }
+      .bk .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+      .bk.on .name::before { content: "● "; color: var(--green); }
+      .bk button.conn { border-color: var(--blue); color: var(--blue); white-space: nowrap; }
+      .bk button.conn:hover { background: rgba(88,166,255,.12); }
+      .bk .on-tag { color: var(--green); font-size: 12px; white-space: nowrap; }
+      .moat { margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+      .moat b { color: var(--txt); }
+      .moat.live { color: var(--green); border-left: 3px solid var(--green); background: rgba(63,185,80,.08); }
+      .moat.hint { color: var(--amber); border-left: 3px solid var(--amber); background: rgba(210,153,34,.06); }
     </style>
   </head>
   <body>
@@ -87,7 +101,8 @@
     <div class="wrap">
       <div class="col">
         <section class="panel">
-          <h2>Backends &amp; agents</h2>
+          <h2>Connect wallet backends</h2>
+          <div id="moat" class="moat"></div>
           <div id="backends"></div>
         </section>
         <section class="panel">
@@ -154,24 +169,45 @@
         while (feed.childNodes.length > 300) feed.removeChild(feed.lastChild);
       }
 
+      function renderMoat(m) {
+        const el = $("moat");
+        if (m.connectedCount === 0) {
+          el.className = "moat hint";
+          el.innerHTML = "Connect a backend to begin. The whole thesis: <b>connect a second one</b> — one policy, one freeze, one ledger across rails no single wallet vendor can span.";
+        } else if (m.multiBackend) {
+          el.className = "moat live";
+          const t = m.timeToSecondBackendMs != null ? " (2nd connected " + (m.timeToSecondBackendMs / 1000).toFixed(1) + "s after the 1st)" : "";
+          el.innerHTML = "✓ <b>Multi-backend control plane live</b> — " + m.connectedCount + " backends under one freeze" + t + ". This is the moat.";
+        } else {
+          el.className = "moat hint";
+          el.innerHTML = "<b>1 backend connected.</b> Now connect a <b>second</b> — that's the one thing a single wallet vendor can't do for you.";
+        }
+      }
+
       async function loadBackends() {
-        const [health, agents] = await Promise.all([
-          fetch("/health").then((r) => r.json()),
-          fetch("/agents").then((r) => r.json()),
-        ]);
-        const byProvider = {};
-        for (const a of agents.agents) (byProvider[a.providerId] ||= []).push(a);
-        $("backends").innerHTML = health.providers
-          .map((p) => {
-            const agentLine = (byProvider[p.id] || []).map((a) => a.agentId + " · " + a.venue).join("<br>");
-            return (
-              '<div class="backend"><div class="top"><span class="dot ' + (p.healthy ? "ok" : "bad") + '"></span>' +
-              '<span class="id">' + p.id + "</span></div>" +
-              '<div class="meta">' + p.mode + (agentLine ? "<br>" + agentLine : "") + "</div></div>"
-            );
-          })
+        const data = await fetch("/backends").then((r) => r.json());
+        renderMoat(data.metrics);
+        $("backends").innerHTML = data.backends
+          .map((b) =>
+            '<div class="bk ' + (b.connected ? "on" : "") + '"><div class="info">' +
+            '<div class="name">' + b.label + "</div>" +
+            '<div class="sub">' + b.mode + " · " + b.blurb + "</div></div>" +
+            (b.connected
+              ? '<span class="on-tag">connected</span>'
+              : '<button class="conn" data-connect="' + b.id + '">+ Connect</button>') +
+            "</div>",
+          )
           .join("");
       }
+
+      $("backends").addEventListener("click", async (e) => {
+        const id = e.target.getAttribute && e.target.getAttribute("data-connect");
+        if (!id) return;
+        e.target.disabled = true;
+        e.target.textContent = "connecting…";
+        await fetch("/connect", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ providerId: id }) });
+        loadBackends();
+      });
 
       async function freeze() {
         const r = await fetch("/freeze", { method: "POST" }).then((x) => x.json());
@@ -180,6 +216,7 @@
         b.style.display = "block";
         b.textContent = "FREEZE: all " + r.providers.length + " backends stopped=" + r.allStopped +
           " in " + r.windowMs + "ms (target < 1000ms)";
+        loadBackends();
       }
       async function unfreeze() {
         await fetch("/unfreeze", { method: "POST" });

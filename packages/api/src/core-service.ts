@@ -95,6 +95,11 @@ export class CosignCore {
     return this.regFor(providerId).capabilities.enforcementMode;
   }
 
+  /** True if a backend with this id is already registered (lets callers register lazily). */
+  hasProvider(providerId: string): boolean {
+    return this.registrations.some((r) => r.provider.id === providerId);
+  }
+
   /**
    * Compile + apply ONE unified policy across every backend (or a single agent). Fail-closed: a
    * backend that throws (couldn't confirm the policy is live) is reported as `failed` and an error
