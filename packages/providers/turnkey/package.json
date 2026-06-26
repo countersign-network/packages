@@ -10,7 +10,13 @@
   },
   "dependencies": {
     "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@cosign/policy": "workspace:*",
+    "@turnkey/crypto": "^2.10.0",
+    "@turnkey/ethers": "^1.3.31",
+    "@turnkey/sdk-server": "^6.1.1",
+    "dotenv": "^17.4.2",
+    "ethers": "^6.17.0",
+    "viem": "^2.52.2"
   },
-  "comment": "Skeleton. To finish: `pnpm add @turnkey/sdk-server @turnkey/ethers` and fill methods per docs/sdk-research/turnkey.md"
+  "comment": "LIVE adapter (pre-sign CEL policy, @turnkey/sdk-server v6). smoke.ts verifies creds (getWhoami); spike.ts runs the Phase-0 proof (provision sub-org+delegated user+wallet -> applyPolicy -> agent signs in-policy=allowed/over-cap=denied -> freeze -> denied). Testnet-safe (Turnkey only signs)."
 }

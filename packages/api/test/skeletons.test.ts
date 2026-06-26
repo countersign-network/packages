@@ -1,28 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { NotImplementedError, type EnforcementMode } from "@cosign/core";
 import { CoinbaseProvider } from "@cosign/provider-coinbase";
 import { TurnkeyProvider } from "@cosign/provider-turnkey";
 import { OpenfortProvider } from "@cosign/provider-openfort";
 
-describe("vendor adapters", () => {
-  // Coinbase is now a LIVE adapter (real Base Sepolia); its live calls need credentials, not stubs.
+// All three vendor adapters are now LIVE (testnet). Live calls need credentials, but each must
+// CONSTRUCT without credentials so capabilities() stays probe-able offline (the freeze controller
+// reads capabilities to plan its fan-out). Real live behaviour is proven by each package's spike.ts.
+describe("vendor adapters (live)", () => {
   it("coinbase: real capabilities, constructs without credentials", async () => {
-    const caps = await new CoinbaseProvider().capabilities();
-    expect(caps.enforcementMode).toBe("native-session-caps");
+    expect((await new CoinbaseProvider().capabilities()).enforcementMode).toBe("native-session-caps");
   });
 
-  // Turnkey + Openfort remain skeletons until their SDKs are wired.
-  const skeletons: { name: string; provider: { capabilities(): Promise<{ enforcementMode: EnforcementMode }>; freeze(s: { kind: "provider-all" }): Promise<unknown> }; mode: EnforcementMode }[] = [
-    { name: "turnkey", provider: new TurnkeyProvider(), mode: "pre-sign-policy" },
-    { name: "openfort", provider: new OpenfortProvider(), mode: "onchain-policy" },
-  ];
+  it("turnkey: real capabilities, constructs without credentials", async () => {
+    expect((await new TurnkeyProvider().capabilities()).enforcementMode).toBe("pre-sign-policy");
+  });
 
-  for (const c of skeletons) {
-    it(`${c.name}: capabilities() are real (mode ${c.mode})`, async () => {
-      expect((await c.provider.capabilities()).enforcementMode).toBe(c.mode);
-    });
-    it(`${c.name}: live calls throw NotImplementedError until credentials exist`, async () => {
-      await expect(c.provider.freeze({ kind: "provider-all" })).rejects.toBeInstanceOf(NotImplementedError);
-    });
-  }
+  it("openfort: real capabilities, constructs without credentials", async () => {
+    expect((await new OpenfortProvider().capabilities()).enforcementMode).toBe("onchain-policy");
+  });
 });

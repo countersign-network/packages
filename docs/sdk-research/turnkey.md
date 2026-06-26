@@ -4,6 +4,32 @@
 > Turnkey = TEE-isolated keys + a policy engine evaluated BEFORE signing. Chain-agnostic: it signs;
 > your app broadcasts.
 
+## ✅ LIVE & PROVEN against @turnkey/sdk-server v6.1.1 (2026-06-26)
+
+The adapter (`packages/providers/turnkey/src/index.ts`) is wired and proven on live api.turnkey.com.
+`smoke.ts` (getWhoami) + `spike.ts` (provision → applyPolicy → agent signs → freeze) both pass; the
+agent's in-policy tx is ALLOWED, over-cap is DENIED (`OUTCOME_DENY_IMPLICIT`), and after freeze the
+same tx is DENIED (`OUTCOME_DENY_EXPLICIT`). Cross-vendor two-backend freeze (Coinbase+Turnkey) runs
+green via `packages/agent-harness/live-freeze.ts` (~437ms window). **v6 deltas vs the v5 notes below:**
+
+- **Constructor unchanged**: `new Turnkey({ defaultOrganizationId, apiBaseUrl, apiPrivateKey, apiPublicKey })`,
+  then `.apiClient()`. (`Turnkey` is the export alias for `TurnkeyServerSDK`.)
+- **Methods take a single `input` object** (e.g. `createPolicy({ policyName, effect, condition, notes, consensus? })`).
+  `notes` is REQUIRED on createPolicy; `condition`/`consensus` optional.
+- **Agent model that actually binds**: policies only constrain NON-root users. So provision =
+  `createSubOrganization` (root user = US, the parent key, for management) + `createUsers` (the agent
+  as a non-root delegated user with its own P-256 key from `@turnkey/crypto` `generateP256KeyPair`).
+  Sub-org root users use `v1RootUserParamsV5` → `apiKeys:[{apiKeyName, publicKey, curveType:"API_KEY_CURVE_P256"}]`,
+  plus empty `authenticators:[]` and **`oauthProviders:[]`** (renamed from the old `oidcProviders`).
+- **Freeze** = `createPolicy({ effect:"EFFECT_DENY", condition:"true", notes })` in the agent's sub-org
+  (condition `"true"` is valid CEL and matches every signing activity; deny wins over allow). Reversible
+  via `deletePolicy`. `revokeSession` = `deleteUsers({ organizationId: subOrgId, userIds:[agentUserId] })`.
+- **Health** = `getWhoami({})` → `{ organizationId, organizationName, userId, username }`.
+- **Sign** (raw) = `signTransaction({ signWith: walletAddress, unsignedTransaction: <hex WITHOUT 0x>, type:"TRANSACTION_TYPE_ETHEREUM" })`.
+- **GOTCHA — policy propagation**: createPolicy activities complete synchronously, but the policy
+  engine is eventually-consistent. The VERY FIRST signing request right after applyPolicy can race
+  ahead (`policyEvaluations: []`). A ~3s settle (or retry on empty-evaluations) makes it reliable.
+
 ## 1. Install
 ```bash
 npm install @turnkey/sdk-server   # current v5.1.1; wraps @turnkey/http + @turnkey/api-key-stamper

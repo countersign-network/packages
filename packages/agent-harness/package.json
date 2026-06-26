@@ -16,6 +16,10 @@
     "@cosign/core": "workspace:*",
     "@cosign/ledger": "workspace:*",
     "@cosign/policy": "workspace:*",
-    "@cosign/provider-mock": "workspace:*"
+    "@cosign/provider-coinbase": "workspace:*",
+    "@cosign/provider-mock": "workspace:*",
+    "@cosign/provider-openfort": "workspace:*",
+    "@cosign/provider-turnkey": "workspace:*",
+    "dotenv": "^17.4.2"
   }
 }

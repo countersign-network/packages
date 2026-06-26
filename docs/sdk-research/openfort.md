@@ -6,6 +6,38 @@
 > (`openfort-xyz/openfort-7702-account`) and is exposed via the Sessions API.
 > ⚠️ The node SDK had a BREAKING v0.10 redesign — old `players.create()` code is gone.
 
+## ✅ LIVE & PROVEN against @openfort/openfort-node v0.10.5 (2026-06-26)
+
+The adapter (`packages/providers/openfort/src/index.ts`) is wired and proven on live api.openfort.io.
+`smoke.ts` (create+delete a backend wallet) + `spike.ts` (provision → applyPolicy → sign → freeze →
+sign) both pass: the backend wallet signs before the freeze and the same request fails after
+("Account does not exist"). The three-vendor freeze (Coinbase+Turnkey+Openfort) runs green via
+`packages/agent-harness/live-freeze.ts` (~697ms total, < 1s, ledger verified). **v0.10.5 specifics:**
+
+- **Constructor**: `new Openfort(secretKey, { walletSecret })` — `Openfort` is both the default and a
+  named export. `OpenfortOptions = { basePath?, walletSecret?, debugging?, publishableKey? }`.
+- **Creds for the BACKEND agent-wallet path**: `OPENFORT_SECRET_KEY` (sk_test_ for testnet) +
+  `OPENFORT_WALLET_SECRET`. No publishable key / Shield keys needed for backend wallets.
+- **⚠️ WALLET SECRET FORMAT GOTCHA**: the dashboard/CLI hands you a **PEM file** with a PUBLIC KEY
+  block AND a PRIVATE KEY block. `OPENFORT_WALLET_SECRET` is the **base64 DER body of the PRIVATE KEY
+  block** — strip the `-----BEGIN/END PRIVATE KEY-----` headers and all newlines (~184 chars, starts
+  with `MIG` = PKCS#8 DER). Passing the whole PEM (or with newlines) → "Invalid wallet secret format:
+  Could not create the EC key". This is base64-encoded EC P-256 private key in DER format.
+- **Provision** = `accounts.evm.backend.create()` → `EvmAccount { id: "acc_…", address, custody, walletId }`.
+  Backend wallets are chain-agnostic EOAs in Openfort's TEE (no chainId needed at create).
+- **Sign** = `accounts.evm.backend.sign({ id, data })` (data = hex hash) or the account object's
+  `.sign({ hash })` / `.signMessage({ message })`.
+- **Freeze (v1, custody-level)** = `accounts.evm.backend.delete(accountId)` → `{ deleted: true }`;
+  the signer is destroyed, so signing fails after — a confirmed kill. (Irreversible: a reversible
+  freeze needs the on-chain `update`→delegated + session-key + KeysManager `pauseKey`/`unpauseKey`.)
+- **Health** = `accounts.evm.backend.list({ limit: 1 })`.
+- **Build note**: the package ships a prebuilt `dist`; its only install script is `only-allow pnpm`.
+  pnpm 11 requires an explicit decision → set `allowBuilds: { '@openfort/openfort-node': false }` in
+  pnpm-workspace.yaml (no build needed), else `pnpm typecheck`'s deps-check errors.
+- **Hardening (the real on-chain guard, future)**: `accounts.evm.backend.update` (EOA→EIP-7702
+  delegated) + `sessions.create` (scoped session key) + KeysManager `setCanCall`/`setTokenSpend` and
+  `pauseKey`/`revokeKey` verified by `isKeyActive`. v1 keeps per-tx caps Cosign-layer.
+
 ## 1. Install (server/backend TS SDK)
 ```bash
 npm install @openfort/openfort-node   # v0.10.5; Node 18+; MIT

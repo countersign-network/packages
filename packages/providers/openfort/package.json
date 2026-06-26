@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@cosign/policy": "workspace:*",
+    "@openfort/openfort-node": "^0.10.5",
+    "dotenv": "^17.4.2",
+    "viem": "^2.52.2"
   },
-  "comment": "Skeleton. To finish: `pnpm add @openfort/openfort-node` and fill methods per docs/sdk-research/openfort.md"
+  "comment": "LIVE adapter (onchain-policy, @openfort/openfort-node v0.10.5). smoke.ts verifies creds (create+delete a backend wallet); spike.ts runs the Phase-0 proof (provision -> applyPolicy -> sign=allowed -> freeze=delete signer -> sign=denied). Testnet-safe."
 }
