@@ -24,6 +24,7 @@ import {
   type WsServerMessage,
 } from "@cosign/api-contract";
 import { CosignCore } from "./core-service";
+import { backendsView, connectBackend, metricsOf, recordFreeze } from "./connect";
 import type { CoreResolver } from "./tenants";
 
 export interface CosignServer {
@@ -78,7 +79,7 @@ function apiKeyFrom(req: IncomingMessage): string {
 }
 
 // Mutating / spend-decision routes need operator+; everything else is read-only (viewer+).
-const WRITE_ROUTES = new Set(["POST /policy", "POST /freeze", "POST /unfreeze", "POST /evaluate", "POST /approve", "POST /deny"]);
+const WRITE_ROUTES = new Set(["POST /policy", "POST /freeze", "POST /unfreeze", "POST /evaluate", "POST /approve", "POST /deny", "POST /connect"]);
 
 export function createCosignServer(coreOrResolver: CosignCore | CoreResolver, opts: CosignServerOptions = {}): CosignServer {
   // A single Core => single-tenant (the demo). A resolver => one isolated Core per tenant.
@@ -208,7 +209,24 @@ async function handle(core: CosignCore, req: IncomingMessage, res: ServerRespons
     case "POST /freeze": {
       const reqBody = await readJson<FreezeRequest>(req);
       const report = await core.freezeAll(reqBody.reason ?? `freeze via API (tenant ${tenantId})`);
+      recordFreeze(core, report.windowMs);
       return send(res, 200, report);
+    }
+    case "GET /backends": {
+      // The connectable-backend catalog + moat metrics — drives the "connect a 2nd backend" demo.
+      return send(res, 200, backendsView(core));
+    }
+    case "POST /connect": {
+      const b = await readJson<{ providerId?: string }>(req);
+      if (!b.providerId) return send(res, 400, { error: "providerId required" });
+      try {
+        return send(res, 200, await connectBackend(core, b.providerId));
+      } catch (err) {
+        return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    case "GET /metrics": {
+      return send(res, 200, metricsOf(core));
     }
     case "POST /unfreeze": {
       await core.unfreezeAll();
