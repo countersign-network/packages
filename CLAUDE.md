@@ -33,7 +33,8 @@ are skeletons until credentials exist (see §"Status" below).
 - `packages/core` — `EnforcementProvider` interface, branded ids, the fail-closed freeze controller.
 - `packages/policy` — unified declarative policy (zod) + the compiler to each backend's native controls. **Core IP.**
 - `packages/ledger` — append-only, hash-chained store (`LedgerPort` + in-memory + pglite adapters).
-- `packages/providers/{mock,coinbase,turnkey,openfort}` — `EnforcementProvider` adapters.
+- `packages/providers/{mock,coinbase,turnkey,openfort,lithic}` — `EnforcementProvider` adapters
+  (lithic = the first NON-crypto rail: a virtual Visa card).
 - `packages/api` — Core service (REST + ws) the client talks to.
 - `packages/agent-harness` — reference spending agents + the headline demo runner.
 - `packages/sdk` — `@cosign/sdk`: typed client over the Core API + live ledger subscribe (front door).
@@ -72,5 +73,9 @@ One ledger shows every attempt. If that runs on real-ish funds, the thesis is pr
 - 🏁 **THE HEADLINE IS PROVEN LIVE**: `pnpm exec tsx packages/agent-harness/live-freeze.ts` — three
   agents, three backends, three venues, ONE freeze, all confirmed in **~697ms (< 1s)**, signed
   hash-chained ledger verified.
+- SCAFFOLDED (non-crypto rail, needs creds): `packages/providers/lithic` — virtual Visa card
+  (native-session-caps: spend_limit = caps, PAUSE = freeze, CLOSE = kill). Typed against `lithic`
+  v0.123.0; `smoke.ts`/`spike.ts` run once `LITHIC_API_KEY` (sandbox) is set. Proves the thesis is
+  rail-agnostic — the same policy/freeze/ledger governs cards, not just crypto.
 - DEFERRED: Flutter client beyond scaffold, FCM/APNs push, anomaly detection, real Postgres
   via testcontainers (pglite stands in for tests).

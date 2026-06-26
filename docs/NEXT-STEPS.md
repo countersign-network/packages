@@ -46,6 +46,16 @@ claim is no longer "proven against mocks" — it's proven live.
 
 Next (optional polish, no longer blocking): native hardening parity (Openfort on-chain KeysManager
 guard, Turnkey consensus approval), webhook event streams, then the off-Free always-on deploy.
+
+## Beyond crypto — the card rail (scaffolded 2026-06-26)
+
+`packages/providers/lithic` is the first NON-crypto rail: a virtual Visa card under the same control
+plane (native-session-caps — spend_limit = caps, PAUSE = freeze, CLOSE = kill; ASA auth-stream is the
+inline-approval upgrade). Typed against `lithic` v0.123.0; `smoke.ts` + `spike.ts` (under-cap APPROVED,
+over-cap DECLINED, frozen DECLINED via sandbox auth simulation) run once `LITHIC_API_KEY` (sandbox) is
+set. With a key, the headline becomes "freeze an agent across Coinbase + Turnkey + Openfort **and a
+Visa card**, one action" — the cross-RAIL-TYPE freeze, a sharper enterprise wedge than crypto-only.
+Cosign stays the control plane (governs the customer's own Lithic program), never the issuer/custodian.
 ~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
 ~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
