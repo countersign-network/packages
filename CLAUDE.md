@@ -65,8 +65,12 @@ One ledger shows every attempt. If that runs on real-ish funds, the thesis is pr
   hash-chained ledger, MockProvider (all 3 enforcement modes + fail-closed scenarios),
   REST+ws API, agent harness, the headline demo + full test suite — all run against **mocks**,
   no credentials required.
-- SKELETONS (need vendor creds to finish): `packages/providers/{coinbase,turnkey,openfort}` —
-  accurate signatures + real `capabilities()`, every other method throws `NotImplementedError`.
-  To finish one: install its SDK, fill the methods per `docs/sdk-research/<vendor>.md`, add creds.
+- LIVE (testnet, creds in .env) — ALL THREE: **Coinbase** (Base Sepolia, native MPC caps),
+  **Turnkey** (api.turnkey.com, pre-sign CEL policy), **Openfort** (api.openfort.io, onchain-policy /
+  backend wallet). Each has `smoke.ts` (verify creds) + `spike.ts` (Phase-0 enforcement proof) at its
+  package root.
+- 🏁 **THE HEADLINE IS PROVEN LIVE**: `pnpm exec tsx packages/agent-harness/live-freeze.ts` — three
+  agents, three backends, three venues, ONE freeze, all confirmed in **~697ms (< 1s)**, signed
+  hash-chained ledger verified.
 - DEFERRED: Flutter client beyond scaffold, FCM/APNs push, anomaly detection, real Postgres
   via testcontainers (pglite stands in for tests).

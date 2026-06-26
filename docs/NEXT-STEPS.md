@@ -31,7 +31,21 @@ The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **pr
 ## ② Then I build (ordered; roadmap tier in brackets)
 
 A. **Real Coinbase adapter** [Tier 0 #1] → Phase-0 single-stop spike on Base Sepolia → **measure real freeze latency** (the number that validates the <1s claim under real network + on-chain lag). *Needs creds (item ①.2).*
-B. **Turnkey + Openfort adapters** [Tier 0 #2/#3] → the real cross-vendor <1s freeze (the headline / handoff Phase 2). *Needs creds.*
+~~B. Turnkey + Openfort adapters~~ **DONE** ✅ (2026-06-26) — BOTH LIVE.
+- Turnkey: api.turnkey.com (pre-sign CEL, @turnkey/sdk-server v6.1.1); `spike.ts` proves in-policy
+  allowed / over-cap denied / frozen denied with REAL in-enclave enforcement.
+- Openfort: api.openfort.io (onchain-policy, @openfort/openfort-node v0.10.5); `spike.ts` proves
+  sign-allowed → freeze (delete signer) → sign-denied.
+
+## 🏁 THE HEADLINE IS PROVEN ON REAL VENDORS (2026-06-26)
+
+`pnpm exec tsx packages/agent-harness/live-freeze.ts` — **three agents, three backends, three
+venues, ONE freeze**: Coinbase (Base Sepolia) + Turnkey (Ethereum Sepolia) + Openfort (Polygon
+Amoy), all confirmed in **~697ms (< 1s)**, signed hash-chained ledger verified. The falsifiable
+claim is no longer "proven against mocks" — it's proven live.
+
+Next (optional polish, no longer blocking): native hardening parity (Openfort on-chain KeysManager
+guard, Turnkey consensus approval), webhook event streams, then the off-Free always-on deploy.
 ~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
 ~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).

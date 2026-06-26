@@ -3,6 +3,8 @@ packages:
   - 'packages/providers/*'
   - 'api-contract'
 allowBuilds:
+  # Openfort ships a prebuilt dist; its only install script is `only-allow pnpm` — no build needed.
+  '@openfort/openfort-node': false
   esbuild: true
 # Force a patched ws everywhere (transitive vulnerable ws via viem/isows — GHSA-96hv-2xvq-fx4p).
 overrides:
