@@ -6,8 +6,11 @@ allowBuilds:
   # Openfort ships a prebuilt dist; its only install script is `only-allow pnpm` — no build needed.
   '@openfort/openfort-node': false
   esbuild: true
-# Force a patched ws everywhere (transitive vulnerable ws via viem/isows — GHSA-96hv-2xvq-fx4p).
+# Force patched transitive deps everywhere (prod audit gates CI on high+):
+#  - ws  (vulnerable via viem/isows — GHSA-96hv-2xvq-fx4p)
+#  - axios (vulnerable <1.16.0 via @openfort/openfort-node>@openfort/shield-js — GHSA-35jp-ww65-95wh et al.)
 overrides:
   ws: '>=8.21.0'
+  axios: '>=1.16.0'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
