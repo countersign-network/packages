@@ -64,7 +64,10 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
   attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
   **Anchoring seam in place**: `LedgerAnchor` (+ `FileAnchor` reference) publishes the head after
   each freeze; swap in an on-chain / transparency-log anchor for a real cross-trust-domain guarantee.
-  ⬜ Still to do: a real external anchor target + DB-level append-only (block UPDATE/DELETE).
+- ✅ **DB-level append-only** — a plpgsql trigger RAISES on any UPDATE/DELETE to the `ledger` table
+  (pglite + real Postgres), so a direct-SQL attacker is blocked at the storage layer, not just by the
+  port having no mutators. Tested. If the trigger is bypassed (superuser disable), the signed hash
+  chain still detects the tamper (defense in depth). ⬜ Still to do: a real external anchor target.
 - ✅ **Rate limiting** — fixed-window cap on mutating routes (per API key / per IP), 429 + Retry-After. Tested.
 - ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
   Forced-patched transitive deps via `pnpm-workspace.yaml` overrides: `ws` (GHSA-96hv-2xvq-fx4p, via
