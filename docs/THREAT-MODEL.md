@@ -18,13 +18,16 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 1. **Client ↔ Core (the Dart/TS boundary).** Clients (Flutter, dashboard, MCP, SDK) hold **no keys**
    and can only call the API. A compromised client cannot move funds or weaken policy directly.
 2. **Core ↔ Backends (`EnforcementProvider`).** No vendor SDK/keys leak past the interface.
-3. **Backend ↔ chain/MPC.** Enforcement lives in vendor MPC/TEE or on-chain; Countersign never holds keys.
+3. **Backend ↔ chain/MPC/issuer.** Enforcement lives in vendor MPC/TEE, on-chain, OR a card
+   issuer/network (Lithic/Visa spend controls). Countersign never holds keys, funds, or card PANs —
+   on the card rail it governs the customer's own issuing program via their API key (control plane,
+   not custodian/issuer), acting at the token/issuing layer, so it stays out of PCI-PAN scope.
 
 ## Adversaries & the invariant each faces
 
 | Adversary | Defense (and where it lives) |
 |---|---|
-| **Compromised / rogue agent** | Native enforcement in the vendor (Coinbase MPC cap, Openfort on-chain guard) — proven: a direct over-cap send bypassing Countersign is rejected by Coinbase. Plus Countersign's pre-flight guard + anomaly auto-freeze. |
+| **Compromised / rogue agent** | Native enforcement in the vendor (Coinbase MPC cap, Turnkey in-enclave CEL, Openfort on-chain guard, Lithic/Visa card spend_limit) — proven live across rails: an over-cap send is rejected by Coinbase, an over-cap signature denied in Turnkey's enclave, and an over-cap card auth declined by Lithic/Visa (`USER_TRANSACTION_LIMIT`); a frozen card declines (`CARD_PAUSED`). Plus Countersign's pre-flight guard + anomaly auto-freeze. |
 | **Compromised client** | Holds no keys; API auth + RBAC; can only do what its key/tenant allows. |
 | **Network MITM** | TLS everywhere (Render-provided). Webhook signatures verified per vendor. |
 | **Compromised Core / host** | Fail-closed; least-privilege vendor scopes; secrets in env/secret-manager, never code. (Residual risk — see Gaps.) |
@@ -64,7 +67,18 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
   ⬜ Still to do: a real external anchor target + DB-level append-only (block UPDATE/DELETE).
 - ✅ **Rate limiting** — fixed-window cap on mutating routes (per API key / per IP), 429 + Retry-After. Tested.
 - ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
-  Forced a patched `ws` via a `pnpm-workspace.yaml` override (GHSA-96hv-2xvq-fx4p). Prod tree is clean.
+  Forced-patched transitive deps via `pnpm-workspace.yaml` overrides: `ws` (GHSA-96hv-2xvq-fx4p, via
+  viem/isows) and `axios>=1.16.0` (GHSA-35jp-ww65-95wh et al., via `@openfort/openfort-node`). Prod tree clean.
 - ✅ **invariant #5** — property test: every set policy field is natively enforced OR flagged
   `unsupported` (Countersign-enforced) — the compiler can't silently drop/weaken a field. All 3 modes.
-- ⬜ **Third-party security audit** before mainnet / real funds.
+- ✅ **Non-crypto (card) rail — control plane, not custodian** — the Lithic adapter governs the
+  customer's own card-issuing program via their API key; Countersign never holds the PAN, funds, or
+  issuer keys (acts at the token/issuing layer → out of PCI-PAN scope). Defaults to the SANDBOX
+  environment (production is an explicit opt-in). Freeze is vendor-side (card PAUSE) and **confirmed by
+  reading the card state back** — never trusts the API call merely resolving (fail-closed). Proven live.
+- ✅ **Demo surface (`/connect`, `/backends`, `/metrics`)** — `/connect` is operator+ and rate-limited;
+  reads are viewer+. The hosted connect demo is **mock-backed and the deployed Core holds no vendor
+  creds**, so a visitor can never touch a real wallet/card; `/connect` is idempotent over a fixed
+  3-backend catalog (no resource exhaustion).
+- ⬜ **Third-party security audit** before mainnet / real funds. ⬜ Card rail: verify Lithic webhook
+  signatures (ASA auth-stream) when that path is wired.
