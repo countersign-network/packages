@@ -132,6 +132,16 @@ describe("API auth + RBAC + tenant seam", () => {
     expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: viewKey })).status).toBe(403); // write denied
     expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: opKey })).status).toBe(200); // operator ok
   });
+
+  it("RBAC: the connect-demo routes are gated — /connect is operator+, /backends is viewer+", async () => {
+    const connect = (h: Record<string, string>) =>
+      fetch(`${authBase}/connect`, { method: "POST", headers: { ...h, "content-type": "application/json" }, body: JSON.stringify({ providerId: "coinbase" }) });
+    expect((await connect({})).status).toBe(401); // no key
+    expect((await connect(viewKey)).status).toBe(403); // viewer can't connect (it's a write)
+    expect((await connect(opKey)).status).toBe(200); // operator can
+    expect((await fetch(`${authBase}/backends`, { headers: viewKey })).status).toBe(200); // read ok for viewer
+    expect((await fetch(`${authBase}/backends`)).status).toBe(401); // but still needs a key
+  });
 });
 
 describe("rate limiting on mutating routes", () => {
