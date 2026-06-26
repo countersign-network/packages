@@ -1,5 +1,5 @@
 /**
- * The canonical Cosign event vocabulary. EVERY one of these is appended, in order, to the
+ * The canonical Countersign event vocabulary. EVERY one of these is appended, in order, to the
  * hash-chained ledger — the audit artifact and source of truth (prime directive #5).
  *
  * Two origins:

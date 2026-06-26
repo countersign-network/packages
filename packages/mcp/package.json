@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/mcp",
+  "name": "@countersign/mcp",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,22 +9,22 @@
     ".": "./src/index.ts"
   },
   "bin": {
-    "cosign-mcp": "./src/server.ts"
+    "countersign-mcp": "./src/server.ts"
   },
   "scripts": {
     "start": "tsx src/server.ts"
   },
   "dependencies": {
-    "@cosign/api": "workspace:*",
-    "@cosign/api-contract": "workspace:*",
-    "@cosign/policy": "workspace:*",
-    "@cosign/sdk": "workspace:*",
+    "@countersign/api": "workspace:*",
+    "@countersign/api-contract": "workspace:*",
+    "@countersign/policy": "workspace:*",
+    "@countersign/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cosign/core": "workspace:*",
-    "@cosign/provider-mock": "workspace:*"
+    "@countersign/core": "workspace:*",
+    "@countersign/provider-mock": "workspace:*"
   },
-  "comment": "Agent-facing front door: exposes Cosign as MCP tools (the kill switch + spend guard inside any MCP client like Claude). Run: COSIGN_URL=http://localhost:8080 pnpm --filter @cosign/mcp start"
+  "comment": "Agent-facing front door: exposes Countersign as MCP tools (the kill switch + spend guard inside any MCP client like Claude). Run: COUNTERSIGN_URL=http://localhost:8080 pnpm --filter @countersign/mcp start"
 }

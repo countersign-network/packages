@@ -7,7 +7,7 @@ or in part, except with the prior written permission of the copyright holder.
 
 Unauthorized copying, distribution, or use of the Software is strictly prohibited.
 
-NOTE (intent): Cosign follows an open-core direction. Specific "front door"
+NOTE (intent): Countersign follows an open-core direction. Specific "front door"
 components — the EnforcementProvider interface, the API contract, the SDK, and
 the MCP server (packages: core interface, api-contract, sdk, mcp) — are expected
 to be re-licensed under a permissive open-source license (e.g. MIT/Apache-2.0) to

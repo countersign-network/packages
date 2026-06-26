@@ -1,5 +1,5 @@
 /**
- * @cosign/api-contract — the SINGLE SOURCE OF TRUTH for the Client<->Core wire interface.
+ * @countersign/api-contract — the SINGLE SOURCE OF TRUTH for the Client<->Core wire interface.
  * The Flutter client is generated from this (openapi.yaml for REST + these types for the ws stream),
  * so the approve / freeze / ledger contract never drifts between Dart and TS.
  *
@@ -7,8 +7,8 @@
  * still only call these endpoints — it holds no keys and cannot weaken policy or move funds.
  */
 
-import type { EnforcementMode, FreezeReport, LedgerEvent } from "@cosign/core";
-import type { UnifiedPolicy } from "@cosign/policy";
+import type { EnforcementMode, FreezeReport, LedgerEvent } from "@countersign/core";
+import type { UnifiedPolicy } from "@countersign/policy";
 
 export const WS_PATH = "/events";
 
@@ -55,8 +55,8 @@ export interface FreezeRequest {
 export type FreezeResponse = FreezeReport;
 
 /**
- * The agent-facing pre-flight guard: an agent asks Cosign "should I make this spend?" BEFORE it
- * touches the wallet. Cosign answers from the unified policy and records the decision. This is the
+ * The agent-facing pre-flight guard: an agent asks Countersign "should I make this spend?" BEFORE it
+ * touches the wallet. Countersign answers from the unified policy and records the decision. This is the
  * call that gets made on every transaction — the data flywheel.
  */
 export interface EvaluateRequest {
@@ -131,10 +131,10 @@ export type WsServerMessage =
 
 /**
  * The operations the front door exposes — the single abstraction the SDK client, the embedded
- * in-process Core, the MCP tools, and the x402 guard all program against. `CosignClient` (HTTP) and
+ * in-process Core, the MCP tools, and the x402 guard all program against. `CountersignClient` (HTTP) and
  * the local adapter both implement this, so callers don't care whether the Core is remote or embedded.
  */
-export interface CosignApi {
+export interface CountersignApi {
   health(): Promise<HealthResponse>;
   agents(): Promise<AgentsResponse>;
   applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult>;

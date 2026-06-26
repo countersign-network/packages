@@ -1,6 +1,6 @@
-# Cosign — Threat Model
+# Countersign — Threat Model
 
-Cosign governs money-moving AI agents, so security is the product, not a feature. This is a living
+Countersign governs money-moving AI agents, so security is the product, not a feature. This is a living
 doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and `architecture.md`.
 
 ## Assets to protect
@@ -18,13 +18,13 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 1. **Client ↔ Core (the Dart/TS boundary).** Clients (Flutter, dashboard, MCP, SDK) hold **no keys**
    and can only call the API. A compromised client cannot move funds or weaken policy directly.
 2. **Core ↔ Backends (`EnforcementProvider`).** No vendor SDK/keys leak past the interface.
-3. **Backend ↔ chain/MPC.** Enforcement lives in vendor MPC/TEE or on-chain; Cosign never holds keys.
+3. **Backend ↔ chain/MPC.** Enforcement lives in vendor MPC/TEE or on-chain; Countersign never holds keys.
 
 ## Adversaries & the invariant each faces
 
 | Adversary | Defense (and where it lives) |
 |---|---|
-| **Compromised / rogue agent** | Native enforcement in the vendor (Coinbase MPC cap, Openfort on-chain guard) — proven: a direct over-cap send bypassing Cosign is rejected by Coinbase. Plus Cosign's pre-flight guard + anomaly auto-freeze. |
+| **Compromised / rogue agent** | Native enforcement in the vendor (Coinbase MPC cap, Openfort on-chain guard) — proven: a direct over-cap send bypassing Countersign is rejected by Coinbase. Plus Countersign's pre-flight guard + anomaly auto-freeze. |
 | **Compromised client** | Holds no keys; API auth + RBAC; can only do what its key/tenant allows. |
 | **Network MITM** | TLS everywhere (Render-provided). Webhook signatures verified per vendor. |
 | **Compromised Core / host** | Fail-closed; least-privilege vendor scopes; secrets in env/secret-manager, never code. (Residual risk — see Gaps.) |
@@ -48,16 +48,16 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ Fail-closed matrix · hash-chained ledger · native MPC enforcement (Coinbase) · anomaly
   auto-freeze · responsible disclosure (`SECURITY.md`) · least-privilege vendor scopes.
 - ✅ **API auth + tenant seam** — JSON API requires an API key (`Authorization: Bearer`) when
-  `COSIGN_API_KEYS` is set; resolves a tenant id. (Open in demo mode.)
+  `COUNTERSIGN_API_KEYS` is set; resolves a tenant id. (Open in demo mode.)
 - ✅ **Secret scanning** in CI (gitleaks) + `.gitleaks.toml`; `.env` gitignored.
-- ✅ **Full multi-tenancy** — each tenant gets its own isolated `CosignCore` (providers, policies,
+- ✅ **Full multi-tenancy** — each tenant gets its own isolated `CountersignCore` (providers, policies,
   ledger), created lazily by `TenantRegistry` and selected per request from the API key's tenant.
   Tested: tenants see only their own agents, and a freeze in one tenant never touches another's
   ledger. (A single Core is still accepted for the single-tenant demo.)
 - ✅ **RBAC** — keys carry a role (`viewer` / `operator` / `admin`); mutating + spend-decision routes
   require operator+, read routes viewer+ (403 otherwise). Tested.
 - ✅ **Ledger signing** — each row is **Ed25519-signed** with a key the DB never holds
-  (`COSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
+  (`COUNTERSIGN_LEDGER_KEY`, else ephemeral); verifying with the public key catches a *recomputed-chain*
   attack by a DB owner (tested). Public key is exposed at `GET /ledger` for independent verification.
   **Anchoring seam in place**: `LedgerAnchor` (+ `FileAnchor` reference) publishes the head after
   each freeze; swap in an on-chain / transparency-log anchor for a real cross-trust-domain guarantee.
@@ -66,5 +66,5 @@ doc: every change is built against it. Pairs with `SECURITY.md` (disclosure) and
 - ✅ **Supply chain** — `pnpm audit --prod --audit-level high` gates CI; Dependabot (npm + actions, weekly).
   Forced a patched `ws` via a `pnpm-workspace.yaml` override (GHSA-96hv-2xvq-fx4p). Prod tree is clean.
 - ✅ **invariant #5** — property test: every set policy field is natively enforced OR flagged
-  `unsupported` (Cosign-enforced) — the compiler can't silently drop/weaken a field. All 3 modes.
+  `unsupported` (Countersign-enforced) — the compiler can't silently drop/weaken a field. All 3 modes.
 - ⬜ **Third-party security audit** before mainnet / real funds.

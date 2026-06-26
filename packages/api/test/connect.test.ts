@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CosignCore, createCosignServer, type CosignServer } from "@cosign/api";
+import { CountersignCore, createCountersignServer, type CountersignServer } from "@countersign/api";
 
 /** The moat-validation demo: connecting a SECOND backend is the headline, and it's instrumented. */
 describe("connect-a-backend flow (moat demo)", () => {
-  let server: CosignServer;
+  let server: CountersignServer;
   let base: string;
 
   beforeAll(async () => {
-    server = createCosignServer(new CosignCore());
+    server = createCountersignServer(new CountersignCore());
     base = `http://localhost:${await server.listen(0)}`;
   });
   afterAll(async () => {

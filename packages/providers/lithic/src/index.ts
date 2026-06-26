@@ -1,5 +1,5 @@
 /**
- * Lithic adapter — a NON-CRYPTO rail. Proves Cosign's thesis is rail-agnostic: the same policy +
+ * Lithic adapter — a NON-CRYPTO rail. Proves Countersign's thesis is rail-agnostic: the same policy +
  * freeze + ledger that governs crypto wallets governs a virtual Visa card. EnforcementMode =
  * native-session-caps (the card's spend_limit is enforced by Lithic/Visa, exactly like Coinbase's
  * MPC caps — the agent simply cannot exceed it).
@@ -11,7 +11,7 @@
  *                       by reading the card state back (never trust the call resolving alone).
  *  - revokeSession   -> cards.update({ state:"CLOSED" }) — the irreversible kill.
  *
- * Cosign stays the CONTROL PLANE, never the issuer/custodian: it governs the customer's own Lithic
+ * Countersign stays the CONTROL PLANE, never the issuer/custodian: it governs the customer's own Lithic
  * program via their API key (same as it governs their Coinbase via CDP keys) — no funds held, no PCI
  * PAN handling (we act at the issuing API; the auth-stream is tokenized). Defaults to the SANDBOX
  * environment (directive #6: testnet only). ASA (Authorization Stream Access) real-time approve/decline
@@ -33,8 +33,8 @@ import {
   type ProviderEvent,
   type Unsubscribe,
   type Venue,
-} from "@cosign/core";
-import type { UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import type { UnifiedPolicy } from "@countersign/policy";
 
 export interface LithicConfig {
   apiKey?: string;
@@ -84,7 +84,7 @@ export class LithicProvider implements EnforcementProvider {
   }
 
   async provisionWallet(agentId: AgentId, opts: { venue: Venue }): Promise<AgentRef> {
-    const card = await this.client().cards.create({ type: "VIRTUAL", state: "OPEN", memo: `cosign-${String(agentId)}` });
+    const card = await this.client().cards.create({ type: "VIRTUAL", state: "OPEN", memo: `countersign-${String(agentId)}` });
     this.agents.set(agentId, { cardToken: card.token, lastFour: card.last_four });
     // The "wallet" handle is the masked card, never the PAN.
     return { provider: this.id, agentId, wallet: `card-****${card.last_four}`, venue: opts.venue };
@@ -94,21 +94,21 @@ export class LithicProvider implements EnforcementProvider {
    * Map the unified policy to the card's native spend control. NOTE: for a card rail, perTxCap /
    * dailyCap are interpreted as MINOR UNITS (cents). A card has ONE native spend_limit+duration, so a
    * per-tx cap binds as TRANSACTION; a daily cap as DAILY; if both are set the per-tx cap wins
-   * natively and the other is Cosign-enforced (never silently dropped). Crypto-style address
+   * natively and the other is Countersign-enforced (never silently dropped). Crypto-style address
    * allow/denylists don't apply to cards — merchant/MCC controls are Lithic Auth Rules (future).
    */
   async applyPolicy(agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
     const a = this.require(agentId);
-    const cosignTracked: string[] = [];
+    const countersignTracked: string[] = [];
 
     // The card's native spend_limit binds the per-tx cap (TRANSACTION duration). dailyCap stays
-    // Cosign-enforced — Lithic's update API expresses ANNUALLY/MONTHLY/FOREVER/TRANSACTION but not a
+    // Countersign-enforced — Lithic's update API expresses ANNUALLY/MONTHLY/FOREVER/TRANSACTION but not a
     // rolling DAILY window, so we don't approximate it natively (never silently weaken/strengthen).
     const spendLimit = policy.perTxCap !== undefined ? Number(policy.perTxCap) : undefined;
-    if (policy.dailyCap !== undefined) cosignTracked.push("dailyCap (card native limit is per-transaction)");
-    if (policy.allowlist?.length) cosignTracked.push("allowlist (-> Lithic Auth Rules / MCC)");
-    if (policy.denylist?.length) cosignTracked.push("denylist (-> Lithic Auth Rules / MCC)");
-    if (policy.approvalThreshold !== undefined) cosignTracked.push("approvalThreshold (-> ASA auth-stream)");
+    if (policy.dailyCap !== undefined) countersignTracked.push("dailyCap (card native limit is per-transaction)");
+    if (policy.allowlist?.length) countersignTracked.push("allowlist (-> Lithic Auth Rules / MCC)");
+    if (policy.denylist?.length) countersignTracked.push("denylist (-> Lithic Auth Rules / MCC)");
+    if (policy.approvalThreshold !== undefined) countersignTracked.push("approvalThreshold (-> ASA auth-stream)");
 
     if (spendLimit !== undefined) {
       await this.client().cards.update(a.cardToken, { spend_limit: spendLimit, spend_limit_duration: "TRANSACTION" });
@@ -117,8 +117,8 @@ export class LithicProvider implements EnforcementProvider {
     const policyId = nextId("pol");
     a.policyId = policyId;
     this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });
-    if (cosignTracked.length > 0) {
-      this.emit({ type: "error", agentId, message: `cosign-tracked (not native): ${cosignTracked.join(", ")}`, ts: Date.now() });
+    if (countersignTracked.length > 0) {
+      this.emit({ type: "error", agentId, message: `countersign-tracked (not native): ${countersignTracked.join(", ")}`, ts: Date.now() });
     }
     return { policyId };
   }

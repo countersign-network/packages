@@ -3,7 +3,7 @@
  *
  *   pnpm exec tsx packages/agent-harness/live-freeze.ts
  *
- * Registers the three LIVE adapters into one CosignCore:
+ * Registers the three LIVE adapters into one CountersignCore:
  *   - Coinbase (Base Sepolia)      — native-session-caps (MPC)
  *   - Turnkey  (Ethereum Sepolia)  — pre-sign-policy (in-enclave CEL)
  *   - Openfort (Polygon Amoy)      — onchain-policy (backend wallet; freeze = revoke signer)
@@ -16,12 +16,12 @@
  */
 
 import dotenv from "dotenv";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { CosignCore } from "@cosign/api";
-import { CoinbaseProvider } from "@cosign/provider-coinbase";
-import { TurnkeyProvider } from "@cosign/provider-turnkey";
-import { OpenfortProvider } from "@cosign/provider-openfort";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { CountersignCore } from "@countersign/api";
+import { CoinbaseProvider } from "@countersign/provider-coinbase";
+import { TurnkeyProvider } from "@countersign/provider-turnkey";
+import { OpenfortProvider } from "@countersign/provider-openfort";
 
 dotenv.config();
 
@@ -31,7 +31,7 @@ const CAP_WEI = "10000000000000000"; // 0.01 ETH per-tx cap
 async function main(): Promise<void> {
   // Generous per-provider timeout so real network latency isn't mistaken for a hung backend; we want
   // to MEASURE the true window, not race a stopwatch. The fail-closed escalation still applies.
-  const core = new CosignCore({ freezeTimeoutMs: 5000, escalateTimeoutMs: 5000 });
+  const core = new CountersignCore({ freezeTimeoutMs: 5000, escalateTimeoutMs: 5000 });
 
   console.log("registering live providers (Coinbase + Turnkey + Openfort)…");
   await core.registerProvider(new CoinbaseProvider());

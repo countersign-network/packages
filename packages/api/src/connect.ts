@@ -1,5 +1,5 @@
 /**
- * The moat-validation demo layer. Cosign's entire thesis is cross-vendor AGGREGATION — holding the
+ * The moat-validation demo layer. Countersign's entire thesis is cross-vendor AGGREGATION — holding the
  * policy, freeze, and ledger across MORE THAN ONE wallet backend at once, which no single vendor can
  * do. The one assumption that makes or breaks it: do operators connect a SECOND backend? So this
  * turns "connect a backend" into the headline action and instruments the second-backend connect.
@@ -12,10 +12,10 @@
  * real three-vendor freeze in packages/agent-harness/live-freeze.ts.
  */
 
-import { asAgentId, asProviderId, type EnforcementMode, type LedgerEvent } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { MockProvider } from "@cosign/provider-mock";
-import type { CosignCore } from "./core-service";
+import { asAgentId, asProviderId, type EnforcementMode, type LedgerEvent } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { MockProvider } from "@countersign/provider-mock";
+import type { CountersignCore } from "./core-service";
 
 export interface BackendSpec {
   id: string;
@@ -45,7 +45,7 @@ export interface MoatMetrics {
 }
 
 /** Derive the moat metrics from the durable ledger (connects + freezes are recorded there). */
-export async function metricsOf(core: CosignCore): Promise<MoatMetrics> {
+export async function metricsOf(core: CountersignCore): Promise<MoatMetrics> {
   const records = await core.ledgerRecords();
   const connects: { id: string; at: number }[] = [];
   const seen = new Set<string>();
@@ -79,7 +79,7 @@ export interface BackendsView {
   metrics: MoatMetrics;
 }
 
-export async function backendsView(core: CosignCore): Promise<BackendsView> {
+export async function backendsView(core: CountersignCore): Promise<BackendsView> {
   const connected = new Set(core.agents().map((a) => String(a.provider)));
   return {
     backends: BACKEND_CATALOG.map((b) => ({ ...b, connected: connected.has(b.id) })),
@@ -92,7 +92,7 @@ export async function backendsView(core: CosignCore): Promise<BackendsView> {
  * unified policy so the freeze has something to govern, and record a durable `backend_connected` row.
  * Idempotent per backend. `nowMs` is injectable for deterministic tests.
  */
-export async function connectBackend(core: CosignCore, providerId: string, nowMs: () => number = Date.now): Promise<BackendsView> {
+export async function connectBackend(core: CountersignCore, providerId: string, nowMs: () => number = Date.now): Promise<BackendsView> {
   const spec = BACKEND_CATALOG.find((b) => b.id === providerId);
   if (!spec) throw new Error(`unknown backend: ${providerId}`);
 

@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import type { AgentId, LedgerEvent } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { CosignCore, createDemoCore } from "@cosign/api";
+import type { AgentId, LedgerEvent } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { CountersignCore, createDemoCore } from "@countersign/api";
 
 const kindsOf = (records: { payload: LedgerEvent }[]) => records.map((r) => r.payload.kind);
 const APPROVAL_POLICY = definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" });
 const bigSpend = { amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" }; // > 60, <= 100
 
-async function withApprovalPolicy(): Promise<{ core: CosignCore; agent: AgentId }> {
+async function withApprovalPolicy(): Promise<{ core: CountersignCore; agent: AgentId }> {
   const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false });
   await core.applyPolicy(APPROVAL_POLICY);
   return { core, agent: fleet[0]!.agentId };

@@ -17,8 +17,8 @@
 import { Turnkey } from "@turnkey/sdk-server";
 import { serializeTransaction, parseGwei, type Hex } from "viem";
 import dotenv from "dotenv";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
 import { TurnkeyProvider } from "./src/index";
 
 dotenv.config();

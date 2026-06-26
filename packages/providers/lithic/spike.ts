@@ -11,8 +11,8 @@
 
 import Lithic from "lithic";
 import dotenv from "dotenv";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
 import { LithicProvider } from "./src/index";
 
 dotenv.config();
@@ -28,7 +28,7 @@ function req(key: string): string {
 }
 
 async function simulate(client: Lithic, pan: string, amount: number): Promise<{ outcome: "approved" | "declined"; detail: string }> {
-  const res = await client.transactions.simulateAuthorization({ amount, descriptor: "COSIGN TEST", pan });
+  const res = await client.transactions.simulateAuthorization({ amount, descriptor: "COUNTERSIGN TEST", pan });
   if (!res.token) return { outcome: "declined", detail: "declined (no transaction created)" };
   const tx = await client.transactions.retrieve(res.token);
   return { outcome: tx.result === "APPROVED" ? "approved" : "declined", detail: tx.result };

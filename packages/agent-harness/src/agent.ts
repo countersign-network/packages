@@ -4,9 +4,9 @@
  * every attempt lands in the unified ledger.
  */
 
-import type { AgentId } from "@cosign/core";
-import type { SpendAttempt } from "@cosign/policy";
-import type { MockProvider, SpendResult } from "@cosign/provider-mock";
+import type { AgentId } from "@countersign/core";
+import type { SpendAttempt } from "@countersign/policy";
+import type { MockProvider, SpendResult } from "@countersign/provider-mock";
 
 export class SpendingAgent {
   constructor(

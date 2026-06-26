@@ -1,6 +1,6 @@
 # Security Policy
 
-Cosign is a control plane for AI agents that spend money — security is the product. We take
+Countersign is a control plane for AI agents that spend money — security is the product. We take
 reports seriously.
 
 ## Status
@@ -12,7 +12,7 @@ Do **not** use it with mainnet funds or real custody. (Prime directive #6: testn
 
 Please report privately — do **not** open a public issue:
 
-- Email **simon.crean@gmail.com** with `[cosign-security]` in the subject, or
+- Email **simon.crean@gmail.com** with `[countersign-security]` in the subject, or
 - Use GitHub's **private vulnerability reporting** (Security → Report a vulnerability).
 
 Include a description, affected component (package/file), and reproduction steps. We aim to
@@ -30,7 +30,7 @@ The invariants that, if broken, are the most serious:
    detecting it.
 4. **Policy-compiler mismatch** — a unified policy that lowers to a *weaker* native control than it
    specifies on any backend.
-5. **Key handling** — any place keys are reconstructed or leave a vendor TEE/MPC boundary (Cosign
+5. **Key handling** — any place keys are reconstructed or leave a vendor TEE/MPC boundary (Countersign
    must never hold or rebuild keys — prime directive #1).
 
 ## Please do not

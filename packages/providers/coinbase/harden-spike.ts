@@ -1,14 +1,14 @@
 /**
  * Hardening proof (testnet) — the per-tx cap is enforced inside COINBASE'S MPC, not just by
- * Cosign's pre-check. We push the cap as a CDP account policy, then send DIRECTLY (bypassing
- * Cosign's gate, as a compromised agent would) and watch Coinbase reject the over-cap transaction.
+ * Countersign's pre-check. We push the cap as a CDP account policy, then send DIRECTLY (bypassing
+ * Countersign's gate, as a compromised agent would) and watch Coinbase reject the over-cap transaction.
  *
  *   pnpm exec tsx packages/providers/coinbase/harden-spike.ts
  */
 
 import dotenv from "dotenv";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
 import { CoinbaseProvider } from "./src/index";
 
 dotenv.config();
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   await provider.applyPolicy(agent, definePolicy({ asset: "ETH", perTxCap: CAP, allowlist: [ref.wallet] }));
   console.log("  native status:", provider.getNativeStatus(agent));
 
-  console.log("\n[A] DIRECT send UNDER the cap (bypassing Cosign entirely)…");
+  console.log("\n[A] DIRECT send UNDER the cap (bypassing Countersign entirely)…");
   try {
     const tx = await provider.nativeSendUnchecked(agent, { to: ref.wallet, amountWei: UNDER, venue: "base-sepolia" });
     console.log("    → SENT ✓  https://sepolia.basescan.org/tx/" + tx);
@@ -38,12 +38,12 @@ async function main(): Promise<void> {
     console.log("    → unexpectedly rejected:", e instanceof Error ? e.message : String(e));
   }
 
-  console.log("\n[B] DIRECT send OVER the cap (bypassing Cosign entirely)…");
+  console.log("\n[B] DIRECT send OVER the cap (bypassing Countersign entirely)…");
   try {
     const tx = await provider.nativeSendUnchecked(agent, { to: ref.wallet, amountWei: OVER, venue: "base-sepolia" });
     console.log("    → ❌ NOT blocked (sent " + tx + ") — native cap NOT enforced");
   } catch (e) {
-    console.log("    → ✅ REJECTED BY COINBASE — the cap is enforced in Coinbase's MPC, with Cosign not even in the loop.");
+    console.log("    → ✅ REJECTED BY COINBASE — the cap is enforced in Coinbase's MPC, with Countersign not even in the loop.");
     console.log("       reason:", e instanceof Error ? e.message : String(e));
   }
 }

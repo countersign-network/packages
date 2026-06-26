@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toBig, cmpAmount, addAmount, lte, gt } from "@cosign/core";
+import { toBig, cmpAmount, addAmount, lte, gt } from "@countersign/core";
 
 describe("money (base-unit string arithmetic)", () => {
   it("compares large amounts exactly (no float drift)", () => {

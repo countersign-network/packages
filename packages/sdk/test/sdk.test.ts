@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { MockProvider } from "@cosign/provider-mock";
-import { CosignCore, createCosignServer, type CosignServer } from "@cosign/api";
-import { CosignClient, CosignApiError, type WsServerMessage } from "@cosign/sdk";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { MockProvider } from "@countersign/provider-mock";
+import { CountersignCore, createCountersignServer, type CountersignServer } from "@countersign/api";
+import { CountersignClient, CountersignApiError, type WsServerMessage } from "@countersign/sdk";
 
-let server: CosignServer;
-let client: CosignClient;
+let server: CountersignServer;
+let client: CountersignClient;
 
 beforeAll(async () => {
-  const core = new CosignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
+  const core = new CountersignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
   const fleet = [
     { id: "coinbase", mode: "native-session-caps" as const, venue: "base-sepolia" },
     { id: "turnkey", mode: "pre-sign-policy" as const, venue: "ethereum-sepolia" },
@@ -19,16 +19,16 @@ beforeAll(async () => {
     await core.registerProvider(new MockProvider({ id: f.id, mode: f.mode }));
     await core.provisionAgent(f.id, asAgentId(`${f.id}-agent`), f.venue);
   }
-  server = createCosignServer(core);
+  server = createCountersignServer(core);
   const port = await server.listen(0);
-  client = new CosignClient({ baseUrl: `http://localhost:${port}` });
+  client = new CountersignClient({ baseUrl: `http://localhost:${port}` });
 });
 
 afterAll(async () => {
   await server.close();
 });
 
-describe("@cosign/sdk — typed client over the Core API", () => {
+describe("@countersign/sdk — typed client over the Core API", () => {
   it("health() lists the backends", async () => {
     const h = await client.health();
     expect(h.ok).toBe(true);
@@ -81,11 +81,11 @@ describe("@cosign/sdk — typed client over the Core API", () => {
     expect(r.outcome).toBe("approved");
   });
 
-  it("surfaces non-2xx responses as CosignApiError", async () => {
-    const failing = new CosignClient({
+  it("surfaces non-2xx responses as CountersignApiError", async () => {
+    const failing = new CountersignClient({
       baseUrl: "http://example.invalid",
       fetch: async () => new Response("boom", { status: 500 }),
     });
-    await expect(failing.health()).rejects.toBeInstanceOf(CosignApiError);
+    await expect(failing.health()).rejects.toBeInstanceOf(CountersignApiError);
   });
 });

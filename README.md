@@ -1,11 +1,11 @@
-# Cosign
+# Countersign
 
-**A neutral, cross-vendor control plane for AI agents that spend money.** Cosign holds the
+**A neutral, cross-vendor control plane for AI agents that spend money.** Countersign holds the
 **policy**, the **freeze**, and the **audit ledger** *across multiple agent-wallet backends at
 once* — the one thing no single wallet vendor can do, because each only governs its own rail. That
 aggregation is the moat.
 
-> The one falsifiable test that defines v1: **can Cosign freeze agents across three vendors at once,
+> The one falsifiable test that defines v1: **can Countersign freeze agents across three vendors at once,
 > in under a second, with a unified tamper-evident ledger of every attempt?** This repo answers yes —
 > runnable and tested today against faithful mocks, with real adapter skeletons ready for credentials.
 
@@ -19,7 +19,7 @@ pnpm test        # 100 tests: compiler, signed hash-chain, fail-closed matrix, <
 ## What `pnpm demo` shows
 
 1. **One** unified policy compiled to **each backend's native controls** (the compiler — core IP),
-   including the fields each backend *can't* enforce natively and Cosign therefore enforces itself.
+   including the fields each backend *can't* enforce natively and Countersign therefore enforces itself.
 2. Three reference agents spending: **allowed** within policy; **blocked** on per-tx cap, allowlist,
    and rolling daily cap; **held for human approval** above a threshold.
 3. **The kill switch** — one freeze stops all three backends concurrently in well under a second.
@@ -36,7 +36,7 @@ lives in Core; the client holds no keys. The language boundary is the trust boun
 and cross-vendor-freeze flows (Mermaid, renders on GitHub).
 
 **Security:** [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) + [`SECURITY.md`](SECURITY.md) — assets,
-trust boundaries, invariants. API auth via `COSIGN_API_KEYS` (Bearer key → tenant); secrets scanned
+trust boundaries, invariants. API auth via `COUNTERSIGN_API_KEYS` (Bearer key → tenant); secrets scanned
 in CI (gitleaks).
 
 | Package | Role |
@@ -48,9 +48,9 @@ in CI (gitleaks).
 | `packages/providers/{coinbase,turnkey,openfort}` | real adapter **skeletons** (see *Status*) |
 | `packages/api` | the Core service: REST + ws (`packages/api/src/main.ts` runs it) |
 | `packages/agent-harness` | reference agents + the headline demo (`pnpm demo`) |
-| `packages/sdk` | `@cosign/sdk` — typed client + live ledger subscribe (the front door; roadmap Tier 0 #4) |
-| `packages/mcp` | `@cosign/mcp` — Cosign as MCP tools: kill switch + spend guard inside any MCP client (Claude, …) |
-| `packages/x402` | `@cosign/x402` — govern x402 (the HTTP-402 machine-payment rail): guard a payment before it pays |
+| `packages/sdk` | `@countersign/sdk` — typed client + live ledger subscribe (the front door; roadmap Tier 0 #4) |
+| `packages/mcp` | `@countersign/mcp` — Countersign as MCP tools: kill switch + spend guard inside any MCP client (Claude, …) |
+| `packages/x402` | `@countersign/x402` — govern x402 (the HTTP-402 machine-payment rail): guard a payment before it pays |
 | `api-contract/` | OpenAPI + typed ws schema — single source of truth; generates the Dart client |
 | `client/` | Flutter app (scaffold; Phase 3) |
 
@@ -77,7 +77,7 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 - **Coinbase: LIVE + HARDENED on Base Sepolia** — real CDP wallet + on-chain sends. Phase-0 proven
   (`spike.ts`): apply policy → in-policy spend lands → freeze → next spend blocked. **Native
   enforcement proven** (`harden-spike.ts`): the per-tx cap is pushed into Coinbase's MPC (a CDP
-  account Policy), so a direct over-cap send that **bypasses Cosign is rejected by Coinbase itself**
+  account Policy), so a direct over-cap send that **bypasses Countersign is rejected by Coinbase itself**
   — even a compromised agent can't exceed the cap. (Needs the API key's Non-custodial Manage scope;
   `smoke.ts` verifies creds — see `docs/setup-coinbase.md`.)
 - **Skeletons (need vendor creds):** `packages/providers/{turnkey,openfort}` — accurate signatures

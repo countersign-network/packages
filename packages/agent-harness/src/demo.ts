@@ -10,9 +10,9 @@
  * orchestration runs against live testnet wallets.
  */
 
-import type { LedgerEvent } from "@cosign/core";
-import { AnomalyMonitor } from "@cosign/api";
-import { compile, definePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
+import type { LedgerEvent } from "@countersign/core";
+import { AnomalyMonitor } from "@countersign/api";
+import { compile, definePolicy, type SpendAttempt, type UnifiedPolicy } from "@countersign/policy";
 import { buildMockFleet } from "./fleet";
 import { SpendingAgent } from "./agent";
 
@@ -53,7 +53,7 @@ function describeNative(native: ReturnType<typeof compile>): string[] {
     lines.push(`tokenSpend: ${native.tokenSpend ? `${usdc(native.tokenSpend.limit)} / ${native.tokenSpend.period}` : "—"}`);
   }
   if (native.unsupported.length > 0) {
-    lines.push(`⚠ NOT enforceable natively -> Cosign enforces: ${native.unsupported.map((u) => u.field).join(", ")}`);
+    lines.push(`⚠ NOT enforceable natively -> Countersign enforces: ${native.unsupported.map((u) => u.field).join(", ")}`);
   }
   return lines;
 }
@@ -104,7 +104,7 @@ async function dumpLedger(core: Awaited<ReturnType<typeof buildMockFleet>>["core
 }
 
 async function headline(): Promise<void> {
-  section("COSIGN v1 — freeze AI spending agents across 3 vendors at once (proof, mocks)");
+  section("COUNTERSIGN v1 — freeze AI spending agents across 3 vendors at once (proof, mocks)");
   const { core, members } = await buildMockFleet();
 
   line();

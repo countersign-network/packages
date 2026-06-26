@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { compile, definePolicy, type CoinbaseControls, type OpenfortOnchainPolicy, type TurnkeyPolicyDoc } from "@cosign/policy";
+import { compile, definePolicy, type CoinbaseControls, type OpenfortOnchainPolicy, type TurnkeyPolicyDoc } from "@countersign/policy";
 
 const FULL = definePolicy({
   asset: "USDC",

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { asAgentId, type AgentId, type LedgerEvent } from "@cosign/core";
-import { definePolicy, type SpendAttempt } from "@cosign/policy";
-import { MockProvider, type MockScenario } from "@cosign/provider-mock";
-import { CosignCore } from "@cosign/api";
+import { asAgentId, type AgentId, type LedgerEvent } from "@countersign/core";
+import { definePolicy, type SpendAttempt } from "@countersign/policy";
+import { MockProvider, type MockScenario } from "@countersign/provider-mock";
+import { CountersignCore } from "@countersign/api";
 
 const POLICY = definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "1000", allowlist: ["0xTREASURY"] });
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({
@@ -21,7 +21,7 @@ interface FleetSpec {
 }
 
 async function buildFleet(specs: FleetSpec[]) {
-  const core = new CosignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
+  const core = new CountersignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
   const providers: Record<string, MockProvider> = {};
   const agents: Record<string, AgentId> = {};
   for (const s of specs) {
@@ -43,7 +43,7 @@ const THREE: FleetSpec[] = [
 
 const kindsOf = (records: { payload: LedgerEvent }[]) => records.map((r) => r.payload.kind);
 
-describe("CosignCore — the headline: 3 agents / 3 backends / 3 venues", () => {
+describe("CountersignCore — the headline: 3 agents / 3 backends / 3 venues", () => {
   it("applies one policy everywhere, records every attempt, freezes all < 1s, ledger verifies", async () => {
     const { core, providers, agents } = await buildFleet(THREE);
 

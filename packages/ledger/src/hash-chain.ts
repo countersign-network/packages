@@ -19,7 +19,7 @@ import {
   verify as cryptoVerify,
   type KeyObject,
 } from "node:crypto";
-import type { LedgerEvent } from "@cosign/core";
+import type { LedgerEvent } from "@countersign/core";
 
 export const GENESIS_HASH = "0".repeat(64);
 
@@ -36,7 +36,7 @@ export interface LedgerRecord<T = LedgerEvent> {
  * Signs each row's hash with a key the DATABASE never holds. The hash chain alone is tamper-evident
  * only if you trust the head; an attacker who owns the DB could recompute a valid chain. Signatures
  * close that: forging a row also requires the private key. Third parties verify with the public key —
- * which makes the ledger an audit artifact anyone can check, but only Cosign can write.
+ * which makes the ledger an audit artifact anyone can check, but only Countersign can write.
  */
 export interface LedgerSigner {
   readonly publicKey: string; // base64 SPKI DER — safe to publish

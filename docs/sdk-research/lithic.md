@@ -1,8 +1,8 @@
 # Lithic — Card-Rail Adapter Integration Reference (verified 2026-06-26)
 
-> The first NON-CRYPTO rail. Proves Cosign is rail-agnostic: the same policy + freeze + ledger governs
+> The first NON-CRYPTO rail. Proves Countersign is rail-agnostic: the same policy + freeze + ledger governs
 > a virtual Visa card. Verified against `lithic@0.123.0`. Re-verify before live calls.
-> Cosign stays the CONTROL PLANE, never the issuer/custodian — it governs the customer's own Lithic
+> Countersign stays the CONTROL PLANE, never the issuer/custodian — it governs the customer's own Lithic
 > program via their API key (no funds held; acts at the issuing API, not the PAN/PCI surface).
 
 ## 1. Install
@@ -22,7 +22,7 @@ Get a sandbox key from the Lithic dashboard (no funds, test BIN). It's the singl
 
 ## 3. Provision: a virtual card per agent
 ```ts
-const card = await lithic.cards.create({ type: "VIRTUAL", state: "OPEN", memo: "cosign-agent" });
+const card = await lithic.cards.create({ type: "VIRTUAL", state: "OPEN", memo: "countersign-agent" });
 // card.token (the handle), card.last_four, card.state, card.pan (sandbox returns the PAN)
 ```
 `type`: MERCHANT_LOCKED | PHYSICAL | SINGLE_USE | VIRTUAL | UNLOCKED | DIGITAL_WALLET.
@@ -31,10 +31,10 @@ const card = await lithic.cards.create({ type: "VIRTUAL", state: "OPEN", memo: "
 ```ts
 await lithic.cards.update(token, { spend_limit: 5000, spend_limit_duration: "TRANSACTION" }); // cents
 ```
-- `spend_limit` is in **CENTS** (minor units) — Cosign maps `UnifiedPolicy.perTxCap` to it.
+- `spend_limit` is in **CENTS** (minor units) — Countersign maps `UnifiedPolicy.perTxCap` to it.
 - `spend_limit_duration` for the UPDATE API = `ANNUALLY | FOREVER | MONTHLY | TRANSACTION` — **note: no
   `DAILY`** (the type `SpendLimitDuration` excludes it, even though `CardCreateParams` lists DAILY).
-  So `perTxCap` binds as TRANSACTION; `dailyCap` stays Cosign-enforced (don't approximate natively).
+  So `perTxCap` binds as TRANSACTION; `dailyCap` stays Countersign-enforced (don't approximate natively).
 - Merchant / MCC allowlists = **Auth Rules** (`/v2/auth_rules`) + **ASA** (Authorization Stream
   Access, real-time approve/decline over a webhook) — the crypto-oriented UnifiedPolicy doesn't carry
   these yet; they're a UnifiedPolicy extension + the `supportsInlineApproval` upgrade.
@@ -50,7 +50,7 @@ await lithic.cards.update(token, { state: "CLOSED" });  // revokeSession (hard k
 
 ## 6. Proving enforcement (sandbox simulation)
 ```ts
-const res = await lithic.transactions.simulateAuthorization({ amount: 3000, descriptor: "COSIGN TEST", pan });
+const res = await lithic.transactions.simulateAuthorization({ amount: 3000, descriptor: "COUNTERSIGN TEST", pan });
 const tx = await lithic.transactions.retrieve(res.token); // tx.result: 'APPROVED' | 'DECLINED' | 'CARD_SPEND_LIMIT_EXCEEDED' | 'CARD_PAUSED' | ...
 ```
 `packages/providers/lithic/spike.ts` does exactly this: under-cap APPROVED, over-cap DECLINED, and

@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/x402",
+  "name": "@countersign/x402",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,13 +9,13 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/api-contract": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@countersign/api-contract": "workspace:*",
+    "@countersign/policy": "workspace:*"
   },
   "devDependencies": {
-    "@cosign/api": "workspace:*",
-    "@cosign/core": "workspace:*",
-    "@cosign/provider-mock": "workspace:*"
+    "@countersign/api": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/provider-mock": "workspace:*"
   },
-  "comment": "Governs x402 (the HTTP 402 machine-payment rail) as a first-class Cosign action: parse a payment challenge -> route through the spend guard -> only pay if policy allows. Cosign governs; it never moves funds (prime directive #1)."
+  "comment": "Governs x402 (the HTTP 402 machine-payment rail) as a first-class Countersign action: parse a payment challenge -> route through the spend guard -> only pay if policy allows. Countersign governs; it never moves funds (prime directive #1)."
 }

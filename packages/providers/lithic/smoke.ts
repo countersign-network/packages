@@ -1,6 +1,6 @@
 /**
  * Lithic credential smoke test (SANDBOX). Proves LITHIC_API_KEY works end-to-end on the card
- * lifecycle Cosign relies on: create a virtual card -> pause it -> close it. Not part of the
+ * lifecycle Countersign relies on: create a virtual card -> pause it -> close it. Not part of the
  * build/typecheck. Run from the repo root so dotenv loads the root .env:
  *
  *   pnpm exec tsx packages/providers/lithic/smoke.ts
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   });
 
   console.log("1/3 creating a virtual card…");
-  const card = await lithic.cards.create({ type: "VIRTUAL", state: "OPEN", memo: "cosign-smoke" });
+  const card = await lithic.cards.create({ type: "VIRTUAL", state: "OPEN", memo: "countersign-smoke" });
   console.log("    card:", card.token, `****${card.last_four}`, "state", card.state);
 
   console.log("2/3 pausing (freeze)…");

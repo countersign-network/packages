@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { definePolicy, evaluatePolicy, type SpendAttempt } from "@cosign/policy";
+import { definePolicy, evaluatePolicy, type SpendAttempt } from "@countersign/policy";
 
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({
   amount: "50",

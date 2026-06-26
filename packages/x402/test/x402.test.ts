@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { createDemoCore, createLocalApi } from "@cosign/api";
-import type { CosignApi } from "@cosign/api-contract";
-import { parseX402, networkToVenue, guardX402, withX402Guard, X402Denied, type X402PaymentRequired } from "@cosign/x402";
+import { createDemoCore, createLocalApi } from "@countersign/api";
+import type { CountersignApi } from "@countersign/api-contract";
+import { parseX402, networkToVenue, guardX402, withX402Guard, X402Denied, type X402PaymentRequired } from "@countersign/x402";
 
-let api: CosignApi;
+let api: CountersignApi;
 
 beforeAll(async () => {
   const { core } = await createDemoCore(); // default policy: perTxCap 100 USDC, allowlist [0xTREASURY]
@@ -15,7 +15,7 @@ const challenge = (amount: string, payTo: string, network = "eip155:84532"): X40
   accepts: [{ scheme: "exact", network, maxAmountRequired: amount, payTo, asset: "0xUSDC", extra: { name: "USDC", decimals: 6 } }],
 });
 
-describe("@cosign/x402 — govern the machine-payment rail", () => {
+describe("@countersign/x402 — govern the machine-payment rail", () => {
   it("maps x402 networks (CAIP-2) to venues", () => {
     expect(networkToVenue("eip155:84532")).toBe("base-sepolia");
     expect(networkToVenue("eip155:80002")).toBe("polygon-amoy");

@@ -30,37 +30,37 @@ importers:
 
   api-contract:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../packages/core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../packages/policy
 
   packages/agent-harness:
     dependencies:
-      '@cosign/api':
+      '@countersign/api':
         specifier: workspace:*
         version: link:../api
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
-      '@cosign/ledger':
+      '@countersign/ledger':
         specifier: workspace:*
         version: link:../ledger
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
-      '@cosign/provider-coinbase':
+      '@countersign/provider-coinbase':
         specifier: workspace:*
         version: link:../providers/coinbase
-      '@cosign/provider-mock':
+      '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
-      '@cosign/provider-openfort':
+      '@countersign/provider-openfort':
         specifier: workspace:*
         version: link:../providers/openfort
-      '@cosign/provider-turnkey':
+      '@countersign/provider-turnkey':
         specifier: workspace:*
         version: link:../providers/turnkey
       dotenv:
@@ -69,47 +69,47 @@ importers:
 
   packages/api:
     dependencies:
-      '@cosign/api-contract':
+      '@countersign/api-contract':
         specifier: workspace:*
         version: link:../../api-contract
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
-      '@cosign/ledger':
+      '@countersign/ledger':
         specifier: workspace:*
         version: link:../ledger
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
-      '@cosign/provider-coinbase':
+      '@countersign/provider-coinbase':
         specifier: workspace:*
         version: link:../providers/coinbase
-      '@cosign/provider-mock':
+      '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
-      '@cosign/provider-openfort':
+      '@countersign/provider-openfort':
         specifier: workspace:*
         version: link:../providers/openfort
-      '@cosign/provider-turnkey':
+      '@countersign/provider-turnkey':
         specifier: workspace:*
         version: link:../providers/turnkey
       ws:
         specifier: '>=8.21.0'
         version: 8.21.0
     devDependencies:
-      '@cosign/provider-lithic':
+      '@countersign/provider-lithic':
         specifier: workspace:*
         version: link:../providers/lithic
 
   packages/core:
     devDependencies:
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
 
   packages/ledger:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
       pg:
@@ -125,16 +125,16 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@cosign/api':
+      '@countersign/api':
         specifier: workspace:*
         version: link:../api
-      '@cosign/api-contract':
+      '@countersign/api-contract':
         specifier: workspace:*
         version: link:../../api-contract
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
-      '@cosign/sdk':
+      '@countersign/sdk':
         specifier: workspace:*
         version: link:../sdk
       '@modelcontextprotocol/sdk':
@@ -144,16 +144,16 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
-      '@cosign/provider-mock':
+      '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
 
   packages/policy:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -165,10 +165,10 @@ importers:
       '@coinbase/cdp-sdk':
         specifier: ^1.51.2
         version: 1.51.2(typescript@5.9.3)
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../../policy
       dotenv:
@@ -178,16 +178,16 @@ importers:
         specifier: ^2.52.2
         version: 2.52.2(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
-      '@cosign/api':
+      '@countersign/api':
         specifier: workspace:*
         version: link:../../api
 
   packages/providers/lithic:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../../policy
       dotenv:
@@ -199,19 +199,19 @@ importers:
 
   packages/providers/mock:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../../policy
 
   packages/providers/openfort:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../../policy
       '@openfort/openfort-node':
@@ -226,10 +226,10 @@ importers:
 
   packages/providers/turnkey:
     dependencies:
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../../policy
       '@turnkey/crypto':
@@ -253,39 +253,39 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@cosign/api-contract':
+      '@countersign/api-contract':
         specifier: workspace:*
         version: link:../../api-contract
     devDependencies:
-      '@cosign/api':
+      '@countersign/api':
         specifier: workspace:*
         version: link:../api
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
-      '@cosign/provider-mock':
+      '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
 
   packages/x402:
     dependencies:
-      '@cosign/api-contract':
+      '@countersign/api-contract':
         specifier: workspace:*
         version: link:../../api-contract
-      '@cosign/policy':
+      '@countersign/policy':
         specifier: workspace:*
         version: link:../policy
     devDependencies:
-      '@cosign/api':
+      '@countersign/api':
         specifier: workspace:*
         version: link:../api
-      '@cosign/core':
+      '@countersign/core':
         specifier: workspace:*
         version: link:../core
-      '@cosign/provider-mock':
+      '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
 

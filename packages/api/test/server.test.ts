@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { MockProvider } from "@cosign/provider-mock";
-import { CosignCore, TenantRegistry, createCosignServer, type CosignServer } from "@cosign/api";
-import type { AgentsResponse, HealthResponse, LedgerResponse, WsServerMessage } from "@cosign/api-contract";
-import type { FreezeReport } from "@cosign/core";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { MockProvider } from "@countersign/provider-mock";
+import { CountersignCore, TenantRegistry, createCountersignServer, type CountersignServer } from "@countersign/api";
+import type { AgentsResponse, HealthResponse, LedgerResponse, WsServerMessage } from "@countersign/api-contract";
+import type { FreezeReport } from "@countersign/core";
 
-let server: CosignServer;
+let server: CountersignServer;
 let base: string;
 let wsUrl: string;
 
 beforeAll(async () => {
-  const core = new CosignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
+  const core = new CountersignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
   const fleet = [
     { id: "coinbase", mode: "native-session-caps" as const, venue: "base-sepolia" },
     { id: "turnkey", mode: "pre-sign-policy" as const, venue: "ethereum-sepolia" },
@@ -21,7 +21,7 @@ beforeAll(async () => {
     await core.registerProvider(new MockProvider({ id: f.id, mode: f.mode }));
     await core.provisionAgent(f.id, asAgentId(`${f.id}-agent`), f.venue);
   }
-  server = createCosignServer(core);
+  server = createCountersignServer(core);
   const port = await server.listen(0);
   base = `http://localhost:${port}`;
   wsUrl = `ws://localhost:${port}/events`;
@@ -31,7 +31,7 @@ afterAll(async () => {
   await server.close();
 });
 
-describe("Cosign Core server (REST + ws)", () => {
+describe("Countersign Core server (REST + ws)", () => {
   it("GET /health reports all three backends", async () => {
     const body = (await (await fetch(`${base}/health`)).json()) as HealthResponse;
     expect(body.providers).toHaveLength(3);
@@ -93,16 +93,16 @@ describe("Cosign Core server (REST + ws)", () => {
 });
 
 describe("API auth + RBAC + tenant seam", () => {
-  let authServer: CosignServer;
+  let authServer: CountersignServer;
   let authBase: string;
   const opKey = { authorization: "Bearer op-key" };
   const viewKey = { authorization: "Bearer view-key" };
 
   beforeAll(async () => {
-    const core = new CosignCore();
+    const core = new CountersignCore();
     await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
     await core.provisionAgent("coinbase", asAgentId("a"), "base-sepolia");
-    authServer = createCosignServer(core, {
+    authServer = createCountersignServer(core, {
       apiKeys: { "op-key": { tenant: "acme", role: "operator" }, "view-key": { tenant: "acme", role: "viewer" } },
     });
     authBase = `http://localhost:${await authServer.listen(0)}`;
@@ -124,7 +124,7 @@ describe("API auth + RBAC + tenant seam", () => {
   it("a valid key passes and resolves the tenant", async () => {
     const res = await fetch(`${authBase}/agents`, { headers: opKey });
     expect(res.status).toBe(200);
-    expect(res.headers.get("x-cosign-tenant")).toBe("acme");
+    expect(res.headers.get("x-countersign-tenant")).toBe("acme");
   });
 
   it("RBAC: viewer can read but cannot freeze (403); operator can", async () => {
@@ -135,13 +135,13 @@ describe("API auth + RBAC + tenant seam", () => {
 });
 
 describe("rate limiting on mutating routes", () => {
-  let rlServer: CosignServer;
+  let rlServer: CountersignServer;
   let rlBase: string;
 
   beforeAll(async () => {
-    const core = new CosignCore();
+    const core = new CountersignCore();
     await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
-    rlServer = createCosignServer(core, { rateLimit: { windowMs: 60_000, max: 2 } });
+    rlServer = createCountersignServer(core, { rateLimit: { windowMs: 60_000, max: 2 } });
     rlBase = `http://localhost:${await rlServer.listen(0)}`;
   });
 
@@ -163,7 +163,7 @@ describe("rate limiting on mutating routes", () => {
 });
 
 describe("multi-tenancy (one isolated Core per tenant)", () => {
-  let mtServer: CosignServer;
+  let mtServer: CountersignServer;
   let mtBase: string;
   const acme = { authorization: "Bearer acme-key" };
   const globex = { authorization: "Bearer globex-key" };
@@ -171,12 +171,12 @@ describe("multi-tenancy (one isolated Core per tenant)", () => {
   beforeAll(async () => {
     // A Core per tenant, each with its own provider + a tenant-named agent + its own ledger.
     const registry = new TenantRegistry(async (tenantId) => {
-      const core = new CosignCore();
+      const core = new CountersignCore();
       await core.registerProvider(new MockProvider({ id: "coinbase", mode: "native-session-caps" }));
       await core.provisionAgent("coinbase", asAgentId(`${tenantId}-bot`), "base-sepolia");
       return core;
     });
-    mtServer = createCosignServer(registry.resolver(), {
+    mtServer = createCountersignServer(registry.resolver(), {
       apiKeys: { "acme-key": { tenant: "acme", role: "operator" }, "globex-key": { tenant: "globex", role: "operator" } },
     });
     mtBase = `http://localhost:${await mtServer.listen(0)}`;

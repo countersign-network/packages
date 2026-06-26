@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/ledger",
+  "name": "@countersign/ledger",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*",
+    "@countersign/core": "workspace:*",
     "pg": "^8.13.1"
   },
   "devDependencies": {

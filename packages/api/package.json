@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/api",
+  "name": "@countersign/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,17 +13,17 @@
     "start": "tsx src/main.ts"
   },
   "dependencies": {
-    "@cosign/api-contract": "workspace:*",
-    "@cosign/core": "workspace:*",
-    "@cosign/ledger": "workspace:*",
-    "@cosign/policy": "workspace:*",
-    "@cosign/provider-coinbase": "workspace:*",
-    "@cosign/provider-mock": "workspace:*",
-    "@cosign/provider-openfort": "workspace:*",
-    "@cosign/provider-turnkey": "workspace:*",
+    "@countersign/api-contract": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/ledger": "workspace:*",
+    "@countersign/policy": "workspace:*",
+    "@countersign/provider-coinbase": "workspace:*",
+    "@countersign/provider-mock": "workspace:*",
+    "@countersign/provider-openfort": "workspace:*",
+    "@countersign/provider-turnkey": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@cosign/provider-lithic": "workspace:*"
+    "@countersign/provider-lithic": "workspace:*"
   }
 }

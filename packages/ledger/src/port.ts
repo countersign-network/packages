@@ -1,4 +1,4 @@
-import type { LedgerEvent } from "@cosign/core";
+import type { LedgerEvent } from "@countersign/core";
 import type { LedgerRecord, VerifyResult } from "./hash-chain";
 
 /**

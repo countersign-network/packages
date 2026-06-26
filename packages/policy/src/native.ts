@@ -4,15 +4,15 @@
  * adapter's applyPolicy() will consume once credentials exist.
  *
  * Every shape carries an `unsupported` list: the policy fields that backend CANNOT enforce
- * natively, which Cosign therefore enforces itself. That gap list is the whole point of an
+ * natively, which Countersign therefore enforces itself. That gap list is the whole point of an
  * aggregation layer — it's the part each single vendor can't see.
  */
 
 export interface UnsupportedNote {
   field: string;
   reason: string;
-  /** Who covers the gap. For v1 it's always Cosign's own layer. */
-  compensation: "cosign-enforced";
+  /** Who covers the gap. For v1 it's always Countersign's own layer. */
+  compensation: "countersign-enforced";
 }
 
 /* ---- Coinbase Agentic Wallets: native session caps ---- */

@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/agent-harness",
+  "name": "@countersign/agent-harness",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,14 +12,14 @@
     "demo": "tsx src/demo.ts"
   },
   "dependencies": {
-    "@cosign/api": "workspace:*",
-    "@cosign/core": "workspace:*",
-    "@cosign/ledger": "workspace:*",
-    "@cosign/policy": "workspace:*",
-    "@cosign/provider-coinbase": "workspace:*",
-    "@cosign/provider-mock": "workspace:*",
-    "@cosign/provider-openfort": "workspace:*",
-    "@cosign/provider-turnkey": "workspace:*",
+    "@countersign/api": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/ledger": "workspace:*",
+    "@countersign/policy": "workspace:*",
+    "@countersign/provider-coinbase": "workspace:*",
+    "@countersign/provider-mock": "workspace:*",
+    "@countersign/provider-openfort": "workspace:*",
+    "@countersign/provider-turnkey": "workspace:*",
     "dotenv": "^17.4.2"
   }
 }

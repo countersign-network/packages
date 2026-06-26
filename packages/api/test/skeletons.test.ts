@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { CoinbaseProvider } from "@cosign/provider-coinbase";
-import { TurnkeyProvider } from "@cosign/provider-turnkey";
-import { OpenfortProvider } from "@cosign/provider-openfort";
-import { LithicProvider } from "@cosign/provider-lithic";
+import { CoinbaseProvider } from "@countersign/provider-coinbase";
+import { TurnkeyProvider } from "@countersign/provider-turnkey";
+import { OpenfortProvider } from "@countersign/provider-openfort";
+import { LithicProvider } from "@countersign/provider-lithic";
 
 // All three vendor adapters are now LIVE (testnet). Live calls need credentials, but each must
 // CONSTRUCT without credentials so capabilities() stays probe-able offline (the freeze controller

@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
-import { asAgentId } from "@cosign/core";
+import { asAgentId } from "@countersign/core";
 import {
   WS_PATH,
   type AgentsResponse,
@@ -22,12 +22,12 @@ import {
   type LedgerRecordDTO,
   type LedgerResponse,
   type WsServerMessage,
-} from "@cosign/api-contract";
-import { CosignCore } from "./core-service";
+} from "@countersign/api-contract";
+import { CountersignCore } from "./core-service";
 import { backendsView, connectBackend, metricsOf } from "./connect";
 import type { CoreResolver } from "./tenants";
 
-export interface CosignServer {
+export interface CountersignServer {
   http: Server;
   listen(port?: number): Promise<number>;
   close(): Promise<void>;
@@ -60,7 +60,7 @@ export interface ApiKeyInfo {
   role: Role;
 }
 
-export interface CosignServerOptions {
+export interface CountersignServerOptions {
   /**
    * Map of API key -> { tenant, role }. If non-empty, every JSON route requires a valid key
    * (Authorization: Bearer <key>, or x-api-key). Empty => OPEN (demo mode). Roles: viewer (read),
@@ -81,13 +81,13 @@ function apiKeyFrom(req: IncomingMessage): string {
 // Mutating / spend-decision routes need operator+; everything else is read-only (viewer+).
 const WRITE_ROUTES = new Set(["POST /policy", "POST /freeze", "POST /unfreeze", "POST /evaluate", "POST /approve", "POST /deny", "POST /connect"]);
 
-export function createCosignServer(coreOrResolver: CosignCore | CoreResolver, opts: CosignServerOptions = {}): CosignServer {
+export function createCountersignServer(coreOrResolver: CountersignCore | CoreResolver, opts: CountersignServerOptions = {}): CountersignServer {
   // A single Core => single-tenant (the demo). A resolver => one isolated Core per tenant.
   const resolveCore: CoreResolver = typeof coreOrResolver === "function" ? coreOrResolver : () => coreOrResolver;
   const apiKeys = opts.apiKeys ?? {};
   const authEnabled = Object.keys(apiKeys).length > 0;
   if (!authEnabled && process.env["NODE_ENV"] !== "test") {
-    console.warn("[cosign] no API keys configured — the API is OPEN. Set COSIGN_API_KEYS to lock it down.");
+    console.warn("[countersign] no API keys configured — the API is OPEN. Set COUNTERSIGN_API_KEYS to lock it down.");
   }
 
   // Fixed-window rate limiter for mutating routes — a basic DoS / runaway-agent guard.
@@ -130,7 +130,7 @@ export function createCosignServer(coreOrResolver: CosignCore | CoreResolver, op
         return send(res, 429, { error: "rate limit exceeded — slow down" });
       }
     }
-    res.setHeader("x-cosign-tenant", tenantId);
+    res.setHeader("x-countersign-tenant", tenantId);
     Promise.resolve(resolveCore(tenantId))
       .then((core) => handle(core, req, res, tenantId))
       .catch((err) => {
@@ -175,7 +175,7 @@ export function createCosignServer(coreOrResolver: CosignCore | CoreResolver, op
   };
 }
 
-async function handle(core: CosignCore, req: IncomingMessage, res: ServerResponse, tenantId: string): Promise<void> {
+async function handle(core: CountersignCore, req: IncomingMessage, res: ServerResponse, tenantId: string): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = `${req.method} ${url.pathname}`;
 

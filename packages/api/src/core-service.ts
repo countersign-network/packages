@@ -1,5 +1,5 @@
 /**
- * CosignCore — the brain. Backend-agnostic by construction: it knows only the EnforcementProvider
+ * CountersignCore — the brain. Backend-agnostic by construction: it knows only the EnforcementProvider
  * interface, the policy compiler, the hash-chained ledger, and the freeze controller. No vendor
  * logic leaks in here (prime directive #4). Every provider event and every freeze action lands in
  * the one ledger, and is broadcast to subscribers (the websocket layer).
@@ -18,9 +18,9 @@ import {
   type ProviderId,
   type ProviderRegistration,
   type Venue,
-} from "@cosign/core";
-import { InMemoryLedger, anchorHead, type AnchorPoint, type LedgerAnchor, type LedgerPort, type LedgerRecord } from "@cosign/ledger";
-import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import { InMemoryLedger, anchorHead, type AnchorPoint, type LedgerAnchor, type LedgerPort, type LedgerRecord } from "@countersign/ledger";
+import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@countersign/policy";
 import type {
   ApplyPolicyResult,
   ApprovalResolution,
@@ -28,9 +28,9 @@ import type {
   EvaluateResponse,
   PendingApprovalDTO,
   ProviderHealth,
-} from "@cosign/api-contract";
+} from "@countersign/api-contract";
 
-export interface CosignCoreOptions {
+export interface CountersignCoreOptions {
   ledger?: LedgerPort<LedgerEvent>;
   /** External anchor for the ledger head (published after each freeze). See ledger/anchor.ts. */
   anchor?: LedgerAnchor;
@@ -41,13 +41,13 @@ export interface CosignCoreOptions {
 
 type LedgerSubscriber = (record: LedgerRecord<LedgerEvent>) => void;
 
-export class CosignCore {
+export class CountersignCore {
   private readonly ledger: LedgerPort<LedgerEvent>;
   private readonly registrations: ProviderRegistration[] = [];
   private readonly controller: FreezeController;
   private readonly subscribers = new Set<LedgerSubscriber>();
   private readonly unsubs: (() => void)[] = [];
-  // Cosign's own view of policy + spend, for the pre-flight guard (the layer above the wallets).
+  // Countersign's own view of policy + spend, for the pre-flight guard (the layer above the wallets).
   private readonly policies = new Map<AgentId, UnifiedPolicy>();
   private readonly policyIds = new Map<AgentId, string>();
   private readonly dailySpent = new Map<AgentId, string>();
@@ -57,7 +57,7 @@ export class CosignCore {
   private frozen = false;
   private readonly anchor?: LedgerAnchor;
 
-  constructor(opts: CosignCoreOptions = {}) {
+  constructor(opts: CountersignCoreOptions = {}) {
     this.ledger = opts.ledger ?? new InMemoryLedger<LedgerEvent>();
     if (opts.anchor) this.anchor = opts.anchor;
     this.controller = new FreezeController(this.registrations, {
@@ -115,7 +115,7 @@ export class CosignCore {
           try {
             const { policyId } = await reg.provider.applyPolicy(agent.agentId, policy);
             result.applied.push({ providerId: reg.provider.id, agentId: agent.agentId, policyId });
-            // Cosign retains the unified policy for its own pre-flight guard (enforces what the
+            // Countersign retains the unified policy for its own pre-flight guard (enforces what the
             // backend can't, and is the canonical decision the agent asks for before spending).
             this.policies.set(agent.agentId, policy);
             this.policyIds.set(agent.agentId, corePolicyId);
@@ -157,7 +157,7 @@ export class CosignCore {
   }
 
   /**
-   * The agent-facing pre-flight guard. An agent calls this BEFORE touching its wallet; Cosign
+   * The agent-facing pre-flight guard. An agent calls this BEFORE touching its wallet; Countersign
    * answers from the unified policy it holds, records the decision in the ledger, and (on allow)
    * advances its own daily tally. This is the call made on every transaction — fail-closed: no
    * policy => deny.

@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/provider-coinbase",
+  "name": "@countersign/provider-coinbase",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.51.2",
-    "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/policy": "workspace:*",
     "dotenv": "^17.4.2",
     "viem": "^2.52.2"
   },
   "devDependencies": {
-    "@cosign/api": "workspace:*"
+    "@countersign/api": "workspace:*"
   },
   "comment": "LIVE adapter on Base Sepolia. smoke.ts verifies creds; spike.ts runs the Phase-0 proof (apply policy -> spend -> freeze blocks next spend) on a real testnet wallet."
 }
