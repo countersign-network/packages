@@ -1,4 +1,4 @@
-# Contributing to Cosign
+# Contributing to Countersign
 
 ## Setup
 
@@ -7,7 +7,7 @@ pnpm install        # Node >= 22, pnpm 11 (see packageManager)
 pnpm typecheck      # strict TS across the workspace
 pnpm test           # vitest — must stay green
 pnpm demo           # the scripted headline
-pnpm --filter @cosign/api start   # Core + dashboard at http://localhost:8080
+pnpm --filter @countersign/api start   # Core + dashboard at http://localhost:8080
 ```
 
 ## The non-negotiables (see `CLAUDE.md`)
@@ -24,7 +24,7 @@ Every change must respect the prime directives:
 
 - TypeScript, strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Keep
   `pnpm typecheck` and `pnpm test` green — CI runs both.
-- Money is **always** a base-unit string, never a JS number (`@cosign/core` `money.ts`).
+- Money is **always** a base-unit string, never a JS number (`@countersign/core` `money.ts`).
 - New backends are adapters implementing `EnforcementProvider`; verify the vendor's current SDK
   first (`docs/sdk-research/`) and never weaken the fail-closed contract.
 - Add tests with behaviour changes; the fail-closed paths especially must be covered.

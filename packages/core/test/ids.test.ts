@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { nextId, __resetIdSeq, asAgentId, asProviderId } from "@cosign/core";
+import { nextId, __resetIdSeq, asAgentId, asProviderId } from "@countersign/core";
 
 describe("branded ids", () => {
   beforeEach(() => __resetIdSeq());

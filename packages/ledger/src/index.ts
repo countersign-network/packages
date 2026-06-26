@@ -1,5 +1,5 @@
 /**
- * @cosign/ledger — the append-only, hash-chained audit store: the source of truth (prime
+ * @countersign/ledger — the append-only, hash-chained audit store: the source of truth (prime
  * directive #5). Chain integrity (hash-chain.ts) is DB-agnostic; storage is pluggable behind
  * LedgerPort. InMemoryLedger backs tests + the demo; PgLedger (pglite) proves real SQL semantics.
  */

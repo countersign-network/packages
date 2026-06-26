@@ -36,7 +36,7 @@ sign) both pass: the backend wallet signs before the freeze and the same request
   pnpm-workspace.yaml (no build needed), else `pnpm typecheck`'s deps-check errors.
 - **Hardening (the real on-chain guard, future)**: `accounts.evm.backend.update` (EOA→EIP-7702
   delegated) + `sessions.create` (scoped session key) + KeysManager `setCanCall`/`setTokenSpend` and
-  `pauseKey`/`revokeKey` verified by `isKeyActive`. v1 keeps per-tx caps Cosign-layer.
+  `pauseKey`/`revokeKey` verified by `isKeyActive`. v1 keeps per-tx caps Countersign-layer.
 
 ## 1. Install (server/backend TS SDK)
 ```bash

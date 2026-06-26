@@ -1,5 +1,5 @@
 /**
- * @cosign/agent-harness — reference spending agents + the headline demo runner.
+ * @countersign/agent-harness — reference spending agents + the headline demo runner.
  */
 
 export * from "./fleet";

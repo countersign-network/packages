@@ -4,7 +4,7 @@ import type { LedgerPort } from "./port";
  * External anchoring — periodically publish the ledger HEAD (its rowHash) somewhere the ledger's own
  * database operator can't rewrite. The signed hash chain already detects a recomputed chain; anchoring
  * adds the missing piece: a record, in a DIFFERENT trust domain, of what the head WAS at a point in
- * time — so even Cosign can't silently rewind history without the anchor disagreeing.
+ * time — so even Countersign can't silently rewind history without the anchor disagreeing.
  *
  * The value comes entirely from the anchor's trust domain. Real implementations write the head hash
  * ON-CHAIN (e.g. via an already-integrated backend) or to a TRANSPARENCY LOG (Rekor-style). The

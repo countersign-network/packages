@@ -4,10 +4,10 @@
  *
  * What's real here: provisioning a CDP wallet (`createAccount`), funding it (`requestFaucet`), and
  * sending actual on-chain transactions (`sendTransaction`) — all verified against the installed SDK.
- * Cosign governs each spend: a spend only executes if the unified policy allows it and the agent
- * isn't frozen/revoked. So a Cosign freeze provably prevents the next transaction (it is never sent).
+ * Countersign governs each spend: a spend only executes if the unified policy allows it and the agent
+ * isn't frozen/revoked. So a Countersign freeze provably prevents the next transaction (it is never sent).
  *
- * Enforcement here is at the COSIGN layer (the agent transacts through Cosign). Pushing the caps
+ * Enforcement here is at the COUNTERSIGN layer (the agent transacts through Countersign). Pushing the caps
  * down into Coinbase's own MPC (Spend Permissions + Policy engine) so even a compromised agent can't
  * bypass them is the hardening step — verify `createSpendPermission` / `policies.createPolicy`
  * against the installed SDK first (see docs/sdk-research/coinbase.md). Testnet only (directive #6).
@@ -28,8 +28,8 @@ import {
   type ProviderEvent,
   type Unsubscribe,
   type Venue,
-} from "@cosign/core";
-import { compile, evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import { compile, evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@countersign/policy";
 
 export type CoinbaseSpendResult =
   | { outcome: "allowed"; action: ActionRequest; transactionHash: string }
@@ -87,7 +87,7 @@ export class CoinbaseProvider implements EnforcementProvider {
   }
 
   async applyPolicy(agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
-    // Cosign retains the policy and governs each spend (pre-flight). The compiled native controls
+    // Countersign retains the policy and governs each spend (pre-flight). The compiled native controls
     // below are what a future hardening step pushes into Coinbase's MPC; not relied on for the gate.
     void compile(policy, "native-session-caps");
     this.policies.set(agentId, policy);
@@ -95,13 +95,13 @@ export class CoinbaseProvider implements EnforcementProvider {
     this.policyIds.set(agentId, policyId);
     if (!this.dailySpent.has(agentId)) this.dailySpent.set(agentId, "0");
     // HARDENING — push the per-tx cap into Coinbase's own MPC (an account policy) so it's enforced
-    // even if Cosign's pre-check is bypassed. Best-effort: a failure leaves Cosign-layer enforcement.
+    // even if Countersign's pre-check is bypassed. Best-effort: a failure leaves Countersign-layer enforcement.
     let status = policy.perTxCap ? "pending" : "n/a (no per-tx cap)";
     if (policy.perTxCap) {
       try {
         status = `native cap active (policy ${await this.pushNative(agentId, policy)})`;
       } catch (err) {
-        status = `native push failed (Cosign-layer still enforces): ${err instanceof Error ? err.message : String(err)}`;
+        status = `native push failed (Countersign-layer still enforces): ${err instanceof Error ? err.message : String(err)}`;
       }
     }
     this.nativeStatus.set(agentId, status);
@@ -135,7 +135,7 @@ export class CoinbaseProvider implements EnforcementProvider {
   }
 
   /**
-   * The gated spend: Cosign decides, then — only if allowed — a REAL transaction is sent on-chain.
+   * The gated spend: Countersign decides, then — only if allowed — a REAL transaction is sent on-chain.
    * When frozen/over-policy, no transaction is ever sent: the freeze provably prevents it.
    */
   async attemptSpend(agentId: AgentId, attempt: SpendAttempt): Promise<CoinbaseSpendResult> {
@@ -181,7 +181,7 @@ export class CoinbaseProvider implements EnforcementProvider {
     return { healthy: true, detail: "coinbase: live (Base Sepolia)" };
   }
 
-  /* ---- native hardening (caps enforced inside Coinbase's MPC, not just Cosign's pre-check) ---- */
+  /* ---- native hardening (caps enforced inside Coinbase's MPC, not just Countersign's pre-check) ---- */
 
   /** Create a CDP account policy for the per-tx cap and attach it to the agent's account. */
   private async pushNative(agentId: AgentId, policy: UnifiedPolicy): Promise<string> {
@@ -189,7 +189,7 @@ export class CoinbaseProvider implements EnforcementProvider {
     const created = await this.client().policies.createPolicy({
       policy: {
         scope: "account",
-        description: "cosign per tx cap",
+        description: "countersign per tx cap",
         // An operation with any rule defaults to DENY unless an `accept` matches — so we ACCEPT only
         // transactions at/under the cap; over-cap finds no accept rule and is denied by Coinbase.
         rules: [
@@ -210,7 +210,7 @@ export class CoinbaseProvider implements EnforcementProvider {
     const created = await this.client().policies.createPolicy({
       policy: {
         scope: "account",
-        description: "cosign freeze deny all",
+        description: "countersign freeze deny all",
         rules: [
           { action: "reject", operation: "signEvmTransaction", criteria: [] },
           { action: "reject", operation: "sendEvmTransaction", criteria: [] },
@@ -221,8 +221,8 @@ export class CoinbaseProvider implements EnforcementProvider {
   }
 
   /**
-   * Send a transaction DIRECTLY, bypassing Cosign's pre-flight gate — used to prove the native
-   * account policy enforces the cap inside Coinbase even when Cosign is skipped (a stand-in for a
+   * Send a transaction DIRECTLY, bypassing Countersign's pre-flight gate — used to prove the native
+   * account policy enforces the cap inside Coinbase even when Countersign is skipped (a stand-in for a
    * compromised agent). Throws if Coinbase's policy rejects the signature.
    */
   async nativeSendUnchecked(agentId: AgentId, opts: { to: string; amountWei: string; venue: Venue }): Promise<string> {

@@ -1,18 +1,18 @@
 /**
- * In-process front door. `createLocalApi` wraps a CosignCore so it satisfies the same `CosignApi`
+ * In-process front door. `createLocalApi` wraps a CountersignCore so it satisfies the same `CountersignApi`
  * the HTTP client implements — letting the MCP server (and anything else) run an EMBEDDED Core with
  * zero network setup. `createDemoCore` is the shared mock-fleet setup used by the runnable server
  * and by embedded mode, so "one command, no config" works everywhere.
  */
 
-import { asAgentId, type AgentId, type EnforcementMode, type LedgerEvent } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { MockProvider } from "@cosign/provider-mock";
-import type { LedgerAnchor, LedgerPort } from "@cosign/ledger";
-import type { AgentDTO, CosignApi } from "@cosign/api-contract";
-import { CosignCore } from "./core-service";
+import { asAgentId, type AgentId, type EnforcementMode, type LedgerEvent } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { MockProvider } from "@countersign/provider-mock";
+import type { LedgerAnchor, LedgerPort } from "@countersign/ledger";
+import type { AgentDTO, CountersignApi } from "@countersign/api-contract";
+import { CountersignCore } from "./core-service";
 
-export function createLocalApi(core: CosignCore): CosignApi {
+export function createLocalApi(core: CountersignCore): CountersignApi {
   return {
     async health() {
       const providers = await core.health();
@@ -83,8 +83,8 @@ export async function createDemoCore(opts?: {
   applyDefaultPolicy?: boolean;
   ledger?: LedgerPort<LedgerEvent>;
   anchor?: LedgerAnchor;
-}): Promise<{ core: CosignCore; fleet: DemoFleetMember[] }> {
-  const core = new CosignCore({
+}): Promise<{ core: CountersignCore; fleet: DemoFleetMember[] }> {
+  const core = new CountersignCore({
     ...(opts?.ledger ? { ledger: opts.ledger } : {}),
     ...(opts?.anchor ? { anchor: opts.anchor } : {}),
   });

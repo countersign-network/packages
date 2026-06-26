@@ -1,4 +1,4 @@
-# Cosign Client (Flutter) — Phase 3 scaffold
+# Countersign Client (Flutter) — Phase 3 scaffold
 
 The client is intentionally **thin and key-less**: a renderer over the Core API
 (`packages/api`). It holds no wallet SDKs and no keys — a compromised client still cannot move
@@ -15,5 +15,5 @@ funds or weaken policy, because the trust boundary IS the Dart/TS language bound
 4. Wire **FCM/APNs** early — the approval prompt and the on-the-go kill switch live on the phone; a
    freeze alert that arrives 30 seconds late is a failed product.
 
-Run the Core it talks to: `pnpm --filter @cosign/api start` (defaults to `http://localhost:8080`,
+Run the Core it talks to: `pnpm --filter @countersign/api start` (defaults to `http://localhost:8080`,
 ws at `ws://localhost:8080/events`).

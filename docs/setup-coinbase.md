@@ -40,10 +40,10 @@ or the CDP Portal faucet.
 
 In `packages/providers/coinbase` (per `docs/sdk-research/coinbase.md`):
 
-- `pnpm --filter @cosign/provider-coinbase add @coinbase/cdp-sdk viem dotenv` and init `CdpClient`
+- `pnpm --filter @countersign/provider-coinbase add @coinbase/cdp-sdk viem dotenv` and init `CdpClient`
   from the env (`new CdpClient()` reads the three `CDP_*` vars).
 - The quickstart's plain create/fund/send (`createAccount` → `requestFaucet` → `sendTransaction`,
-  with a ~3–10s **balance-sync delay** before sending) is the hello-world; Cosign layers the
+  with a ~3–10s **balance-sync delay** before sending) is the hello-world; Countersign layers the
   governance on top:
 - `provisionWallet` → `createAccount` + `createSmartAccount`.
 - `applyPolicy` → the compiler output already maps: daily cap → `createSpendPermission`
@@ -53,7 +53,7 @@ In `packages/providers/coinbase` (per `docs/sdk-research/coinbase.md`):
 - `subscribe` → `webhooks.createSubscription` (+ reconcile the 3-min window).
 
 Then a **Phase-0 spike** on Base Sepolia: provision an agent, apply a cap, let it spend within
-policy, **block the next spend via a Cosign freeze**, and **measure the real freeze latency** (the
+policy, **block the next spend via a Countersign freeze**, and **measure the real freeze latency** (the
 number that validates the <1s claim under real network + on-chain conditions). This is the
 real-backend version of `pnpm demo`.
 

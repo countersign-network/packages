@@ -3,9 +3,9 @@
  * a different venue — the exact shape the headline demo proves. Mock-backed, so it needs no creds.
  */
 
-import { asAgentId, type AgentId } from "@cosign/core";
-import { MockProvider, type MockScenario } from "@cosign/provider-mock";
-import { CosignCore } from "@cosign/api";
+import { asAgentId, type AgentId } from "@countersign/core";
+import { MockProvider, type MockScenario } from "@countersign/provider-mock";
+import { CountersignCore } from "@countersign/api";
 
 export interface FleetMember {
   id: string;
@@ -26,8 +26,8 @@ export async function buildMockFleet(opts?: {
   scenarios?: Partial<Record<string, MockScenario>>;
   freezeTimeoutMs?: number;
   escalateTimeoutMs?: number;
-}): Promise<{ core: CosignCore; members: FleetMember[] }> {
-  const core = new CosignCore({
+}): Promise<{ core: CountersignCore; members: FleetMember[] }> {
+  const core = new CountersignCore({
     ...(opts?.freezeTimeoutMs !== undefined ? { freezeTimeoutMs: opts.freezeTimeoutMs } : {}),
     ...(opts?.escalateTimeoutMs !== undefined ? { escalateTimeoutMs: opts.escalateTimeoutMs } : {}),
   });

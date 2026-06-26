@@ -30,8 +30,8 @@ import {
   type ProviderId,
   type Unsubscribe,
   type Venue,
-} from "@cosign/core";
-import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import { evaluatePolicy, type SpendAttempt, type UnifiedPolicy } from "@countersign/policy";
 import { DEFAULT_SCENARIO, type MockScenario } from "./scenario";
 
 export type SpendResult =

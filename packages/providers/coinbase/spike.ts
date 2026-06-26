@@ -1,16 +1,16 @@
 /**
  * Phase-0 spike (handoff §4) — the real proof on Base Sepolia:
- *   "a single transaction is provably prevented by a Cosign-issued policy change."
+ *   "a single transaction is provably prevented by a Countersign-issued policy change."
  *
- * Provision a real CDP wallet → fund it → apply a Cosign policy → spend within policy (a real
+ * Provision a real CDP wallet → fund it → apply a Countersign policy → spend within policy (a real
  * on-chain tx) → tighten/freeze → the next spend is BLOCKED (never sent). Run from the repo root:
  *   pnpm exec tsx packages/providers/coinbase/spike.ts
  */
 
 import dotenv from "dotenv";
-import { asAgentId, type LedgerEvent } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { CosignCore } from "@cosign/api";
+import { asAgentId, type LedgerEvent } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { CountersignCore } from "@countersign/api";
 import { CoinbaseProvider } from "./src/index";
 
 dotenv.config();
@@ -22,7 +22,7 @@ const BIG = "5000000000000000"; //       0.005 ETH    (over cap)
 
 async function main(): Promise<void> {
   const provider = new CoinbaseProvider();
-  const core = new CosignCore();
+  const core = new CountersignCore();
   await core.registerProvider(provider);
 
   const agent = asAgentId("payments-bot");
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   await provider.fund(agent, { venue: "base-sepolia", token: "eth" });
   await new Promise((r) => setTimeout(r, 8000)); // balance sync
 
-  console.log(`→ applying Cosign policy: per-tx cap ${ETH(PER_TX_CAP)}, allowlist [self]\n`);
+  console.log(`→ applying Countersign policy: per-tx cap ${ETH(PER_TX_CAP)}, allowlist [self]\n`);
   await core.applyPolicy(definePolicy({ asset: "ETH", perTxCap: PER_TX_CAP, allowlist: [ref.wallet] }), agent);
 
   const spend = (amount: string) => ({ amount, asset: "ETH", counterparty: ref.wallet, venue: "base-sepolia" });
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   const r2 = await provider.attemptSpend(agent, spend(BIG));
   console.log(`    → ${r2.outcome.toUpperCase()}` + (r2.outcome === "blocked" ? ` — ${r2.reason} (no transaction sent)` : ""));
 
-  console.log(`\n[3] operator hits the KILL SWITCH (Cosign freeze)…`);
+  console.log(`\n[3] operator hits the KILL SWITCH (Countersign freeze)…`);
   const report = await core.freezeAll("operator hit the kill switch");
   console.log(`    → frozen in ${report.windowMs}ms`);
 
@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     console.log(`  #${String(rec.index).padStart(2, "0")} ${e.kind}`);
   }
   console.log(`\n  hash-chain verified: ${(await core.verifyLedger()) ? "✓ INTACT" : "✗"}`);
-  console.log("\n✅ Phase-0 proven on a LIVE testnet wallet: a Cosign freeze prevented the transaction.");
+  console.log("\n✅ Phase-0 proven on a LIVE testnet wallet: a Countersign freeze prevented the transaction.");
 }
 
 main().catch((err: unknown) => {

@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Cosign Core API
+  title: Countersign Core API
   version: 0.1.0
   description: >
-    The neutral control plane the (key-less) Cosign client talks to. The client renders state and
+    The neutral control plane the (key-less) Countersign client talks to. The client renders state and
     fires approve / freeze; all crypto and vendor SDK weight lives behind this API. Source of truth
     for the generated Dart client. The websocket event stream is typed in index.ts (WsServerMessage).
 servers:
@@ -57,7 +57,7 @@ paths:
               schema: { $ref: "#/components/schemas/FreezeReport" }
   /evaluate:
     post:
-      summary: Pre-flight spend guard — ask Cosign whether a spend is allowed before touching the wallet
+      summary: Pre-flight spend guard — ask Countersign whether a spend is allowed before touching the wallet
       requestBody:
         required: true
         content:

@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import type { EnforcementMode } from "@cosign/core";
-import { compile, definePolicy, type UnifiedPolicy } from "@cosign/policy";
+import type { EnforcementMode } from "@countersign/core";
+import { compile, definePolicy, type UnifiedPolicy } from "@countersign/policy";
 
 /**
  * Invariant #5 (THREAT-MODEL): the compiler must never silently WEAKEN a policy. Every field an
  * operator sets must either be enforced natively by the backend OR be listed in `unsupported`
- * (meaning Cosign enforces it itself). A field that is set but neither enforced nor flagged is a
+ * (meaning Countersign enforces it itself). A field that is set but neither enforced nor flagged is a
  * silent gap — something the policy forbids could slip through. This test guards against that.
  *
  * ENFORCEABLE is an INDEPENDENT statement of each backend's capability (the SDK-verified matrix),

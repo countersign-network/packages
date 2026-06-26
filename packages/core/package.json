@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/core",
+  "name": "@countersign/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@cosign/policy": "workspace:*"
+    "@countersign/policy": "workspace:*"
   },
-  "comment": "@cosign/policy is a TYPE-ONLY (erased) back-reference for UnifiedPolicy in the EnforcementProvider interface — no runtime dependency, hence devDependency."
+  "comment": "@countersign/policy is a TYPE-ONLY (erased) back-reference for UnifiedPolicy in the EnforcementProvider interface — no runtime dependency, hence devDependency."
 }

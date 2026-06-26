@@ -6,9 +6,9 @@ import {
   type EnforcementMode,
   type LedgerEvent,
   type ProviderEvent,
-} from "@cosign/core";
-import { definePolicy, type SpendAttempt } from "@cosign/policy";
-import { MockProvider, type MockScenario } from "@cosign/provider-mock";
+} from "@countersign/core";
+import { definePolicy, type SpendAttempt } from "@countersign/policy";
+import { MockProvider, type MockScenario } from "@countersign/provider-mock";
 
 const AGENT = asAgentId("agent-1");
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({

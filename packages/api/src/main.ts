@@ -1,39 +1,39 @@
 /**
  * Runnable Core service + the first-demo web dashboard, over a mock fleet (no credentials).
  *
- *   pnpm --filter @cosign/api start     # then open the printed URL
+ *   pnpm --filter @countersign/api start     # then open the printed URL
  *
  * A background loop drives the agents so the ledger streams live; hit FREEZE in the dashboard and
  * watch every backend stop and subsequent spends get blocked. Unfreeze to replay.
  */
 
-import type { LedgerEvent } from "@cosign/core";
-import { definePolicy, type SpendAttempt } from "@cosign/policy";
-import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@cosign/ledger";
-import { AnomalyMonitor, CosignCore, createCosignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
+import type { LedgerEvent } from "@countersign/core";
+import { definePolicy, type SpendAttempt } from "@countersign/policy";
+import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@countersign/ledger";
+import { AnomalyMonitor, CountersignCore, createCountersignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
 
-// Sign the ledger so it's tamper-evident even against the DB owner. Set COSIGN_LEDGER_KEY (base64
+// Sign the ledger so it's tamper-evident even against the DB owner. Set COUNTERSIGN_LEDGER_KEY (base64
 // PKCS8) for a stable identity; otherwise a fresh key is generated each boot.
-const signer = createEd25519Signer(process.env["COSIGN_LEDGER_KEY"]);
+const signer = createEd25519Signer(process.env["COUNTERSIGN_LEDGER_KEY"]);
 // Durable Postgres ledger when DATABASE_URL is set (Render managed PG); in-memory otherwise.
 const databaseUrl = process.env["DATABASE_URL"];
 const ledger = databaseUrl
   ? await PostgresLedger.create<LedgerEvent>(databaseUrl, signer)
   : new InMemoryLedger<LedgerEvent>(signer);
 
-// Optional external anchor for the ledger head (set COSIGN_ANCHOR_FILE). For a real cross-trust-domain
+// Optional external anchor for the ledger head (set COUNTERSIGN_ANCHOR_FILE). For a real cross-trust-domain
 // guarantee, swap FileAnchor for an on-chain / transparency-log anchor (see ledger/anchor.ts).
-const anchorFile = process.env["COSIGN_ANCHOR_FILE"];
+const anchorFile = process.env["COUNTERSIGN_ANCHOR_FILE"];
 const anchor = anchorFile ? new FileAnchor(anchorFile) : undefined;
 
 // Two demo shapes:
-//  - AMBIENT (COSIGN_DEMO_TRAFFIC=on, what the deployed core runs): pre-connected 3-backend fleet
+//  - AMBIENT (COUNTERSIGN_DEMO_TRAFFIC=on, what the deployed core runs): pre-connected 3-backend fleet
 //    with synthetic spend traffic, so the ledger streams live on its own.
 //  - CONNECT (default, the moat-validation demo): an EMPTY core — the operator connects backends one
 //    at a time in the dashboard, and the headline action is connecting a SECOND backend.
-const ambient = process.env["COSIGN_DEMO_TRAFFIC"] === "on";
+const ambient = process.env["COUNTERSIGN_DEMO_TRAFFIC"] === "on";
 
-let core: CosignCore;
+let core: CountersignCore;
 let fleet: DemoFleetMember[] = [];
 if (ambient) {
   ({ core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}) }));
@@ -48,7 +48,7 @@ if (ambient) {
     }),
   );
 } else {
-  core = new CosignCore({ ledger, ...(anchor ? { anchor } : {}) });
+  core = new CountersignCore({ ledger, ...(anchor ? { anchor } : {}) });
 }
 console.log(`  mode: ${ambient ? "ambient fleet demo" : "connect demo (start empty → connect backends)"}`);
 console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)${anchor ? ` · anchoring → ${anchorFile}` : ""}`);
@@ -60,23 +60,23 @@ new AnomalyMonitor(core, {
   blockedBurst: { maxBlocked: 4, windowMs: 15_000, action: "alert" },
 });
 
-// API auth: COSIGN_API_KEYS="key1:tenantA:operator,key2:tenantB:viewer" (role optional, defaults
-// operator). Or COSIGN_API_KEY=<key> for tenant "default", operator. Unset => OPEN demo mode.
+// API auth: COUNTERSIGN_API_KEYS="key1:tenantA:operator,key2:tenantB:viewer" (role optional, defaults
+// operator). Or COUNTERSIGN_API_KEY=<key> for tenant "default", operator. Unset => OPEN demo mode.
 function parseApiKeys(): Record<string, ApiKeyInfo> {
   const map: Record<string, ApiKeyInfo> = {};
   const roleOf = (r?: string): Role => (r === "viewer" || r === "admin" ? r : "operator");
-  for (const entry of (process.env["COSIGN_API_KEYS"] ?? "").split(",")) {
+  for (const entry of (process.env["COUNTERSIGN_API_KEYS"] ?? "").split(",")) {
     const [key, tenant, role] = entry.split(":");
     if (key?.trim()) map[key.trim()] = { tenant: (tenant ?? "default").trim(), role: roleOf(role?.trim()) };
   }
-  const single = process.env["COSIGN_API_KEY"]?.trim();
+  const single = process.env["COUNTERSIGN_API_KEY"]?.trim();
   if (single) map[single] = { tenant: "default", role: "operator" };
   return map;
 }
 
-const server = createCosignServer(core, { apiKeys: parseApiKeys() });
+const server = createCountersignServer(core, { apiKeys: parseApiKeys() });
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));
-console.log(`\n  Cosign dashboard:  http://localhost:${port}`);
+console.log(`\n  Countersign dashboard:  http://localhost:${port}`);
 console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);
 
 // --- live agent activity so the dashboard has something to show ---

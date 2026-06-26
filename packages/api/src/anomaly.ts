@@ -9,9 +9,9 @@
  * fully deterministic and testable.
  */
 
-import type { AgentId, LedgerEvent } from "@cosign/core";
-import { toBig } from "@cosign/core";
-import type { CosignCore } from "./core-service";
+import type { AgentId, LedgerEvent } from "@countersign/core";
+import { toBig } from "@countersign/core";
+import type { CountersignCore } from "./core-service";
 
 export type AnomalyAction = "alert" | "freeze";
 
@@ -42,7 +42,7 @@ export class AnomalyMonitor {
   private armed = true;
 
   constructor(
-    private readonly core: CosignCore,
+    private readonly core: CountersignCore,
     private readonly config: AnomalyConfig,
   ) {
     this.unsub = core.onLedgerAppend((record) => {

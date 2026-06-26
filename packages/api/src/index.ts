@@ -1,5 +1,5 @@
 /**
- * @cosign/api — the Core service: the backend-agnostic brain (CosignCore) plus the REST + ws server
+ * @countersign/api — the Core service: the backend-agnostic brain (CountersignCore) plus the REST + ws server
  * the key-less client talks to.
  */
 

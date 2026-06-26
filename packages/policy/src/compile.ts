@@ -1,13 +1,13 @@
 /**
- * The policy compiler — Cosign's core IP. One declarative UnifiedPolicy lowered to each backend's
- * native controls, with an explicit list of what each backend CANNOT enforce natively (so Cosign
+ * The policy compiler — Countersign's core IP. One declarative UnifiedPolicy lowered to each backend's
+ * native controls, with an explicit list of what each backend CANNOT enforce natively (so Countersign
  * knows what it must enforce itself). The three lowerings reflect the verified SDK surfaces:
  *   - native-session-caps (Coinbase): Spend Permission (daily cap) + Policy engine (per-tx, allow/deny, net)
  *   - pre-sign-policy (Turnkey): CEL policies evaluated in-enclave; consensus = native approval gate
  *   - onchain-policy (Openfort): KeysManager setCanCall (allowlist) + setTokenSpend (period cap)
  */
 
-import type { EnforcementMode } from "@cosign/core";
+import type { EnforcementMode } from "@countersign/core";
 import type { UnifiedPolicy } from "./schema";
 import { chainIdFor } from "./venues";
 import type {
@@ -80,7 +80,7 @@ function compileCoinbase(policy: UnifiedPolicy): CoinbaseControls {
     unsupported.push({
       field: "approvalThreshold",
       reason: "native-session-caps backends enforce caps autonomously; no inline human approval",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 
@@ -169,7 +169,7 @@ function compileTurnkey(policy: UnifiedPolicy): TurnkeyPolicyDoc {
     unsupported.push({
       field: "dailyCap",
       reason: "Turnkey policy conditions are per-tx and stateless; rolling daily totals need external tracking",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 
@@ -191,7 +191,7 @@ function compileOpenfort(policy: UnifiedPolicy): OpenfortOnchainPolicy {
     unsupported.push({
       field: "allowlist",
       reason: "on-chain session keys require an explicit target allowlist; 'any counterparty' is not expressible",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 
@@ -200,7 +200,7 @@ function compileOpenfort(policy: UnifiedPolicy): OpenfortOnchainPolicy {
     unsupported.push({
       field: "perTxCap",
       reason: "KeysManager enforces per-period spend + tx-count, not a per-transaction value cap",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 
@@ -209,7 +209,7 @@ function compileOpenfort(policy: UnifiedPolicy): OpenfortOnchainPolicy {
     unsupported.push({
       field: "denylist",
       reason: "on-chain enforcement is a positive allowlist; a denylist has no native counterpart",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 
@@ -218,7 +218,7 @@ function compileOpenfort(policy: UnifiedPolicy): OpenfortOnchainPolicy {
     unsupported.push({
       field: "approvalThreshold",
       reason: "on-chain session keys cannot hold a signature pending human approval",
-      compensation: "cosign-enforced",
+      compensation: "countersign-enforced",
     });
   }
 

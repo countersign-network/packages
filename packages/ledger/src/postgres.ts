@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import type { LedgerEvent } from "@cosign/core";
+import type { LedgerEvent } from "@countersign/core";
 import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
 import type { LedgerPort } from "./port";
 

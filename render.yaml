@@ -1,14 +1,14 @@
-# Cosign Core — Render Blueprint (Infrastructure as Code).
+# Countersign Core — Render Blueprint (Infrastructure as Code).
 # In Render: New → Blueprint → connect this repo. It provisions an always-on web service + a
 # managed Postgres and wires DATABASE_URL between them. Deploys the DEMO Core (mock fleet + live
-# activity) — the hosted free-tier playground the dashboard + `cosign-mcp` (COSIGN_URL) point at.
-# For a real deploy serving actual agents: set COSIGN_DEMO_TRAFFIC=off and wire real adapters.
+# activity) — the hosted free-tier playground the dashboard + `countersign-mcp` (COUNTERSIGN_URL) point at.
+# For a real deploy serving actual agents: set COUNTERSIGN_DEMO_TRAFFIC=off and wire real adapters.
 #
 # Verify plan slugs in the Render dashboard before applying — Render's plan names change.
 
 services:
   - type: web
-    name: cosign-core
+    name: countersign-core
     runtime: docker # builds ./Dockerfile (portable; also works on Fly/Akash/local)
     dockerfilePath: ./Dockerfile
     plan: starter # ALWAYS-ON. The free plan sleeps, and a sleeping control plane can't freeze.
@@ -22,16 +22,16 @@ services:
       # Render injects PORT and the app binds it (main.ts reads process.env.PORT). Do not hardcode PORT.
       - key: DATABASE_URL
         fromDatabase:
-          name: cosign-ledger
+          name: countersign-ledger
           property: connectionString # internal URL (same region) — no public SSL needed
       # "on" = ambient fleet + synthetic traffic; anything else = the interactive CONNECT demo
       # (start empty, operator connects backends). The moat-validation demo runs in connect mode.
-      - key: COSIGN_DEMO_TRAFFIC
+      - key: COUNTERSIGN_DEMO_TRAFFIC
         value: "off"
 
 databases:
-  - name: cosign-ledger
+  - name: countersign-ledger
     plan: free # the signed, hash-chained audit ledger. NOTE: free Postgres is deleted after ~30 days —
     # upgrade to basic-256mb (or higher) for real retention. The live deploy currently runs on free.
-    databaseName: cosign
+    databaseName: countersign
     region: oregon

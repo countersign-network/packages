@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import type { LedgerEvent } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
-import { AnomalyMonitor, createDemoCore } from "@cosign/api";
+import type { LedgerEvent } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
+import { AnomalyMonitor, createDemoCore } from "@countersign/api";
 
 const kindsOf = (records: { payload: LedgerEvent }[]) => records.map((r) => r.payload.kind);
 const anomalies = (records: { payload: LedgerEvent }[]) =>

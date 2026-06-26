@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { CosignCore, createDemoCore, createLocalApi } from "@cosign/api";
-import { InMemoryLedger, createEd25519Signer } from "@cosign/ledger";
-import type { LedgerEvent } from "@cosign/core";
+import { CountersignCore, createDemoCore, createLocalApi } from "@countersign/api";
+import { InMemoryLedger, createEd25519Signer } from "@countersign/ledger";
+import type { LedgerEvent } from "@countersign/core";
 
 describe("embedded front door (createLocalApi over createDemoCore)", () => {
   it("runs the whole control plane in-process with no server, no creds", async () => {
@@ -30,7 +30,7 @@ describe("embedded front door (createLocalApi over createDemoCore)", () => {
 
   it("exposes the ledger public key for independent verification when signed", async () => {
     const signer = createEd25519Signer();
-    const core = new CosignCore({ ledger: new InMemoryLedger<LedgerEvent>(signer) });
+    const core = new CountersignCore({ ledger: new InMemoryLedger<LedgerEvent>(signer) });
     const res = await createLocalApi(core).ledger();
     expect(res.publicKey).toBe(signer.publicKey);
   });

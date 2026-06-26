@@ -1,4 +1,4 @@
-# Cosign — Pricing & GTM (one-pager)
+# Countersign — Pricing & GTM (one-pager)
 
 *Companion to the opportunity brief, the handoff, and the moat/integration roadmap.*
 
@@ -13,11 +13,11 @@ you, because each only governs its own ecosystem.
 You integrate vendors **directly and permissionlessly** (Tier 0–1 are self-serve; no partnership
 needed). Partnerships are *pulled in by demand*, never a prerequisite.
 
-1. **Distribution loop (now):** the **MCP server** drops Cosign *inside Claude/Cursor/Code* where
+1. **Distribution loop (now):** the **MCP server** drops Countersign *inside Claude/Cursor/Code* where
    agent builders already are — one command, embedded mode, no creds. Open-source the front door
    (interface + SDK + MCP + contract) → discoverable, forkable, the de-facto neutral standard.
 2. **Data/flywheel loop (compounds):** the **spend guard** (`/evaluate`) is called on every
-   transaction → Cosign sees an agent's *entire* cross-rail spend → better anomaly signals + agent
+   transaction → Countersign sees an agent's *entire* cross-rail spend → better anomaly signals + agent
    reputation → safer → more adoption → more data. A single-rail vendor physically can't build this.
 3. **Trust + A2A loops:** the hash-chained ledger is shareable compliance proof (pulls in the org);
    and when agents hire agents, the payer wants the payee governed → governance propagates along the
@@ -28,7 +28,7 @@ backend (the moat assumption — validate first) · time-to-first-freeze.
 
 ## Monetisation — free to adopt, metered in production, enterprise for the guarantees
 
-Price against **avoided loss** (a rogue agent can drain a treasury; Cosign is cheap insurance), not
+Price against **avoided loss** (a rogue agent can drain a treasury; Countersign is cheap insurance), not
 COGS. The `/evaluate` guard + the ledger are an exact, tamper-evident usage meter — **the meter is
 the audit log**.
 

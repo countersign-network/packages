@@ -1,21 +1,21 @@
-import type { CosignCore } from "./core-service";
+import type { CountersignCore } from "./core-service";
 
 /**
- * Multi-tenancy by Core-instance: each tenant gets its OWN CosignCore — fully isolated providers,
+ * Multi-tenancy by Core-instance: each tenant gets its OWN CountersignCore — fully isolated providers,
  * agents, policies, and ledger. The server resolves the tenant from the API key (the auth seam) and
  * routes the request to that tenant's Core. A function lets you back it by anything (a static map,
  * a DB-driven factory, etc.).
  */
-export type CoreResolver = (tenantId: string) => CosignCore | Promise<CosignCore>;
+export type CoreResolver = (tenantId: string) => CountersignCore | Promise<CountersignCore>;
 
-/** Lazily creates and caches one CosignCore per tenant via a factory. Concurrent-safe. */
+/** Lazily creates and caches one CountersignCore per tenant via a factory. Concurrent-safe. */
 export class TenantRegistry {
-  private readonly cores = new Map<string, CosignCore>();
-  private readonly pending = new Map<string, Promise<CosignCore>>();
+  private readonly cores = new Map<string, CountersignCore>();
+  private readonly pending = new Map<string, Promise<CountersignCore>>();
 
-  constructor(private readonly factory: (tenantId: string) => CosignCore | Promise<CosignCore>) {}
+  constructor(private readonly factory: (tenantId: string) => CountersignCore | Promise<CountersignCore>) {}
 
-  coreFor(tenantId: string): Promise<CosignCore> {
+  coreFor(tenantId: string): Promise<CountersignCore> {
     const existing = this.cores.get(tenantId);
     if (existing) return Promise.resolve(existing);
     let p = this.pending.get(tenantId);
@@ -30,7 +30,7 @@ export class TenantRegistry {
     return p;
   }
 
-  /** Use as the `createCosignServer` resolver. */
+  /** Use as the `createCountersignServer` resolver. */
   resolver(): CoreResolver {
     return (tenantId) => this.coreFor(tenantId);
   }

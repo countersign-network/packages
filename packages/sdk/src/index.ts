@@ -1,13 +1,13 @@
 /**
- * @cosign/sdk — the front door (roadmap Tier 0 #4). A tiny typed client over the Core API so an
- * agent operator wires Cosign in trivially. Works in Node (22+) and the browser — uses only global
+ * @countersign/sdk — the front door (roadmap Tier 0 #4). A tiny typed client over the Core API so an
+ * agent operator wires Countersign in trivially. Works in Node (22+) and the browser — uses only global
  * fetch + WebSocket, no dependencies beyond the shared contract. The Flutter/Dart client is
  * generated from the same api-contract; this is its TypeScript twin.
  *
- *   const cosign = new CosignClient({ baseUrl: "http://localhost:8080" });
- *   await cosign.applyPolicy({ policy });           // compile + apply across every backend
- *   const stop = cosign.subscribe((m) => ...);       // live ledger stream
- *   await cosign.freeze({ reason: "kill switch" });   // one call, every vendor, < 1s
+ *   const countersign = new CountersignClient({ baseUrl: "http://localhost:8080" });
+ *   await countersign.applyPolicy({ policy });           // compile + apply across every backend
+ *   const stop = countersign.subscribe((m) => ...);       // live ledger stream
+ *   await countersign.freeze({ reason: "kill switch" });   // one call, every vendor, < 1s
  */
 
 import {
@@ -18,7 +18,7 @@ import {
   type ApprovalResolution,
   type ApprovalsResponse,
   type ApproveRequest,
-  type CosignApi,
+  type CountersignApi,
   type DenyRequest,
   type EvaluateRequest,
   type EvaluateResponse,
@@ -27,7 +27,7 @@ import {
   type HealthResponse,
   type LedgerResponse,
   type WsServerMessage,
-} from "@cosign/api-contract";
+} from "@countersign/api-contract";
 
 // Re-export the wire contract so SDK users import everything from one place.
 export type {
@@ -38,7 +38,7 @@ export type {
   ApprovalResolution,
   ApprovalsResponse,
   ApproveRequest,
-  CosignApi,
+  CountersignApi,
   DenyRequest,
   EvaluateRequest,
   EvaluateResponse,
@@ -50,29 +50,29 @@ export type {
   PendingApprovalDTO,
   ProviderHealth,
   WsServerMessage,
-} from "@cosign/api-contract";
+} from "@countersign/api-contract";
 
-export class CosignApiError extends Error {
+export class CountersignApiError extends Error {
   constructor(
     readonly status: number,
     readonly body: string,
   ) {
-    super(`Cosign API ${status}: ${body}`);
-    this.name = "CosignApiError";
+    super(`Countersign API ${status}: ${body}`);
+    this.name = "CountersignApiError";
   }
 }
 
-export interface CosignClientOptions {
+export interface CountersignClientOptions {
   baseUrl: string;
   /** Override fetch (tests / non-global environments). Defaults to the global fetch. */
   fetch?: typeof fetch;
 }
 
-export class CosignClient implements CosignApi {
+export class CountersignClient implements CountersignApi {
   private readonly baseUrl: string;
   private readonly doFetch: typeof fetch;
 
-  constructor(opts: CosignClientOptions) {
+  constructor(opts: CountersignClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, "");
     this.doFetch = opts.fetch ?? fetch;
   }
@@ -97,7 +97,7 @@ export class CosignClient implements CosignApi {
     return this.request<FreezeResponse>("POST", "/freeze", req);
   }
 
-  /** Pre-flight guard: ask Cosign whether a spend is allowed BEFORE touching the wallet. */
+  /** Pre-flight guard: ask Countersign whether a spend is allowed BEFORE touching the wallet. */
   evaluate(req: EvaluateRequest): Promise<EvaluateResponse> {
     return this.request<EvaluateResponse>("POST", "/evaluate", req);
   }
@@ -151,7 +151,7 @@ export class CosignClient implements CosignApi {
       init.body = JSON.stringify(body);
     }
     const res = await this.doFetch(this.baseUrl + path, init);
-    if (!res.ok) throw new CosignApiError(res.status, await res.text());
+    if (!res.ok) throw new CountersignApiError(res.status, await res.text());
     return (await res.json()) as T;
   }
 }

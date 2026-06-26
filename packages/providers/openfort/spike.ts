@@ -8,14 +8,14 @@
  * Part B — enforcement: after the freeze (which deletes the backend wallet), the same signing request
  *          FAILS — Openfort no longer holds a signer for the agent. A confirmed, custody-level kill.
  *
- * Per-tx caps for Openfort v1 are Cosign-layer (the on-chain KeysManager scope is the hardening step);
+ * Per-tx caps for Openfort v1 are Countersign-layer (the on-chain KeysManager scope is the hardening step);
  * the freeze proof here is the kill switch — sign works before, is impossible after.
  */
 
 import Openfort from "@openfort/openfort-node";
 import dotenv from "dotenv";
-import { asAgentId } from "@cosign/core";
-import { definePolicy } from "@cosign/policy";
+import { asAgentId } from "@countersign/core";
+import { definePolicy } from "@countersign/policy";
 import { OpenfortProvider } from "./src/index";
 
 dotenv.config();

@@ -6,12 +6,12 @@
  *                       in Openfort's TEE; the agent's signer).
  *  - freeze          -> accounts.evm.backend.delete(accountId) — a CONFIRMED hard stop: the signer is
  *                       destroyed, so it can never sign again (confirmed via { deleted: true }).
- *  - applyPolicy     -> compiles the unified policy to the on-chain shape and retains it Cosign-side.
+ *  - applyPolicy     -> compiles the unified policy to the on-chain shape and retains it Countersign-side.
  *
  * The freeze here is custody-level (the signer is removed), which is why supportsOnchainGuard is false
  * for now: the full on-chain guard — `update` the EOA to an EIP-7702 delegated account, create a
  * scoped session key, and drive KeysManager `pauseKey`/`revokeKey` verified by `isKeyActive` — is the
- * hardening step (mirrors how Coinbase's native MPC cap was staged after the Cosign-layer gate). See
+ * hardening step (mirrors how Coinbase's native MPC cap was staged after the Countersign-layer gate). See
  * docs/sdk-research/openfort.md. Testnet only (directive #6); Openfort backend wallets are chain-agnostic.
  */
 
@@ -29,8 +29,8 @@ import {
   type ProviderEvent,
   type Unsubscribe,
   type Venue,
-} from "@cosign/core";
-import { compile, type OpenfortOnchainPolicy, type UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import { compile, type OpenfortOnchainPolicy, type UnifiedPolicy } from "@countersign/policy";
 
 export interface OpenfortConfig {
   secretKey?: string;
@@ -86,13 +86,13 @@ export class OpenfortProvider implements EnforcementProvider {
 
   /**
    * Compile the unified policy to Openfort's on-chain shape (session scope + canCall allowlist +
-   * tokenSpend). v1 retains it Cosign-side (the pre-flight gate); the on-chain KeysManager push is the
+   * tokenSpend). v1 retains it Countersign-side (the pre-flight gate); the on-chain KeysManager push is the
    * hardening step. Recorded so the policy is auditable in the ledger.
    */
   async applyPolicy(agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
     const a = this.require(agentId);
     const native: OpenfortOnchainPolicy = compile(policy, "onchain-policy");
-    void native; // canCall/tokenSpend/session map to KeysManager on-chain (hardening); unsupported fields stay Cosign-enforced
+    void native; // canCall/tokenSpend/session map to KeysManager on-chain (hardening); unsupported fields stay Countersign-enforced
     const policyId = nextId("pol");
     a.policyId = policyId;
     this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });

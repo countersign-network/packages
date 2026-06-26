@@ -1,4 +1,4 @@
-# Cosign — Morning Next Steps (2026-06-21)
+# Countersign — Morning Next Steps (2026-06-21)
 
 Read order: this file → `moat-and-integration-roadmap.md` (the moat/tier map) → `handoff.md` (the 90-day plan).
 
@@ -9,17 +9,17 @@ The build = **roadmap Tier 0** against faithful mocks, tested and committed to l
 | Roadmap Tier 0 item | State |
 |---|---|
 | #1 Coinbase / #2 Turnkey / #3 Openfort (enforcement backends) | adapter **skeletons** (real signatures + capabilities; live calls throw) — mock fleet proves the loop |
-| #4 Cosign SDK / front door | **`@cosign/sdk` DONE** (typed client + live ledger subscribe) ✅ |
+| #4 Countersign SDK / front door | **`@countersign/sdk` DONE** (typed client + live ledger subscribe) ✅ |
 | Freeze + policy compiler + hash-chained ledger | **DONE & tested** (66 tests) ✅ |
-| Web dashboard (first-demo surface) | **DONE** — `pnpm --filter @cosign/api start` → http://localhost:8080 ✅ |
+| Web dashboard (first-demo surface) | **DONE** — `pnpm --filter @countersign/api start` → http://localhost:8080 ✅ |
 
 The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **proven against mocks**. The only thing between here and proving it *for real* is vendor credentials.
 
 ### Done while you slept (this session)
 - Folded the moat/integration roadmap into `docs/moat-and-integration-roadmap.md`.
-- Built **roadmap Tier 0 #4 in full** — `@cosign/sdk` (typed client) **and** `@cosign/mcp` (Cosign as
+- Built **roadmap Tier 0 #4 in full** — `@countersign/sdk` (typed client) **and** `@countersign/mcp` (Countersign as
   MCP tools: the kill switch + spend guard inside any MCP client). Verified end-to-end over stdio.
-- Shipped the **agent pre-flight spend guard** (`POST /evaluate`): an agent asks Cosign "may I spend?"
+- Shipped the **agent pre-flight spend guard** (`POST /evaluate`): an agent asks Countersign "may I spend?"
   before touching the wallet — the call made on every transaction (the flywheel). 70 tests, green.
 
 ## ① Decisions only you can make (≈15 min, do first — they unblock everything)
@@ -55,22 +55,22 @@ inline-approval upgrade). Typed against `lithic` v0.123.0; `smoke.ts` + `spike.t
 over-cap DECLINED, frozen DECLINED via sandbox auth simulation) run once `LITHIC_API_KEY` (sandbox) is
 set. With a key, the headline becomes "freeze an agent across Coinbase + Turnkey + Openfort **and a
 Visa card**, one action" — the cross-RAIL-TYPE freeze, a sharper enterprise wedge than crypto-only.
-Cosign stays the control plane (governs the customer's own Lithic program), never the issuer/custodian.
-~~C. Cosign MCP server~~ **DONE** ✅ (`@cosign/mcp`) — and the spend guard (`/evaluate`).
-~~D. x402 + USDC first-class~~ **DONE** ✅ (`@cosign/x402` — guard a machine-payment before it pays).
-~~F. One-command / embedded MCP~~ **DONE** ✅ (`@cosign/mcp` runs an in-process Core, no creds, no setup).
+Countersign stays the control plane (governs the customer's own Lithic program), never the issuer/custodian.
+~~C. Countersign MCP server~~ **DONE** ✅ (`@countersign/mcp`) — and the spend guard (`/evaluate`).
+~~D. x402 + USDC first-class~~ **DONE** ✅ (`@countersign/x402` — guard a machine-payment before it pays).
+~~F. One-command / embedded MCP~~ **DONE** ✅ (`@countersign/mcp` runs an in-process Core, no creds, no setup).
 ~~E. Anomaly-freeze v0~~ **DONE** ✅ (`AnomalyMonitor` — velocity / blocked-burst / new-counterparty / cumulative → alert or auto-freeze; wired into the demo + live dashboard).
 ~~H. Approval workflow~~ **DONE** ✅ (`/approvals` `/approve` `/deny` — list + resolve `needs_approval`; fail-closed: a freeze overrides a pending approval; wired into the dashboard + MCP tools).
-~~G. Hosted Core + durable Postgres~~ **DONE** ✅ — live at https://cosign-b7ru.onrender.com (Render
+~~G. Hosted Core + durable Postgres~~ **DONE** ✅ — live at https://countersign-b7ru.onrender.com (Render
 Docker), now backed by a **signed Postgres ledger** (managed PG `dpg-d8uevjgk1i2s73esmeu0-a`, free plan
 → upgrade to basic-256mb for >30-day retention; `DATABASE_URL` wired). `/ledger` verifies + exposes the
-public key. ⬜ Optional: publish `@cosign/mcp` to npm for a true one-line install; off-Free always-on.
+public key. ⬜ Optional: publish `@countersign/mcp` to npm for a true one-line install; off-Free always-on.
 
 ~~A. Real Coinbase adapter + Phase-0 spike~~ **DONE** ✅ — LIVE on Base Sepolia (`spike.ts`).
 ~~Coinbase native hardening~~ **DONE** ✅ — per-tx cap pushed into Coinbase's MPC (CDP account
-Policy); `harden-spike.ts` proves a direct over-cap send bypassing Cosign is rejected by Coinbase
+Policy); `harden-spike.ts` proves a direct over-cap send bypassing Countersign is rejected by Coinbase
 itself. (API key needs the Non-custodial Manage / `policies#manage` scope.)
-~~Deploy~~ **DONE** ✅ — live demo Core at https://cosign-b7ru.onrender.com (Render Docker, Free plan).
+~~Deploy~~ **DONE** ✅ — live demo Core at https://countersign-b7ru.onrender.com (Render Docker, Free plan).
 
 > Remaining: (B) Turnkey + Openfort real adapters (need their sandbox creds); (G) hosted free tier
 > (needs a deploy target); and the Coinbase hardening (native Spend Permissions, multi-backend <1s
@@ -89,5 +89,5 @@ Land **usage-based** (governed agent-wallets + decisions evaluated, free testnet
 ```
 pnpm install && pnpm typecheck && pnpm test    # 66 tests
 pnpm demo                                       # scripted headline
-pnpm --filter @cosign/api start                 # dashboard at http://localhost:8080
+pnpm --filter @countersign/api start                 # dashboard at http://localhost:8080
 ```

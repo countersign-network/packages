@@ -1,4 +1,4 @@
-title = "Cosign secret scan"
+title = "Countersign secret scan"
 
 [extend]
 useDefault = true

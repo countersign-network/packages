@@ -12,7 +12,7 @@ import {
   type LedgerEvent,
   type ProviderCapabilities,
   type ProviderRegistration,
-} from "@cosign/core";
+} from "@countersign/core";
 
 type FreezeBehavior = "confirm" | "unconfirmed" | "throw" | "hang";
 type RevokeBehavior = "confirm" | "fail" | "hang";

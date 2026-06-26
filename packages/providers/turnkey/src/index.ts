@@ -33,8 +33,8 @@ import {
   type ProviderEvent,
   type Unsubscribe,
   type Venue,
-} from "@cosign/core";
-import { compile, type TurnkeyPolicyDoc, type UnifiedPolicy } from "@cosign/policy";
+} from "@countersign/core";
+import { compile, type TurnkeyPolicyDoc, type UnifiedPolicy } from "@countersign/policy";
 
 const TURNKEY_API_BASE_URL = "https://api.turnkey.com";
 const HUMAN_APPROVER_PLACEHOLDER = "<HUMAN_APPROVER_USER_ID>";
@@ -54,7 +54,7 @@ interface TurnkeyAgent {
   agentUserId: string;
   /** The agent's session keypair (P-256). The private key is held only to sign spends later. */
   agentKey: { publicKey: string; privateKey: string };
-  /** The applied unified-policy id (Cosign-side handle). */
+  /** The applied unified-policy id (Countersign-side handle). */
   policyId?: string;
   /** Turnkey policy ids created for this agent (so we can clean up / unfreeze). */
   turnkeyPolicyIds: string[];
@@ -122,12 +122,12 @@ export class TurnkeyProvider implements EnforcementProvider {
 
     // 1) Sub-org + inline EVM wallet. Root user = us (the parent API key) so we retain management.
     const subOrg = await client.createSubOrganization({
-      subOrganizationName: `cosign-${String(agentId)}-${nextId("so")}`,
+      subOrganizationName: `countersign-${String(agentId)}-${nextId("so")}`,
       rootUsers: [
         {
-          userName: "cosign-admin",
+          userName: "countersign-admin",
           apiKeys: [
-            { apiKeyName: "cosign-root", publicKey: this.rootApiPublicKey(), curveType: "API_KEY_CURVE_P256" },
+            { apiKeyName: "countersign-root", publicKey: this.rootApiPublicKey(), curveType: "API_KEY_CURVE_P256" },
           ],
           authenticators: [],
           oauthProviders: [],
@@ -192,12 +192,12 @@ export class TurnkeyProvider implements EnforcementProvider {
     const native: TurnkeyPolicyDoc = compile(policy, "pre-sign-policy");
 
     let boundClauses = 0;
-    const cosignTracked: string[] = [...native.unsupported.map((u) => u.field)];
+    const countersignTracked: string[] = [...native.unsupported.map((u) => u.field)];
     for (const entry of native.policies) {
       // Never silently weaken (invariant #5): a clause that needs a human approver we don't have
-      // configured is NOT pushed loosened — it's tracked as Cosign-enforced instead.
+      // configured is NOT pushed loosened — it's tracked as Countersign-enforced instead.
       if (entry.consensus && entry.consensus.includes(HUMAN_APPROVER_PLACEHOLDER)) {
-        cosignTracked.push(entry.policyName);
+        countersignTracked.push(entry.policyName);
         continue;
       }
       // condition gates WHEN; consensus (only when the compiler set one) gates WHO must approve.
@@ -222,8 +222,8 @@ export class TurnkeyProvider implements EnforcementProvider {
     const policyId = nextId("pol");
     a.policyId = policyId;
     this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });
-    if (cosignTracked.length > 0) {
-      this.emit({ type: "error", agentId, message: `cosign-tracked (not native): ${cosignTracked.join(", ")}`, ts: Date.now() });
+    if (countersignTracked.length > 0) {
+      this.emit({ type: "error", agentId, message: `countersign-tracked (not native): ${countersignTracked.join(", ")}`, ts: Date.now() });
     }
     return { policyId };
   }
@@ -244,10 +244,10 @@ export class TurnkeyProvider implements EnforcementProvider {
         if (a.freezePolicyId) return id; // already frozen — idempotent
         const res = await client.createPolicy({
           organizationId: a.subOrgId,
-          policyName: `cosign-freeze-${nextId("f")}`,
+          policyName: `countersign-freeze-${nextId("f")}`,
           effect: "EFFECT_DENY",
           condition: "true", // matches every signing activity in this agent's sub-org
-          notes: "cosign freeze — deny every signature",
+          notes: "countersign freeze — deny every signature",
         });
         if (!res.policyId) throw new Error(`turnkey: freeze policy not confirmed for ${String(id)}`);
         a.freezePolicyId = res.policyId;

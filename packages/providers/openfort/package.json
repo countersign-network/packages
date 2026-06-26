@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/provider-openfort",
+  "name": "@countersign/provider-openfort",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/policy": "workspace:*",
     "@openfort/openfort-node": "^0.10.5",
     "dotenv": "^17.4.2",
     "viem": "^2.52.2"

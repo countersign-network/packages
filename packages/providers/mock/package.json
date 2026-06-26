@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/provider-mock",
+  "name": "@countersign/provider-mock",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@countersign/core": "workspace:*",
+    "@countersign/policy": "workspace:*"
   }
 }

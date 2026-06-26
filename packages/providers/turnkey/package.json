@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/provider-turnkey",
+  "name": "@countersign/provider-turnkey",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@countersign/policy": "workspace:*",
     "@turnkey/crypto": "^2.10.0",
     "@turnkey/ethers": "^1.3.31",
     "@turnkey/sdk-server": "^6.1.1",

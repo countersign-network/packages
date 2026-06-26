@@ -1,5 +1,5 @@
 {
-  "name": "@cosign/api-contract",
+  "name": "@countersign/api-contract",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "./openapi": "./openapi.yaml"
   },
   "dependencies": {
-    "@cosign/core": "workspace:*",
-    "@cosign/policy": "workspace:*"
+    "@countersign/core": "workspace:*",
+    "@countersign/policy": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { asProviderId, type LedgerEvent } from "@cosign/core";
+import { asProviderId, type LedgerEvent } from "@countersign/core";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { rm } from "node:fs/promises";
@@ -13,7 +13,7 @@ import {
   makeRecord,
   verifyChain,
   type LedgerPort,
-} from "@cosign/ledger";
+} from "@countersign/ledger";
 
 type Tamperable = LedgerPort<LedgerEvent> & {
   __danger_corruptPayload(index: number, payload: LedgerEvent): Promise<void>;
@@ -139,7 +139,7 @@ describe("ledger signing (tamper-evident even against the DB owner)", () => {
 
 describe("external anchoring seam", () => {
   it("anchorHead publishes the ledger head to a separate store (FileAnchor)", async () => {
-    const path = join(tmpdir(), "cosign-anchor-test.jsonl");
+    const path = join(tmpdir(), "countersign-anchor-test.jsonl");
     await rm(path, { force: true });
 
     const ledger = new InMemoryLedger<LedgerEvent>();

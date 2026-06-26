@@ -1,4 +1,4 @@
-# Cosign Core — container image. Runs the REST + ws API + dashboard (packages/api).
+# Countersign Core — container image. Runs the REST + ws API + dashboard (packages/api).
 # Portable: works on Render (Docker), Fly, Akash, or `docker run` locally.
 FROM node:22-slim
 
@@ -15,4 +15,4 @@ RUN pnpm install --frozen-lockfile
 EXPOSE 8080
 
 # Start the Core (+ dashboard). DATABASE_URL (if set) → durable Postgres ledger; else in-memory.
-CMD ["pnpm", "--filter", "@cosign/api", "start"]
+CMD ["pnpm", "--filter", "@countersign/api", "start"]

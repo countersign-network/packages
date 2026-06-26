@@ -9,7 +9,7 @@
  * Anything not explicitly allowed at the end is allowed ONLY if it passed every gate.
  */
 
-import { cmpAmount, addAmount } from "@cosign/core";
+import { cmpAmount, addAmount } from "@countersign/core";
 import type { UnifiedPolicy } from "./schema";
 
 export interface SpendAttempt {

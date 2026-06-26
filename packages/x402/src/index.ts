@@ -1,15 +1,15 @@
 /**
- * @cosign/x402 — govern x402 (the dominant HTTP-402 machine-payment rail) as a first-class Cosign
- * action. An agent that hits an x402 "payment required" challenge routes it through Cosign's
+ * @countersign/x402 — govern x402 (the dominant HTTP-402 machine-payment rail) as a first-class Countersign
+ * action. An agent that hits an x402 "payment required" challenge routes it through Countersign's
  * pre-flight guard BEFORE paying: parse the challenge → evaluate against policy (per-call caps +
  * payee allowlist + daily metering) → only hand off to the wallet/x402 client if allowed.
  *
- * Cosign decides; it never signs or moves funds (prime directive #1). USDC is the settlement asset,
- * so x402's atomic amounts map straight onto Cosign's base-unit policy.
+ * Countersign decides; it never signs or moves funds (prime directive #1). USDC is the settlement asset,
+ * so x402's atomic amounts map straight onto Countersign's base-unit policy.
  */
 
-import type { CosignApi, EvaluateRequest, EvaluateResponse } from "@cosign/api-contract";
-import { VENUE_CHAIN_IDS } from "@cosign/policy";
+import type { CountersignApi, EvaluateRequest, EvaluateResponse } from "@countersign/api-contract";
+import { VENUE_CHAIN_IDS } from "@countersign/policy";
 
 /** An entry from an x402 "accepts" array (v2 "exact" scheme, EVM). */
 export interface X402Accepts {
@@ -28,7 +28,7 @@ export interface X402PaymentRequired {
   error?: string;
 }
 
-/** A normalized charge ready to evaluate against a Cosign policy. */
+/** A normalized charge ready to evaluate against a Countersign policy. */
 export interface X402Charge {
   amount: string; // base units
   asset: string; // symbol, e.g. "USDC"
@@ -41,7 +41,7 @@ const CAIP_TO_VENUE: Record<string, string> = Object.fromEntries(
   Object.entries(VENUE_CHAIN_IDS).map(([venue, id]) => [`eip155:${id}`, venue]),
 );
 
-/** Map an x402 network (CAIP-2 or name) to a Cosign venue. Unknown networks pass through as-is. */
+/** Map an x402 network (CAIP-2 or name) to a Countersign venue. Unknown networks pass through as-is. */
 export function networkToVenue(network: string): string {
   return CAIP_TO_VENUE[network] ?? network;
 }
@@ -67,8 +67,8 @@ export function toEvaluateRequest(agentId: string, charge: X402Charge): Evaluate
   return { agentId, amount: charge.amount, asset: charge.asset, counterparty: charge.payTo, venue: charge.venue };
 }
 
-/** Ask Cosign whether this x402 payment is allowed. */
-export function guardX402(api: CosignApi, agentId: string, charge: X402Charge): Promise<EvaluateResponse> {
+/** Ask Countersign whether this x402 payment is allowed. */
+export function guardX402(api: CountersignApi, agentId: string, charge: X402Charge): Promise<EvaluateResponse> {
   return api.evaluate(toEvaluateRequest(agentId, charge));
 }
 
@@ -80,11 +80,11 @@ export class X402Denied extends Error {
 }
 
 /**
- * Wrap the actual payment: evaluate first, and only run `pay` if Cosign allows. Throws X402Denied
+ * Wrap the actual payment: evaluate first, and only run `pay` if Countersign allows. Throws X402Denied
  * (carrying the decision) on deny / needs_approval, so a rogue or over-budget agent never pays.
  */
 export async function withX402Guard<T>(
-  api: CosignApi,
+  api: CountersignApi,
   agentId: string,
   charge: X402Charge,
   pay: (charge: X402Charge) => Promise<T>,

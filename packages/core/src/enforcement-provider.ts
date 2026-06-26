@@ -1,5 +1,5 @@
 /**
- * Cosign Core — EnforcementProvider
+ * Countersign Core — EnforcementProvider
  * Location in repo: packages/core/src/enforcement-provider.ts
  *
  * THE KEYSTONE ABSTRACTION.
@@ -9,7 +9,7 @@
  * ledger, and API depend ONLY on this interface — never on a vendor SDK directly.
  *
  * Enforcement is NATIVE to each backend (MPC/TEE policy, session caps, or on-chain rules).
- * Cosign's job across all of them is the same four verbs:
+ * Countersign's job across all of them is the same four verbs:
  *   1. APPLY a unified policy (each adapter compiles it to the backend's native controls)
  *   2. FREEZE (revoke/zero/flip — a hard stop)
  *   3. (optionally) APPROVE inline, for backends that can gate a signature on approval
@@ -24,13 +24,13 @@
  *   - No decision / no backend response => the action does NOT execute. Default deny.
  */
 
-import type { UnifiedPolicy } from "@cosign/policy"; // shared declarative policy schema
+import type { UnifiedPolicy } from "@countersign/policy"; // shared declarative policy schema
 import type { ProviderId, AgentId, SessionId, Venue } from "./ids";
 
 /* ------------------------------------------------------------------ */
 /* Identifiers (branded to prevent mix-ups across providers)          */
 /* The branded types + mint/cast helpers live in ./ids.ts and are     */
-/* re-exported from the package index, so @cosign/core exposes them.   */
+/* re-exported from the package index, so @countersign/core exposes them.   */
 /* ------------------------------------------------------------------ */
 
 export interface AgentRef {

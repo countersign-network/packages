@@ -1,5 +1,5 @@
 /**
- * Cosign as MCP tools — the agent-facing front door. Drop this server into any MCP client (Claude
+ * Countersign as MCP tools — the agent-facing front door. Drop this server into any MCP client (Claude
  * Desktop/Code, etc.) and an operator governs their whole multi-vendor agent fleet from chat:
  * apply a policy, see every spend, and hit the kill switch — plus the agent-side pre-flight guard.
  *
@@ -8,10 +8,10 @@
  */
 
 import { z, type ZodRawShape } from "zod";
-import { definePolicy } from "@cosign/policy";
-import type { CosignApi } from "@cosign/api-contract";
+import { definePolicy } from "@countersign/policy";
+import type { CountersignApi } from "@countersign/api-contract";
 
-export interface CosignTool {
+export interface CountersignTool {
   name: string;
   description: string;
   schema: ZodRawShape;
@@ -21,21 +21,21 @@ export interface CosignTool {
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : v === undefined ? undefined : String(v));
 const strArr = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.map((x) => String(x)) : undefined);
 
-export function createCosignTools(client: CosignApi): CosignTool[] {
+export function createCountersignTools(client: CountersignApi): CountersignTool[] {
   return [
     {
-      name: "cosign_health",
-      description: "Liveness + per-backend health of the Cosign control plane.",
+      name: "countersign_health",
+      description: "Liveness + per-backend health of the Countersign control plane.",
       schema: {},
       handler: async () => {
         const h = await client.health();
-        return `Cosign ${h.ok ? "OK" : "DEGRADED"} — ${h.providers
+        return `Countersign ${h.ok ? "OK" : "DEGRADED"} — ${h.providers
           .map((p) => `${p.id} (${p.mode}): ${p.healthy ? "healthy" : "DOWN"}`)
           .join("; ")}`;
       },
     },
     {
-      name: "cosign_list_agents",
+      name: "countersign_list_agents",
       description: "List every governed agent across all wallet backends.",
       schema: {},
       handler: async () => {
@@ -45,7 +45,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_apply_policy",
+      name: "countersign_apply_policy",
       description:
         "Compile and apply ONE unified spending policy across every backend (fail-closed). Amounts are base units (USDC has 6 decimals: 100 USDC = 100000000). Omit agentId to apply to all agents.",
       schema: {
@@ -77,9 +77,9 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_request_spend",
+      name: "countersign_request_spend",
       description:
-        "Pre-flight guard for an agent: ask Cosign whether a spend is allowed BEFORE touching the wallet. Returns allow / deny / needs_approval. Amount in base units.",
+        "Pre-flight guard for an agent: ask Countersign whether a spend is allowed BEFORE touching the wallet. Returns allow / deny / needs_approval. Amount in base units.",
       schema: {
         agentId: z.string(),
         amount: z.string(),
@@ -100,7 +100,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_list_approvals",
+      name: "countersign_list_approvals",
       description: "List spends currently held pending human approval (the consensus path).",
       schema: {},
       handler: async () => {
@@ -110,7 +110,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_approve",
+      name: "countersign_approve",
       description: "Approve a pending spend by its token. Rejected if the system is frozen (fail-closed).",
       schema: { approvalToken: z.string() },
       handler: async (args) => {
@@ -119,7 +119,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_deny",
+      name: "countersign_deny",
       description: "Deny a pending spend by its token.",
       schema: { approvalToken: z.string(), reason: z.string().optional() },
       handler: async (args) => {
@@ -129,7 +129,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_freeze",
+      name: "countersign_freeze",
       description: "THE KILL SWITCH. Freeze every agent on every backend at once, in under a second.",
       schema: { reason: z.string().optional() },
       handler: async (args) => {
@@ -139,7 +139,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_unfreeze",
+      name: "countersign_unfreeze",
       description: "Lift a freeze across every backend (recover / replay).",
       schema: {},
       handler: async () => {
@@ -148,7 +148,7 @@ export function createCosignTools(client: CosignApi): CosignTool[] {
       },
     },
     {
-      name: "cosign_ledger",
+      name: "countersign_ledger",
       description: "Read the append-only, hash-chained audit ledger (every attempt, everywhere) and re-verify its integrity.",
       schema: { limit: z.number().optional().describe("how many recent entries to show (default 15)") },
       handler: async (args) => {

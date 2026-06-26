@@ -1,4 +1,4 @@
-# Cosign — Claude Code Handoff (v1 / 90-Day Proof)
+# Countersign — Claude Code Handoff (v1 / 90-Day Proof)
 
 *Goal of v1: one demo — freeze three live spending agents running on three different wallet backends across three venues, in under a second, with a unified tamper-evident ledger of every attempt.*
 
@@ -9,7 +9,7 @@
 These are non-negotiable. Tell Claude Code to treat them as invariants.
 
 1. **Do NOT build cryptography.** MPC/TEE signing is a solved, commodity primitive (Coinbase Agentic Wallets, Turnkey, Openfort). Integrate it. Never reconstruct keys. Agents use **session keys, never master keys**.
-2. **The product is the layer ABOVE the wallets, not the wallet.** Cosign is the neutral, cross-vendor policy + freeze + ledger surface. Every wallet vendor only governs its own ecosystem; Cosign governs all of them at once. That aggregation is the entire moat — build that, not a redundant wallet.
+2. **The product is the layer ABOVE the wallets, not the wallet.** Countersign is the neutral, cross-vendor policy + freeze + ledger surface. Every wallet vendor only governs its own ecosystem; Countersign governs all of them at once. That aggregation is the entire moat — build that, not a redundant wallet.
 3. **Fail-closed, always.** No policy decision, or no response from an enforcement backend → the transaction does **not** execute. Default deny.
 4. **Backend-agnostic core.** All wallet vendors sit behind one `EnforcementProvider` interface. No vendor-specific logic leaks into the core. Swapping or adding a backend must not touch policy, ledger, or UI.
 5. **Everything is logged** to an append-only, hash-chained ledger. The ledger is the source of truth and the audit artifact.
@@ -29,7 +29,7 @@ A thin neutral control plane with four parts:
 - **Unified ledger** — append-only, hash-chained Postgres log indexing backend webhooks + on-chain events: every attempted, allowed, and blocked action, with which policy + who/what approved.
 
 Plus the surfaces to demo it:
-- **Cosign Client (Flutter — desktop + mobile, one codebase)** — policy editor, live multi-venue agent monitor, one big red FREEZE button, ledger view, approval prompts. **Holds no keys and no wallet SDKs**; it is a thin renderer over the Core API. Mobile is load-bearing, not optional: the approval prompt and the on-the-go kill switch only make sense on a phone.
+- **Countersign Client (Flutter — desktop + mobile, one codebase)** — policy editor, live multi-venue agent monitor, one big red FREEZE button, ledger view, approval prompts. **Holds no keys and no wallet SDKs**; it is a thin renderer over the Core API. Mobile is load-bearing, not optional: the approval prompt and the on-the-go kill switch only make sense on a phone.
 - **Agent harness** — reference spending agents, one per backend, to make the demo real.
 
 **Architecture in one line:** a TypeScript **Core service** (the brain — adapters, policy compiler, freeze controller, ledger, REST+ws API) that the **Flutter client** talks to. All crypto/SDK weight lives in Core, written once; the client just renders state and fires `approve` / `freeze`. The language boundary (Dart client / TS core) falls exactly on the trust boundary — a compromised client still cannot move funds or weaken policy.
@@ -47,7 +47,7 @@ Plus the surfaces to demo it:
 
 (Privy — TEE + Shamir, off-chain policy — is a viable swap given your migration history, but it leans toward user-session flows rather than fully autonomous agents. Crossmint is the later fiat/MiCA route, out of scope now.)
 
-**Cosign core + harness:** **TypeScript / Node** for the proof — every wallet SDK (Coinbase CDP, Turnkey, Openfort) is TS-first, so this minimizes integration friction. (Port the durable policy/ledger service to **Go** later if you want; not for the proof.)
+**Countersign core + harness:** **TypeScript / Node** for the proof — every wallet SDK (Coinbase CDP, Turnkey, Openfort) is TS-first, so this minimizes integration friction. (Port the durable policy/ledger service to **Go** later if you want; not for the proof.)
 
 **Ledger:** Postgres, append-only, **hash-chained** (each row stores `prev_hash` + payload hash). Index backend webhooks and on-chain events.
 
@@ -66,7 +66,7 @@ Plus the surfaces to demo it:
 ## 3. Repo layout (monorepo, pnpm workspaces)
 
 ```
-cosign/
+countersign/
 ├── CLAUDE.md                 # context + prime directives (see §6)
 ├── docs/
 │   ├── opportunity-brief.md  # the strategy doc
@@ -94,7 +94,7 @@ cosign/
 - Scaffold monorepo, `CLAUDE.md`, CI, env config. Get sandbox creds for all three backends.
 - Confirm the three testnets/venues (default: Base Sepolia + two others).
 - **Spike:** provision one Coinbase Agentic Wallet, run one agent that spends, then **block its next transaction via policy**. Prove the stop works end to end.
-- **DoD:** a single transaction is provably prevented by a Cosign-issued policy change.
+- **DoD:** a single transaction is provably prevented by a Countersign-issued policy change.
 
 ### Phase 1 — One backend, full loop (Days 0–30)
 - `EnforcementProvider` interface + Coinbase adapter.
@@ -125,7 +125,7 @@ Card/fiat issuing · mainnet / real custody at scale · AML/KYC · owning your o
 ## 6. CLAUDE.md starter (drop in repo root)
 
 ```markdown
-# Cosign
+# Countersign
 
 Neutral, cross-vendor control plane for AI agents that spend money.
 We hold the policy, the freeze, and the audit ledger ACROSS multiple
@@ -175,4 +175,4 @@ One ledger shows every attempt. If that runs on real-ish funds, the thesis is pr
 
 ---
 
-**The whole thing reduces to one falsifiable test:** can Cosign freeze agents across three vendors at once in under a second? Phase 2 answers it. Everything before is setup; everything after is scale.
+**The whole thing reduces to one falsifiable test:** can Countersign freeze agents across three vendors at once in under a second? Phase 2 answers it. Everything before is setup; everything after is scale.
