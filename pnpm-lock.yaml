@@ -6,6 +6,7 @@ settings:
 
 overrides:
   ws: '>=8.21.0'
+  axios: '>=1.16.0'
 
 importers:
 
@@ -1470,10 +1471,7 @@ packages:
   axios-retry@4.5.0:
     resolution: {integrity: sha512-aR99oXhpEDGo0UuAlYcn2iGRds30k366Zfa05XWScR9QaQD4JYiP3/1Qt1u7YlefUOK+cn0CcwoL1oefavQUlQ==}
     peerDependencies:
-      axios: 0.x || 1.x
-
-  axios@1.15.0:
-    resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
+      axios: '>=1.16.0'
 
   axios@1.16.0:
     resolution: {integrity: sha512-6hp5CwvTPlN2A31g5dxnwAX0orzM7pmCRDLnZSX772mv8WDqICwFjowHuPs04Mc8deIld1+ejhtaMn5vp6b+1w==}
@@ -2710,8 +2708,8 @@ snapshots:
 
   '@openfort/shield-js@0.1.37':
     dependencies:
-      axios: 1.15.0
-      axios-retry: 4.5.0(axios@1.15.0)
+      axios: 1.16.0
+      axios-retry: 4.5.0(axios@1.16.0)
     transitivePeerDependencies:
       - debug
 
@@ -3863,23 +3861,10 @@ snapshots:
 
   atomic-sleep@1.0.0: {}
 
-  axios-retry@4.5.0(axios@1.15.0):
-    dependencies:
-      axios: 1.15.0
-      is-retry-allowed: 2.2.0
-
   axios-retry@4.5.0(axios@1.16.0):
     dependencies:
       axios: 1.16.0
       is-retry-allowed: 2.2.0
-
-  axios@1.15.0:
-    dependencies:
-      follow-redirects: 1.16.0
-      form-data: 4.0.6
-      proxy-from-env: 2.1.0
-    transitivePeerDependencies:
-      - debug
 
   axios@1.16.0:
     dependencies:
