@@ -1,7 +1,7 @@
 import type { Pool } from "pg";
 import type { LedgerEvent } from "@countersign/core";
 import { GENESIS_HASH, makeRecord, verifyChain, type LedgerRecord, type LedgerSigner, type VerifyResult } from "./hash-chain";
-import type { LedgerPort } from "./port";
+import { APPEND_ONLY_TRIGGER_SQL, type LedgerPort } from "./port";
 
 /**
  * Production ledger over a real (networked) Postgres — e.g. Render's managed Postgres via
@@ -45,6 +45,7 @@ export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
         payload      JSONB NOT NULL,
         signature    TEXT
       );
+      ${APPEND_ONLY_TRIGGER_SQL}
     `);
     return new PostgresLedger<T>(pool, signer);
   }
