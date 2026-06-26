@@ -184,6 +184,9 @@ importers:
       '@countersign/api':
         specifier: workspace:*
         version: link:../../api
+      '@countersign/ledger':
+        specifier: workspace:*
+        version: link:../../ledger
 
   packages/providers/lithic:
     dependencies:

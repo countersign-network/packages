@@ -16,7 +16,8 @@
     "viem": "^2.52.2"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*"
+    "@countersign/api": "workspace:*",
+    "@countersign/ledger": "workspace:*"
   },
-  "comment": "LIVE adapter on Base Sepolia. smoke.ts verifies creds; spike.ts runs the Phase-0 proof (apply policy -> spend -> freeze blocks next spend) on a real testnet wallet."
+  "comment": "LIVE adapter on Base Sepolia. smoke.ts verifies creds; spike.ts runs the Phase-0 proof (apply policy -> spend -> freeze blocks next spend); anchor-spike.ts commits the signed ledger head ON-CHAIN and reads it back from chain (external cross-trust-domain anchor)."
 }
