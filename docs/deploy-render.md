@@ -17,7 +17,7 @@ at). Uses `render.yaml` (Blueprint / IaC).
 
 - Open the service URL → the **dashboard** (FREEZE button, live ledger, approvals).
 - `GET /health`, `GET /ledger` (verified hash chain), `POST /freeze`.
-- Point the MCP server at it: `COUNTERSIGN_URL=https://countersign-core-xxxx.onrender.com` (remote mode).
+- Point the MCP server at it: `COUNTERSIGN_URL=https://app.countersign.network` (remote mode).
 
 ## Settings that matter
 
