@@ -15,6 +15,12 @@ function stubClient(p: LithicProvider): void {
       update: async (_token: string, body: { state?: string }) => ({ state: body?.state ?? "OPEN" }),
       list: async () => ({ data: [] }),
     },
+    // Fake of Lithic's timing-safe verifier: throw unless the test marks the request as validly signed.
+    webhooks: {
+      verifySignature: (_body: string, headers: Record<string, string | undefined>) => {
+        if (headers["x-valid-sig"] !== "yes") throw new Error("invalid signature");
+      },
+    },
   });
 }
 
@@ -64,5 +70,46 @@ describe("Lithic ASA real-time decision (fail-closed)", () => {
     const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100" }));
     expect(p.decideAuthorization({ cardToken: "card_nope", amount: "10" }).approved).toBe(false);
     expect(p.decideAuthorization(auth("not-a-number")).approved).toBe(false);
+  });
+});
+
+describe("Lithic ASA webhook handler (signature-verified, fail-closed)", () => {
+  const body = (o: object) => JSON.stringify(o);
+  const goodEvt = { card_token: "card_1", amount: 50, merchant: { descriptor: "ACME", mcc: "5732" } };
+
+  it("verifies the signature, then approves an in-policy authorization", async () => {
+    const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "150" }), {
+      asaEnabled: true,
+      asaWebhookSecret: "whsec_test",
+    });
+    const d = p.handleAsaWebhook(body(goodEvt), { "x-valid-sig": "yes" });
+    expect(d.approved).toBe(true);
+  });
+
+  it("declines when the signature does not verify (no policy check reached)", async () => {
+    const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100" }), { asaEnabled: true, asaWebhookSecret: "whsec_test" });
+    const d = p.handleAsaWebhook(body(goodEvt), { "x-valid-sig": "no" });
+    expect(d.approved).toBe(false);
+    expect(d.reason).toMatch(/signature/i);
+  });
+
+  it("declines when no webhook secret is configured (default deny)", async () => {
+    const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100" }), { asaEnabled: true });
+    const d = p.handleAsaWebhook(body(goodEvt), { "x-valid-sig": "yes" });
+    expect(d.approved).toBe(false);
+    expect(d.reason).toMatch(/secret/i);
+  });
+
+  it("declines an unparseable / malformed payload even with a valid signature", async () => {
+    const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100" }), { asaEnabled: true, asaWebhookSecret: "whsec_test" });
+    expect(p.handleAsaWebhook("not json", { "x-valid-sig": "yes" }).approved).toBe(false);
+    expect(p.handleAsaWebhook(body({ amount: 50 }), { "x-valid-sig": "yes" }).approved).toBe(false); // no card_token
+  });
+
+  it("enforces policy through the webhook path (over-cap declined)", async () => {
+    const { p } = await setup(definePolicy({ asset: "USDC", perTxCap: "100" }), { asaEnabled: true, asaWebhookSecret: "whsec_test" });
+    const d = p.handleAsaWebhook(body({ card_token: "card_1", amount: 250 }), { "x-valid-sig": "yes" });
+    expect(d.approved).toBe(false);
+    expect(d.reason).toMatch(/per-transaction cap/i);
   });
 });

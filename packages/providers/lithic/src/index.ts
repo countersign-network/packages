@@ -48,6 +48,8 @@ export interface LithicConfig {
    * Off by default; turn on once the ASA webhook is enrolled with Lithic (see docs/sdk-research/lithic.md).
    */
   asaEnabled?: boolean;
+  /** HMAC secret for verifying ASA webhook signatures (or LITHIC_ASA_SECRET / LITHIC_WEBHOOK_SECRET). */
+  asaWebhookSecret?: string;
 }
 
 interface LithicAgent {
@@ -72,6 +74,26 @@ export interface AsaAuthorization {
 export interface AsaDecision {
   approved: boolean;
   reason: string;
+}
+
+/** Map a Lithic ASA event payload to the fields the policy decides on. Throws if it lacks the essentials. */
+function parseAsaEvent(body: unknown): AsaAuthorization {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const card = b["card"] as Record<string, unknown> | undefined;
+  const cardToken = (b["card_token"] ?? card?.["token"] ?? b["cardToken"]) as unknown;
+  const amount = b["amount"];
+  if (typeof cardToken !== "string" || (typeof amount !== "number" && typeof amount !== "string")) {
+    throw new Error("asa: payload missing card_token / amount");
+  }
+  const m = b["merchant"] as Record<string, unknown> | undefined;
+  const merchant =
+    m && (typeof m["descriptor"] === "string" || typeof m["mcc"] === "string")
+      ? {
+          ...(typeof m["descriptor"] === "string" ? { descriptor: m["descriptor"] } : {}),
+          ...(typeof m["mcc"] === "string" ? { mcc: m["mcc"] } : {}),
+        }
+      : undefined;
+  return { cardToken, amount: String(amount), ...(merchant ? { merchant } : {}) };
 }
 
 export class LithicProvider implements EnforcementProvider {
@@ -208,6 +230,36 @@ export class LithicProvider implements EnforcementProvider {
     }
     this.emit({ type: "action_allowed", agentId, action, policyId, ts: Date.now() });
     return { approved: true, reason: "within policy" };
+  }
+
+  /**
+   * Verify an incoming Lithic ASA webhook and decide. The HTTP layer hands us the RAW body + headers;
+   * we verify the signature with Lithic's OWN timing-safe verifier (never a hand-rolled HMAC), then
+   * map the event and run decideAuthorization. FAIL-CLOSED: a missing secret, an invalid/absent
+   * signature, or an unparseable payload all DECLINE. This is the deployable half of ASA enforcement.
+   */
+  handleAsaWebhook(rawBody: string, headers: Record<string, string | string[] | undefined>): AsaDecision {
+    const secret =
+      this.config.asaWebhookSecret ?? process.env["LITHIC_ASA_SECRET"] ?? process.env["LITHIC_WEBHOOK_SECRET"];
+    if (!secret) {
+      this.emit({ type: "error", message: "asa: no webhook secret configured — declined (default deny)", ts: Date.now() });
+      return { approved: false, reason: "asa: no webhook secret configured (default deny)" };
+    }
+    try {
+      // Throws if the signature is missing or doesn't verify — that's our fail-closed boundary.
+      this.client().webhooks.verifySignature(rawBody, headers as Parameters<Lithic["webhooks"]["verifySignature"]>[1], secret);
+    } catch {
+      this.emit({ type: "error", message: "asa: webhook signature verification failed — declined", ts: Date.now() });
+      return { approved: false, reason: "asa: invalid webhook signature (default deny)" };
+    }
+    let auth: AsaAuthorization;
+    try {
+      auth = parseAsaEvent(JSON.parse(rawBody));
+    } catch {
+      this.emit({ type: "error", message: "asa: unparseable authorization payload — declined", ts: Date.now() });
+      return { approved: false, reason: "asa: unparseable authorization payload (default deny)" };
+    }
+    return this.decideAuthorization(auth);
   }
 
   /**
