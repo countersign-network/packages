@@ -23,6 +23,7 @@ import Lithic from "lithic";
 import {
   asProviderId,
   nextId,
+  type ActionRequest,
   type AgentId,
   type AgentRef,
   type EnforcementProvider,
@@ -40,12 +41,37 @@ export interface LithicConfig {
   apiKey?: string;
   /** "sandbox" (default, testnet-safe) or "production". */
   environment?: "sandbox" | "production";
+  /**
+   * Enable ASA (Authorization Stream Access): Countersign decides each authorization in real time via
+   * `decideAuthorization` (the webhook handler calls it). This is what makes `dailyCap` and
+   * `approvalThreshold` ENFORCED on the card — the static `spend_limit` can only express a per-tx cap.
+   * Off by default; turn on once the ASA webhook is enrolled with Lithic (see docs/sdk-research/lithic.md).
+   */
+  asaEnabled?: boolean;
 }
 
 interface LithicAgent {
   cardToken: string;
   lastFour: string;
   policyId?: string;
+  /** Retained for the ASA real-time decision (the static card limit can't express daily/approval). */
+  policy?: UnifiedPolicy;
+  /** Rolling daily total (minor units / cents), reserved on each ASA approval. */
+  dailySpent: string;
+}
+
+/** An incoming Lithic ASA authorization request (the fields Countersign's policy decides on). */
+export interface AsaAuthorization {
+  cardToken: string;
+  /** Requested amount in MINOR UNITS (cents) — same denomination as the card's caps. */
+  amount: string;
+  merchant?: { descriptor?: string; mcc?: string };
+}
+
+/** Countersign's real-time verdict for an ASA authorization. */
+export interface AsaDecision {
+  approved: boolean;
+  reason: string;
 }
 
 export class LithicProvider implements EnforcementProvider {
@@ -85,7 +111,7 @@ export class LithicProvider implements EnforcementProvider {
 
   async provisionWallet(agentId: AgentId, opts: { venue: Venue }): Promise<AgentRef> {
     const card = await this.client().cards.create({ type: "VIRTUAL", state: "OPEN", memo: `countersign-${String(agentId)}` });
-    this.agents.set(agentId, { cardToken: card.token, lastFour: card.last_four });
+    this.agents.set(agentId, { cardToken: card.token, lastFour: card.last_four, dailySpent: "0" });
     // The "wallet" handle is the masked card, never the PAN.
     return { provider: this.id, agentId, wallet: `card-****${card.last_four}`, venue: opts.venue };
   }
@@ -99,16 +125,18 @@ export class LithicProvider implements EnforcementProvider {
    */
   async applyPolicy(agentId: AgentId, policy: UnifiedPolicy): Promise<{ policyId: string }> {
     const a = this.require(agentId);
+    a.policy = policy; // retained for the ASA real-time decision
+    const asa = this.config.asaEnabled === true;
     const countersignTracked: string[] = [];
 
-    // The card's native spend_limit binds the per-tx cap (TRANSACTION duration). dailyCap stays
-    // Countersign-enforced — Lithic's update API expresses ANNUALLY/MONTHLY/FOREVER/TRANSACTION but not a
-    // rolling DAILY window, so we don't approximate it natively (never silently weaken/strengthen).
+    // The card's native spend_limit binds the per-tx cap (TRANSACTION duration). dailyCap can't be a
+    // rolling DAILY window in Lithic's update API — but with ASA on, Countersign enforces it (and the
+    // approval threshold) in real time per authorization, so they're no longer merely "tracked".
     const spendLimit = policy.perTxCap !== undefined ? Number(policy.perTxCap) : undefined;
-    if (policy.dailyCap !== undefined) countersignTracked.push("dailyCap (card native limit is per-transaction)");
+    if (policy.dailyCap !== undefined && !asa) countersignTracked.push("dailyCap (card native limit is per-transaction; enable ASA to enforce)");
+    if (policy.approvalThreshold !== undefined && !asa) countersignTracked.push("approvalThreshold (-> ASA auth-stream)");
     if (policy.allowlist?.length) countersignTracked.push("allowlist (-> Lithic Auth Rules / MCC)");
     if (policy.denylist?.length) countersignTracked.push("denylist (-> Lithic Auth Rules / MCC)");
-    if (policy.approvalThreshold !== undefined) countersignTracked.push("approvalThreshold (-> ASA auth-stream)");
 
     if (spendLimit !== undefined) {
       await this.client().cards.update(a.cardToken, { spend_limit: spendLimit, spend_limit_duration: "TRANSACTION" });
@@ -121,6 +149,65 @@ export class LithicProvider implements EnforcementProvider {
       this.emit({ type: "error", agentId, message: `countersign-tracked (not native): ${countersignTracked.join(", ")}`, ts: Date.now() });
     }
     return { policyId };
+  }
+
+  /**
+   * ASA (Authorization Stream Access) real-time decision. Lithic streams each pending authorization to
+   * our webhook, which calls this and returns approve/decline inside Visa's window. This is where
+   * dailyCap + approvalThreshold actually BIND on the card — the static spend_limit only carries a
+   * per-tx cap. FAIL-CLOSED: anything we can't positively allow is declined. Synchronous with no await,
+   * so the daily-tally reserve is atomic on the single-threaded loop (no check→reserve TOCTOU).
+   * Every decision is emitted (action_allowed / action_blocked) so the ledger audits the card too.
+   */
+  decideAuthorization(auth: AsaAuthorization): AsaDecision {
+    const found = [...this.agents].find(([, a]) => a.cardToken === auth.cardToken);
+    if (!found) {
+      this.emit({ type: "error", message: "asa: unknown card token — declined (default deny)", ts: Date.now() });
+      return { approved: false, reason: "unknown card token (default deny)" };
+    }
+    const [agentId, a] = found;
+    const action: ActionRequest = {
+      id: nextId("act"),
+      agentId,
+      kind: "transfer",
+      asset: a.policy?.asset ?? "USD",
+      amount: auth.amount,
+      ...(auth.merchant?.descriptor ? { counterparty: auth.merchant.descriptor } : {}),
+      venue: "visa" as Venue,
+      raw: auth,
+      ts: Date.now(),
+    };
+    const policyId = a.policyId ?? "none";
+    const decline = (reason: string): AsaDecision => {
+      this.emit({ type: "action_blocked", agentId, action, policyId, reason, ts: Date.now() });
+      return { approved: false, reason };
+    };
+
+    if (this.providerFrozen || this.frozen.has(agentId)) return decline("card frozen");
+    const policy = a.policy;
+    if (!policy) return decline("no policy applied (default deny)");
+
+    let amt: bigint;
+    try {
+      amt = BigInt(auth.amount);
+    } catch {
+      return decline("invalid authorization amount");
+    }
+    if (amt < 0n) return decline("invalid authorization amount");
+
+    if (policy.perTxCap !== undefined && amt > BigInt(policy.perTxCap)) return decline("per-transaction cap exceeded");
+    // A card auth can't be held for async human approval inside Visa's window, so above the approval
+    // threshold we DECLINE (fail-closed) rather than auto-approve a spend a human was meant to gate.
+    if (policy.approvalThreshold !== undefined && amt > BigInt(policy.approvalThreshold)) {
+      return decline("above approval threshold (no inline human approval on a card authorization)");
+    }
+    if (policy.dailyCap !== undefined) {
+      const next = BigInt(a.dailySpent) + amt;
+      if (next > BigInt(policy.dailyCap)) return decline("rolling daily cap exceeded");
+      a.dailySpent = next.toString(); // reserve on approve
+    }
+    this.emit({ type: "action_allowed", agentId, action, policyId, ts: Date.now() });
+    return { approved: true, reason: "within policy" };
   }
 
   /**
