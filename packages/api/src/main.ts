@@ -143,7 +143,8 @@ const trustProxy = process.env["TRUST_PROXY"] === "1" || process.env["RENDER"] =
 // get-key page. Disable with COUNTERSIGN_SIGNUP=off.
 const signupCap = Number(process.env["COUNTERSIGN_SIGNUP_CAP"] ?? 200); // bounds tenant/Core growth on the box
 const keyStore = databaseUrl ? await PostgresKeyStore.create(databaseUrl, signupCap) : new InMemoryKeyStore(signupCap);
-const tenants = new TenantRegistry(async () => (await createDemoCore()).core);
+const maxTenants = Number(process.env["COUNTERSIGN_MAX_TENANTS"] ?? 100); // LRU-cap live Cores (memory/DoS bound)
+const tenants = new TenantRegistry(async () => (await createDemoCore()).core, { maxLive: maxTenants });
 const resolveCore = (tenantId: string): CountersignCore | Promise<CountersignCore> =>
   tenantId === "default" ? core : tenants.coreFor(tenantId);
 const signupEnabled = process.env["COUNTERSIGN_SIGNUP"] !== "off";

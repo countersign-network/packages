@@ -68,6 +68,25 @@ describe("self-serve signup (instant-key onboarding)", () => {
   });
 });
 
+describe("TenantRegistry LRU cap (bounds self-serve memory/DoS)", () => {
+  it("evicts the least-recently-used Core beyond maxLive", async () => {
+    const reg = new TenantRegistry(async () => new CountersignCore(), { maxLive: 2 });
+    await reg.coreFor("a");
+    await reg.coreFor("b");
+    await reg.coreFor("c"); // over cap → evict oldest (a)
+    expect(reg.tenants().sort()).toEqual(["b", "c"]);
+  });
+
+  it("a cache hit refreshes recency so it survives the next eviction", async () => {
+    const reg = new TenantRegistry(async () => new CountersignCore(), { maxLive: 2 });
+    await reg.coreFor("a");
+    await reg.coreFor("b");
+    await reg.coreFor("a"); // touch a → now most-recent
+    await reg.coreFor("c"); // evict oldest, which is now b
+    expect(reg.tenants().sort()).toEqual(["a", "c"]);
+  });
+});
+
 describe("signup disabled", () => {
   it("POST /signup is 404 when not enabled", async () => {
     const s = createCountersignServer(new CountersignCore(), {
