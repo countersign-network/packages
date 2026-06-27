@@ -24,7 +24,7 @@
  *   - No decision / no backend response => the action does NOT execute. Default deny.
  */
 
-import type { UnifiedPolicy } from "@countersign/policy"; // shared declarative policy schema
+import type { UnifiedPolicy } from "./policy"; // shared declarative policy schema (lives in core)
 import type { ProviderId, AgentId, SessionId, Venue } from "./ids";
 
 /* ------------------------------------------------------------------ */

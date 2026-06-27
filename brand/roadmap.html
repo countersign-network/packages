@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Countersign — Ecosystem & Moat Roadmap</title>
+<meta name="description" content="The Countersign roadmap: five moats and a five-tier integration horizon — from the live crypto rails to settlement, agent identity, fiat cards, and enterprise custody." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--cs-bg); color:var(--cs-fg); font-family:var(--cs-font-sans); line-height:var(--cs-leading-body); -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
+  body::before { content:""; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:var(--cs-blueprint); background-size:var(--cs-grid-cell) var(--cs-grid-cell); -webkit-mask-image:radial-gradient(1200px 800px at 24% -6%, #000 26%, transparent 80%); mask-image:radial-gradient(1200px 800px at 24% -6%, #000 26%, transparent 80%); }
+  body::after { content:""; position:fixed; top:-22%; right:-16%; width:62vw; height:62vw; z-index:0; pointer-events:none; background:var(--cs-aurora); filter:blur(6px); }
+  .wrap { max-width:var(--cs-maxw); margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+  a { color:var(--cs-link); text-decoration:none; } a:hover { color:var(--cs-link-hover); }
+
+  header { position:sticky; top:0; z-index:30; backdrop-filter:blur(12px); background:rgba(7,8,11,.74); border-bottom:1px solid var(--cs-border); }
+  nav { display:flex; align-items:center; gap:18px; height:62px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:var(--cs-weight-bold); letter-spacing:-.3px; color:var(--cs-fg); font-size:var(--cs-text-base); }
+  .brand svg { width:26px; height:26px; }
+  .brand .tag { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1.4px; color:var(--cs-fg-muted); text-transform:uppercase; border-left:1px solid var(--cs-border-strong); padding-left:10px; }
+  nav .spacer { flex:1; }
+  nav a.navlink { color:var(--cs-fg-muted); font-family:var(--cs-font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:1.2px; }
+  nav a.navlink:hover { color:var(--cs-fg); }
+  @media (max-width:760px){ nav a.navlink{ display:none; } }
+
+  .hero { padding:70px 0 26px; }
+  .eyebrow { color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:600; font-size:11px; letter-spacing:var(--cs-tracking-mono); text-transform:uppercase; }
+  h1 { font-size:clamp(32px,5vw,56px); line-height:var(--cs-leading-tight); margin:14px 0 12px; letter-spacing:var(--cs-tracking-display); font-weight:var(--cs-weight-black); }
+  h1 .grad { background:linear-gradient(96deg,var(--cs-brand-strong),var(--cs-accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lede { font-size:clamp(15px,2vw,18px); color:var(--cs-fg-soft); max-width:700px; }
+  .breath { font-family:var(--cs-font-mono); font-size:13px; color:var(--cs-fg-muted); border-left:2px solid var(--cs-accent); padding:8px 0 8px 16px; margin:22px 0 0; max-width:760px; }
+  .breath b { color:var(--cs-fg); }
+
+  section { padding:54px 0; border-top:1px solid var(--cs-border); position:relative; }
+  section::before { content:"+"; position:absolute; top:-9px; left:-1px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:15px; }
+  .seyebrow { color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:600; font-size:11px; letter-spacing:var(--cs-tracking-mono); text-transform:uppercase; }
+  h2 { font-size:clamp(23px,3.3vw,32px); margin:12px 0 8px; letter-spacing:var(--cs-tracking-tight); font-weight:var(--cs-weight-black); }
+  .lead { color:var(--cs-fg-muted); max-width:740px; margin-bottom:26px; }
+
+  /* MOATS */
+  .moats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  @media (max-width:980px){ .moats{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .moats{ grid-template-columns:1fr; } }
+  .moat { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-lg); padding:18px; position:relative; overflow:hidden; }
+  .moat .idx { font-family:var(--cs-font-mono); font-size:11px; color:var(--cs-accent); }
+  .moat h3 { font-size:15px; margin:8px 0 6px; letter-spacing:-.3px; }
+  .moat p { font-size:12.5px; color:var(--cs-fg-muted); margin:0 0 12px; }
+  .moat .when { font-family:var(--cs-font-mono); font-size:10px; letter-spacing:.6px; color:var(--cs-fg-faint); text-transform:uppercase; }
+  .meter { height:5px; border-radius:3px; background:#121826; margin-top:10px; overflow:hidden; }
+  .meter i { display:block; height:100%; background:linear-gradient(90deg,var(--cs-brand),var(--cs-accent)); border-radius:3px; }
+
+  /* TIERS */
+  .timeline { position:relative; margin-top:6px; padding-left:34px; }
+  .timeline::before { content:""; position:absolute; left:11px; top:6px; bottom:6px; width:2px; background:linear-gradient(180deg,var(--cs-accent),var(--cs-brand) 55%,var(--cs-amber-600) 85%,var(--cs-red-500)); opacity:.6; }
+  .tier { position:relative; margin:0 0 16px; }
+  .tier .knot { position:absolute; left:-29px; top:20px; width:16px; height:16px; border-radius:50%; background:var(--cs-bg); border:2px solid var(--cs-accent); box-shadow:0 0 12px -2px var(--cs-glow-accent); }
+  .tier .knot.next { border-color:var(--cs-brand); box-shadow:0 0 12px -2px var(--cs-glow-brand); }
+  .tier .knot.later { border-color:var(--cs-amber-400); box-shadow:none; }
+  .tier .knot.end { border-color:var(--cs-red-400); box-shadow:none; }
+  .band { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-xl); padding:20px 22px; position:relative; transition:border-color var(--cs-dur),transform var(--cs-dur); }
+  .band:hover { border-color:var(--cs-border-strong); transform:translateX(2px); }
+  .band::after { content:"+"; position:absolute; top:10px; right:14px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:13px; }
+  .thead { display:flex; align-items:baseline; flex-wrap:wrap; gap:10px 14px; margin-bottom:4px; }
+  .tno { font-family:var(--cs-font-mono); font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--cs-accent); }
+  .tno.next { color:var(--cs-brand-strong); } .tno.later { color:var(--cs-amber-400); } .tno.end { color:var(--cs-red-300); }
+  .ttitle { font-size:18px; font-weight:var(--cs-weight-bold); letter-spacing:-.3px; }
+  .tstatus { font-family:var(--cs-font-mono); font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; border-radius:5px; margin-left:auto; }
+  .tstatus.live { color:var(--cs-green-400); background:rgba(92,242,169,.08); border:1px solid rgba(92,242,169,.3); }
+  .tstatus.next { color:var(--cs-blue-300); background:rgba(124,156,255,.08); border:1px solid rgba(124,156,255,.3); }
+  .tstatus.later { color:var(--cs-amber-400); background:rgba(255,207,107,.07); border:1px solid rgba(255,207,107,.28); }
+  .tstatus.end { color:var(--cs-red-300); background:rgba(255,95,107,.08); border:1px solid rgba(255,95,107,.3); }
+  .tsub { color:var(--cs-fg-muted); font-size:13.5px; margin:2px 0 14px; max-width:760px; }
+  .chips { display:flex; flex-wrap:wrap; gap:9px; }
+  .chip { display:inline-flex; align-items:center; gap:8px; background:var(--cs-code-bg); border:1px solid var(--cs-border); border-radius:var(--cs-radius-pill); padding:7px 13px; font-size:12.5px; color:var(--cs-fg-soft); }
+  .chip .dot { width:7px; height:7px; border-radius:50%; background:var(--cs-fg-faint); }
+  .chip.on .dot { background:var(--cs-accent); box-shadow:0 0 8px var(--cs-glow-accent); }
+  .chip .eff { font-family:var(--cs-font-mono); font-size:9.5px; color:var(--cs-fg-faint); border:1px solid var(--cs-border-strong); border-radius:4px; padding:0 5px; letter-spacing:.5px; }
+  .extract { font-family:var(--cs-font-mono); font-size:11.5px; color:var(--cs-fg-faint); margin-top:12px; }
+  .extract b { color:var(--cs-fg-muted); }
+
+  .panel { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-lg); padding:20px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; } @media (max-width:860px){ .grid3{ grid-template-columns:1fr; } }
+  .panel h3 { margin:0 0 8px; font-size:15px; } .panel p { margin:0; color:var(--cs-fg-muted); font-size:14px; }
+  .panel .num { font-family:var(--cs-font-mono); color:var(--cs-accent); font-size:12px; }
+
+  footer { border-top:1px solid var(--cs-border); padding:34px 0 60px; color:var(--cs-fg-muted); font-size:13.5px; }
+  .frow { display:flex; flex-wrap:wrap; gap:20px; align-items:center; } .frow .spacer{ flex:1; }
+  .frow a { font-family:var(--cs-font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--cs-fg-muted); }
+  .mono-note { font-family:var(--cs-font-mono); font-size:12px; color:var(--cs-fg-faint); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="index.html">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Countersign <span class="tag">Roadmap</span>
+      </a>
+      <span class="spacer"></span>
+      <a class="navlink" href="#moat">Moat</a>
+      <a class="navlink" href="#tiers">Tiers</a>
+      <a class="navlink" href="design-system.html">Design system</a>
+      <a class="navlink" href="whitepaper.html">White paper</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="border-top:0">
+    <div class="eyebrow">Ecosystem · Moat · Sequencing</div>
+    <h1>The rails are the substrate. <span class="grad">The neutral layer is the moat.</span></h1>
+    <p class="lede">Breadth of rails is table stakes — it's what makes a defensible layer possible. Countersign sequences integrations crypto-first (permissionless, zero regulatory drag) and lets the moat compound: neutrality on day one, then the data only a cross-rail seat can see.</p>
+    <p class="breath"><b>In one breath:</b> prove the cross-rail freeze on the crypto backends (Tier 0) → make x402 / USDC first-class (Tier 1) → become where mandates and agent identity live (Tier 2) → extend onto cards for the mass market (Tier 3) → own the custody layer (Tier 4).</p>
+  </section>
+
+  <!-- MOAT -->
+  <section id="moat">
+    <div class="seyebrow">Part A · The moat</div>
+    <h2>Five moats, ranked by when they become real.</h2>
+    <p class="lead">Every rail is issuer-side and governs only its own ecosystem — and they compete, so none can build the cross-rail layer. Countersign holds the seat the giants are structurally barred from, and each unit of volume deepens it.</p>
+    <div class="moats">
+      <div class="moat">
+        <div class="idx">01 · positional</div>
+        <h3>Neutrality</h3>
+        <p>The keystone. Rivalrous issuers can't build the layer that sits above all of them. The Plaid position.</p>
+        <div class="when">Real: day one</div>
+        <div class="meter"><i style="width:100%"></i></div>
+      </div>
+      <div class="moat">
+        <div class="idx">02 · data effect</div>
+        <h3>Cross-rail anomaly brain</h3>
+        <p>Countersign sees an agent's <i>entire</i> spend across all rails. A single-rail player physically can't.</p>
+        <div class="when">Real: compounds with usage</div>
+        <div class="meter"><i style="width:78%"></i></div>
+      </div>
+      <div class="moat">
+        <div class="idx">03 · lock-in</div>
+        <h3>Switching cost</h3>
+        <p>Once policy + ledger + identity run a fleet, leaving means re-architecting money flow.</p>
+        <div class="when">Real: as system-of-record</div>
+        <div class="meter"><i style="width:60%"></i></div>
+      </div>
+      <div class="moat">
+        <div class="idx">04 · structural</div>
+        <h3>Regulatory barrier</h3>
+        <p>Co-signing/issuing enters AML/KYC territory. The wall that slows you keeps competitors out.</p>
+        <div class="when">Real: earned with custody</div>
+        <div class="meter"><i style="width:42%"></i></div>
+      </div>
+      <div class="moat">
+        <div class="idx">05 · registry effect</div>
+        <h3>Agent identity & reputation</h3>
+        <p>The registry where an agent's mandate, audit trail, and reputation live across rails — the "agent passport." The biggest end-state moat.</p>
+        <div class="when">Real: the long game</div>
+        <div class="meter"><i style="width:30%"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIERS -->
+  <section id="tiers">
+    <div class="seyebrow">Part B · Integration horizon</div>
+    <h2>From the live rails to owned custody.</h2>
+    <p class="lead">Effort tags: <b style="color:var(--cs-fg-soft)">S</b> ≈ days · <b style="color:var(--cs-fg-soft)">M</b> ≈ 1–2 weeks · <b style="color:var(--cs-fg-soft)">L</b> ≈ 3–6 weeks · <b style="color:var(--cs-fg-soft)">XL</b> ≈ multi-month / regulatory. Filled dots are shipped on testnet today.</p>
+
+    <div class="timeline">
+      <!-- Tier 0 -->
+      <div class="tier">
+        <span class="knot"></span>
+        <div class="band">
+          <div class="thead"><span class="tno">Tier 0</span><span class="ttitle">The 90-day proof — crypto enforcement + the front door</span><span class="tstatus live">Live · testnet</span></div>
+          <p class="tsub">Three heterogeneous enforcement models, one non-crypto card rail, and the SDK/MCP surface agents wire in. The falsifiable claim — four-rail freeze in ~432ms — lives here.</p>
+          <div class="chips">
+            <span class="chip on"><span class="dot"></span>Coinbase Agentic Wallets <span class="eff">M</span></span>
+            <span class="chip on"><span class="dot"></span>Turnkey <span class="eff">M</span></span>
+            <span class="chip on"><span class="dot"></span>Openfort <span class="eff">M</span></span>
+            <span class="chip on"><span class="dot"></span>Lithic — Visa card <span class="eff">M</span></span>
+            <span class="chip on"><span class="dot"></span>Countersign SDK + MCP <span class="eff">M</span></span>
+          </div>
+          <p class="extract"><b>Extracts:</b> per-agent caps + freeze across MPC, in-enclave, on-chain, and card rails — proof the thesis is rail-agnostic.</p>
+        </div>
+      </div>
+
+      <!-- Tier 1 -->
+      <div class="tier">
+        <span class="knot next"></span>
+        <div class="band">
+          <div class="thead"><span class="tno next">Tier 1</span><span class="ttitle">Settlement & protocol rails to observe + cap</span><span class="tstatus next">Next</span></div>
+          <p class="tsub">Make the dominant machine-payment standard and the asset everything settles in first-class — per-call metering and rate-limits across every provider.</p>
+          <div class="chips">
+            <span class="chip on"><span class="dot"></span>x402 — HTTP-402 standard <span class="eff">M</span></span>
+            <span class="chip"><span class="dot"></span>Circle / USDC <span class="eff">S</span></span>
+            <span class="chip"><span class="dot"></span>Privy <span class="eff">M</span></span>
+          </div>
+          <p class="extract"><b>Extracts:</b> govern the settlement substrate itself — the money-movement layer to monitor and rate-limit. <i>(x402 governance already shipped.)</i></p>
+        </div>
+      </div>
+
+      <!-- Tier 2 -->
+      <div class="tier">
+        <span class="knot next"></span>
+        <div class="band">
+          <div class="thead"><span class="tno next">Tier 2</span><span class="ttitle">Identity, mandate & governance — the moat layer</span><span class="tstatus next">The moat</span></div>
+          <p class="tsub">Become where mandates are issued, scoped and audited, and where an agent's identity and reputation live. This is where neutrality turns into the agent passport.</p>
+          <div class="chips">
+            <span class="chip"><span class="dot"></span>Google AP2 — mandate standard <span class="eff">L</span></span>
+            <span class="chip"><span class="dot"></span>Skyfire — Know-Your-Agent <span class="eff">M</span></span>
+            <span class="chip"><span class="dot"></span>Nevermined — A2A settlement <span class="eff">M</span></span>
+          </div>
+          <p class="extract"><b>Extracts:</b> the consent/mandate layer + agent reputation network effect (feeds moats 02 & 05).</p>
+        </div>
+      </div>
+
+      <!-- Tier 3 -->
+      <div class="tier">
+        <span class="knot later"></span>
+        <div class="band">
+          <div class="thead"><span class="tno later">Tier 3</span><span class="ttitle">Fiat & cards — mass market, regulatory</span><span class="tstatus later">Later · after proof</span></div>
+          <p class="tsub">The biggest on-ramp to normal merchants — but a regulatory slog (issuing, AML/KYC, network approvals). The expansion, never the wedge.</p>
+          <div class="chips">
+            <span class="chip"><span class="dot"></span>Stripe Agentic Commerce <span class="eff">L</span></span>
+            <span class="chip"><span class="dot"></span>Visa Intelligent Commerce <span class="eff">XL</span></span>
+            <span class="chip"><span class="dot"></span>Mastercard Agent Pay <span class="eff">XL</span></span>
+            <span class="chip"><span class="dot"></span>Crossmint <span class="eff">L</span></span>
+            <span class="chip"><span class="dot"></span>Ramp / Brex agent cards <span class="eff">L</span></span>
+            <span class="chip"><span class="dot"></span>AWS Bedrock AgentCore <span class="eff">L</span></span>
+          </div>
+          <p class="extract"><b>Extracts:</b> network-level agent authorization + expensable B2B agent spend — reach into the mass market.</p>
+        </div>
+      </div>
+
+      <!-- Tier 4 -->
+      <div class="tier">
+        <span class="knot end"></span>
+        <div class="band">
+          <div class="thead"><span class="tno end">Tier 4</span><span class="ttitle">Enterprise custody — the owned-share endgame</span><span class="tstatus end">Endgame</span></div>
+          <p class="tsub">Own an MPC share: vendor independence, the deepest switching cost, and the route to the insured-freeze / system-of-record business. Activates moats 03 & 04.</p>
+          <div class="chips">
+            <span class="chip"><span class="dot"></span>Fireblocks / Dfns / Sodot <span class="eff">XL</span></span>
+          </div>
+          <p class="extract"><b>Extracts:</b> custody / MPC infrastructure — flips Countersign from aggregator to system-of-record.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TELL -->
+  <section>
+    <div class="seyebrow">The strategic tell</div>
+    <h2>Where you win vs. where the revenue lives.</h2>
+    <div class="grid3">
+      <div class="panel"><span class="num">Tiers 0–2</span><h3>Build defensibility</h3><p>Neutrality, the data brain, and identity. Crypto-native, permissionless, zero regulatory drag. The 90-day proof and year-one product live here.</p></div>
+      <div class="panel"><span class="num">Tier 3</span><h3>Mass-market revenue</h3><p>Where the big numbers are — but a regulatory slog. Sequence it <i>after</i> the proof. It's the expansion, not the wedge.</p></div>
+      <div class="panel"><span class="num">Tier 4</span><h3>The endgame</h3><p>Owning custody turns the regulatory wall into your moat and makes you the system-of-record for agent money.</p></div>
+    </div>
+    <p class="mono-note" style="margin-top:18px">Reminder: for every integration, don't rebuild the vendor's crypto — wrap it behind the EnforcementProvider interface and extract only the named capability. The moat is the aggregation, never the re-implementation.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+    <span class="spacer"></span>
+    <a href="design-system.html">Design system</a>
+    <a href="system-map.html">System map</a>
+    <a href="whitepaper.html">White paper</a>
+  </div>
+  <div class="wrap"><p class="mono-note" style="margin-top:18px">Sequencing is directional, not a delivery commitment. Testnet only; mainnet follows a third-party audit. © 2026 Countersign.</p></div>
+</footer>
+</body>
+</html>

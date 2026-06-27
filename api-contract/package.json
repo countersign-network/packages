@@ -52,7 +52,6 @@
   },
   "devDependencies": {
     "@countersign/core": "workspace:*",
-    "@countersign/policy": "workspace:*",
     "tsup": "^8.5.1"
   }
 }

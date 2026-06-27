@@ -1,0 +1,189 @@
+/* ============================================================================
+   Countersign — Design Tokens
+   The single source of truth for color, type, space, motion across every
+   Countersign surface (developer + marketing). Import this file, then build
+   only with var(--cs-*). Never hard-code a hex value in a product surface.
+
+   Identity: dark "blueprint" — a security-infrastructure control plane.
+   Canvas is near-black; signal-green is the live/safe state; brand-blue is
+   structure; amber is caution; red is the freeze. SF Mono carries the
+   machine voice; Inter carries the human voice.
+
+   Usage:  <link rel="stylesheet" href="tokens.css">
+   ============================================================================ */
+
+:root {
+  /* --- Primitive palette --------------------------------------------------
+     Raw values. Prefer the semantic tokens below; reach for primitives only
+     when authoring a new component the semantic layer doesn't cover yet. */
+
+  /* Ink (near-black canvas, ascending) */
+  --cs-ink-900: #050609;   /* code wells, deepest */
+  --cs-ink-850: #07080b;   /* page canvas */
+  --cs-ink-800: #0a0c11;   /* raised canvas */
+  --cs-ink-750: #0b0e15;   /* panel */
+  --cs-ink-700: #0d1119;   /* panel, raised */
+  --cs-ink-650: #11151f;   /* hover panel */
+
+  /* Lines / hairlines */
+  --cs-line-1: #1a2030;    /* default hairline */
+  --cs-line-2: #262f42;    /* emphasized hairline / border on hover */
+  --cs-line-3: #38435c;    /* strong divider */
+
+  /* Text */
+  --cs-text-1: #e9edf6;    /* primary */
+  --cs-text-2: #aeb7c9;    /* secondary */
+  --cs-text-3: #868fa3;    /* muted */
+  --cs-text-4: #5b6478;    /* faint / captions */
+
+  /* Brand blue — structure, links, the protocol/registry layer */
+  --cs-blue-300: #aec2ff;
+  --cs-blue-400: #7c9cff;  /* brand blue */
+  --cs-blue-500: #5b7df0;
+  --cs-blue-600: #3f5bc9;
+
+  /* Signal green — live, allowed, safe, the freeze-confirmed state */
+  --cs-green-300: #8ff7c4;
+  --cs-green-400: #5cf2a9;  /* signal green — the accent */
+  --cs-green-500: #36d98a;
+  --cs-green-600: #1f9c62;
+  --cs-green-ink: #04130c;  /* text on a green fill */
+
+  /* Amber — caution, needs-approval, "soon" */
+  --cs-amber-300: #ffe2a3;
+  --cs-amber-400: #ffcf6b;
+  --cs-amber-600: #b7873a;
+
+  /* Red — denied, freeze, danger (used sparingly, with weight) */
+  --cs-red-300: #ff9d9d;
+  --cs-red-400: #ff5f6b;
+  --cs-red-500: #e23b48;
+  --cs-red-ink: #1a0507;
+
+  /* Per-rail accents (ecosystem charts only — never for UI state) */
+  --cs-rail-coinbase: #4c83ff;
+  --cs-rail-turnkey:  #8a7cff;
+  --cs-rail-openfort: #5cf2a9;
+  --cs-rail-lithic:   #ffcf6b;
+
+  /* --- Semantic tokens ----------------------------------------------------
+     Build product surfaces with these. They map intent -> primitive so a
+     palette change happens in one place. */
+
+  /* Surfaces */
+  --cs-bg:            var(--cs-ink-850);
+  --cs-bg-raised:     var(--cs-ink-800);
+  --cs-surface:       var(--cs-ink-750);
+  --cs-surface-2:     var(--cs-ink-700);
+  --cs-surface-hover: var(--cs-ink-650);
+  --cs-code-bg:       var(--cs-ink-900);
+
+  /* Borders */
+  --cs-border:        var(--cs-line-1);
+  --cs-border-strong: var(--cs-line-2);
+  --cs-border-loud:   var(--cs-line-3);
+
+  /* Text */
+  --cs-fg:        var(--cs-text-1);
+  --cs-fg-soft:   var(--cs-text-2);
+  --cs-fg-muted:  var(--cs-text-3);
+  --cs-fg-faint:  var(--cs-text-4);
+
+  /* Brand + state */
+  --cs-brand:        var(--cs-blue-400);
+  --cs-brand-strong: var(--cs-blue-300);
+  --cs-accent:       var(--cs-green-400);   /* the signal */
+  --cs-accent-hi:    var(--cs-green-300);
+  --cs-accent-deep:  var(--cs-green-500);
+  --cs-accent-ink:   var(--cs-green-ink);
+
+  --cs-state-allow:   var(--cs-green-400);
+  --cs-state-caution: var(--cs-amber-400);
+  --cs-state-deny:    var(--cs-red-400);
+  --cs-state-freeze:  var(--cs-red-400);
+
+  /* Glows (the only "lighting" the system uses) */
+  --cs-glow-accent: rgba(92, 242, 169, .55);
+  --cs-glow-brand:  rgba(124, 156, 255, .45);
+  --cs-glow-freeze: rgba(255, 95, 107, .50);
+
+  /* Links */
+  --cs-link:       var(--cs-accent);
+  --cs-link-hover: var(--cs-accent-hi);
+
+  /* --- Type ---------------------------------------------------------------
+     Two families. Inter speaks to humans (prose, headings). SF Mono speaks
+     for the machine (labels, code, metrics, eyebrows). */
+  --cs-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --cs-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, monospace;
+
+  /* Modular scale (1.25 major-third-ish, tuned) */
+  --cs-text-xs:   12px;
+  --cs-text-sm:   13.5px;
+  --cs-text-base: 16px;
+  --cs-text-md:   18px;
+  --cs-text-lg:   22px;
+  --cs-text-xl:   28px;
+  --cs-text-2xl:  36px;
+  --cs-text-3xl:  clamp(38px, 6vw, 68px);  /* display / hero */
+
+  --cs-leading-tight: 1.04;
+  --cs-leading-snug:  1.3;
+  --cs-leading-body:  1.6;
+
+  --cs-tracking-display: -2px;   /* big headings */
+  --cs-tracking-tight:   -0.5px;
+  --cs-tracking-mono:    1.6px;  /* uppercase mono eyebrows */
+
+  --cs-weight-regular: 400;
+  --cs-weight-medium:  500;
+  --cs-weight-semi:    600;
+  --cs-weight-bold:    700;
+  --cs-weight-black:   800;
+
+  /* --- Space (4px base grid) --------------------------------------------- */
+  --cs-space-1: 4px;
+  --cs-space-2: 8px;
+  --cs-space-3: 12px;
+  --cs-space-4: 16px;
+  --cs-space-5: 24px;
+  --cs-space-6: 32px;
+  --cs-space-7: 48px;
+  --cs-space-8: 64px;
+  --cs-space-9: 96px;
+
+  /* --- Radius ------------------------------------------------------------ */
+  --cs-radius-sm: 6px;
+  --cs-radius-md: 8px;
+  --cs-radius-lg: 10px;
+  --cs-radius-xl: 14px;
+  --cs-radius-pill: 999px;
+
+  /* --- Elevation --------------------------------------------------------- */
+  --cs-shadow-card: 0 14px 40px -24px rgba(0, 0, 0, .9);
+  --cs-shadow-pop:  0 24px 60px -28px rgba(0, 0, 0, .95);
+  --cs-ring-accent: 0 0 0 1px var(--cs-accent), 0 0 26px -8px var(--cs-glow-accent);
+
+  /* --- Motion ------------------------------------------------------------ */
+  --cs-ease: cubic-bezier(.22, .61, .36, 1);
+  --cs-dur-fast: .15s;
+  --cs-dur:      .2s;
+  --cs-dur-slow: .4s;
+
+  /* --- Layout ------------------------------------------------------------ */
+  --cs-maxw: 1080px;
+  --cs-maxw-prose: 720px;
+  --cs-grid-cell: 46px;   /* the blueprint lattice pitch */
+
+  /* --- Signature backdrops ----------------------------------------------
+     The two motifs that make a surface unmistakably Countersign. */
+  --cs-blueprint:
+    linear-gradient(rgba(124, 156, 255, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 156, 255, .05) 1px, transparent 1px);
+  --cs-aurora: radial-gradient(closest-side, rgba(92, 242, 169, .10), transparent 70%);
+}
+
+/* Honor reduced-motion globally for anything that opts in via this var. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --cs-dur-fast: .001s; --cs-dur: .001s; --cs-dur-slow: .001s; }
+}

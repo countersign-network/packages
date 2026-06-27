@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Countersign — System Map</title>
+<meta name="description" content="How Countersign governs agent money: clients call the Core; the Core compiles one policy to each rail and freezes them all at once, fail-closed, into a tamper-evident ledger." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cs-bg); color:var(--cs-fg); font-family:var(--cs-font-sans); line-height:var(--cs-leading-body); -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
+  body::before { content:""; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:var(--cs-blueprint); background-size:var(--cs-grid-cell) var(--cs-grid-cell); -webkit-mask-image:radial-gradient(1200px 900px at 50% -6%, #000 30%, transparent 82%); mask-image:radial-gradient(1200px 900px at 50% -6%, #000 30%, transparent 82%); }
+  body::after { content:""; position:fixed; top:-24%; left:50%; transform:translateX(-50%); width:80vw; height:60vw; z-index:0; pointer-events:none; background:var(--cs-aurora); filter:blur(8px); }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+  a { color:var(--cs-link); text-decoration:none; } a:hover { color:var(--cs-link-hover); }
+
+  header { position:sticky; top:0; z-index:30; backdrop-filter:blur(12px); background:rgba(7,8,11,.74); border-bottom:1px solid var(--cs-border); }
+  nav { display:flex; align-items:center; gap:18px; height:62px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:var(--cs-weight-bold); letter-spacing:-.3px; color:var(--cs-fg); font-size:var(--cs-text-base); }
+  .brand svg { width:26px; height:26px; }
+  .brand .tag { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1.4px; color:var(--cs-fg-muted); text-transform:uppercase; border-left:1px solid var(--cs-border-strong); padding-left:10px; }
+  nav .spacer { flex:1; }
+  nav a.navlink { color:var(--cs-fg-muted); font-family:var(--cs-font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:1.2px; }
+  nav a.navlink:hover { color:var(--cs-fg); }
+  @media (max-width:760px){ nav a.navlink{ display:none; } }
+
+  .hero { padding:64px 0 22px; }
+  .eyebrow { color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:600; font-size:11px; letter-spacing:var(--cs-tracking-mono); text-transform:uppercase; }
+  h1 { font-size:clamp(30px,4.6vw,50px); line-height:var(--cs-leading-tight); margin:14px 0 12px; letter-spacing:var(--cs-tracking-display); font-weight:var(--cs-weight-black); }
+  h1 .grad { background:linear-gradient(96deg,var(--cs-brand-strong),var(--cs-accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lede { font-size:clamp(15px,2vw,18px); color:var(--cs-fg-soft); max-width:680px; }
+
+  /* control bar */
+  .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:22px 0 8px; }
+  .btn { display:inline-flex; align-items:center; gap:9px; padding:11px 17px; border-radius:var(--cs-radius-sm); font-weight:600; font-size:13px; border:1px solid var(--cs-border-strong); color:var(--cs-fg); background:transparent; cursor:pointer; font-family:var(--cs-font-mono); letter-spacing:.4px; transition:all var(--cs-dur); }
+  .btn:hover { border-color:var(--cs-accent); color:var(--cs-accent); box-shadow:var(--cs-ring-accent); }
+  .btn.green { border-color:var(--cs-accent); color:var(--cs-accent); }
+  .btn.amber:hover { border-color:var(--cs-amber-400); color:var(--cs-amber-400); box-shadow:0 0 0 1px var(--cs-amber-400),0 0 26px -8px rgba(255,207,107,.5); }
+  .btn.freeze { background:var(--cs-state-freeze); border-color:var(--cs-state-freeze); color:#fff; box-shadow:0 0 30px -10px var(--cs-glow-freeze); }
+  .btn.freeze:hover { background:#ff7079; color:#fff; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+  .clock { font-family:var(--cs-font-mono); font-size:13px; color:var(--cs-fg-muted); margin-left:4px; }
+  .clock b { color:var(--cs-fg); }
+
+  /* diagram + ledger layout */
+  .stage { display:grid; grid-template-columns:1.55fr .95fr; gap:16px; align-items:stretch; margin-top:8px; }
+  @media (max-width:980px){ .stage{ grid-template-columns:1fr; } }
+  .frame { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-xl); padding:8px; position:relative; overflow:hidden; }
+  .frame::after { content:"+"; position:absolute; top:10px; right:14px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:14px; }
+  svg.map { display:block; width:100%; height:auto; }
+
+  /* ledger terminal */
+  .ledger { background:var(--cs-code-bg); border:1px solid var(--cs-border); border-radius:var(--cs-radius-xl); padding:0; display:flex; flex-direction:column; min-height:340px; }
+  .ledger .bar { display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid var(--cs-border); }
+  .ledger .bar .d { width:9px; height:9px; border-radius:50%; background:#2a3344; }
+  .ledger .bar .t { font-family:var(--cs-font-mono); font-size:11px; color:var(--cs-fg-muted); letter-spacing:1px; text-transform:uppercase; margin-left:6px; }
+  .ledger .bar .v { margin-left:auto; font-family:var(--cs-font-mono); font-size:10.5px; color:var(--cs-fg-faint); }
+  .log { font-family:var(--cs-font-mono); font-size:12px; line-height:1.7; padding:12px 14px; overflow:auto; flex:1; color:var(--cs-fg-soft); }
+  .log .ln { display:flex; gap:8px; opacity:0; transform:translateY(4px); animation:rise .28s var(--cs-ease) forwards; }
+  @keyframes rise { to { opacity:1; transform:none; } }
+  .log .ts { color:var(--cs-fg-faint); flex:0 0 auto; }
+  .log .ev.allow { color:var(--cs-accent); } .log .ev.deny { color:var(--cs-red-300); } .log .ev.freeze { color:var(--cs-amber-300); } .log .ev.hash { color:var(--cs-blue-300); } .log .ev.ok { color:var(--cs-accent); }
+  .log .seal { color:var(--cs-fg-faint); }
+
+  .legend { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:14px; font-family:var(--cs-font-mono); font-size:11.5px; color:var(--cs-fg-muted); }
+  .legend span { display:inline-flex; align-items:center; gap:7px; }
+  .legend i { width:18px; height:0; border-top:2px solid var(--cs-border-loud); display:inline-block; }
+  .legend i.flow { border-top-style:solid; border-color:var(--cs-brand); }
+  .legend i.kill { border-color:var(--cs-state-freeze); }
+  .legend i.boundary { border-top-style:dashed; border-color:var(--cs-accent); }
+
+  section { padding:48px 0; border-top:1px solid var(--cs-border); position:relative; }
+  section::before { content:"+"; position:absolute; top:-9px; left:-1px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:15px; }
+  .seyebrow { color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:600; font-size:11px; letter-spacing:var(--cs-tracking-mono); text-transform:uppercase; }
+  h2 { font-size:clamp(22px,3.2vw,30px); margin:12px 0 8px; letter-spacing:var(--cs-tracking-tight); font-weight:var(--cs-weight-black); }
+  .lead { color:var(--cs-fg-muted); max-width:720px; margin-bottom:24px; }
+  .grid { display:grid; gap:16px; } .g2{ grid-template-columns:1fr 1fr; } .g3{ grid-template-columns:repeat(3,1fr); }
+  @media (max-width:860px){ .g2,.g3{ grid-template-columns:1fr; } }
+  .panel { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-lg); padding:20px; position:relative; }
+  .panel .num { font-family:var(--cs-font-mono); color:var(--cs-accent); font-size:12px; }
+  .panel h3 { margin:8px 0 8px; font-size:16px; letter-spacing:-.3px; }
+  .panel p { color:var(--cs-fg-muted); font-size:14px; margin:0; }
+  .step { font-family:var(--cs-font-mono); font-size:12.5px; color:var(--cs-fg-soft); }
+  .step b { color:var(--cs-accent); }
+
+  footer { border-top:1px solid var(--cs-border); padding:34px 0 60px; color:var(--cs-fg-muted); font-size:13.5px; }
+  .frow { display:flex; flex-wrap:wrap; gap:20px; align-items:center; } .frow .spacer{ flex:1; }
+  .frow a { font-family:var(--cs-font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--cs-fg-muted); }
+  .mono-note { font-family:var(--cs-font-mono); font-size:12px; color:var(--cs-fg-faint); }
+
+  /* SVG node states (toggled by JS) */
+  .node-box { transition:all .25s var(--cs-ease); }
+  .rail.frozen .node-box { stroke:var(--cs-state-freeze); fill:rgba(255,95,107,.07); }
+  .rail.frozen .lock { opacity:1; }
+  .rail.allow .node-box { stroke:var(--cs-accent); fill:rgba(92,242,169,.08); }
+  .rail.deny .node-box { stroke:var(--cs-red-400); fill:rgba(255,95,107,.07); }
+  .lock { opacity:0; transition:opacity .25s; }
+  .pulse-dot { opacity:0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="index.html">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Countersign <span class="tag">System Map</span>
+      </a>
+      <span class="spacer"></span>
+      <a class="navlink" href="design-system.html">Design system</a>
+      <a class="navlink" href="roadmap.html">Roadmap</a>
+      <a class="navlink" href="whitepaper.html">White paper</a>
+      <a class="navlink" href="https://github.com/countersign-network/countersign">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="border-top:0">
+    <div class="eyebrow">Live architecture · interactive</div>
+    <h1>One policy in. <span class="grad">One freeze out.</span></h1>
+    <p class="lede">Clients hold no keys — they call the Core. The Core compiles a single policy down to each backend's native controls, guards every spend, and on one signal freezes every rail at once. Drive it yourself below.</p>
+
+    <div class="controls">
+      <button class="btn green" id="btn-allow">▷ Evaluate an in-policy spend</button>
+      <button class="btn amber" id="btn-deny">▷ Evaluate an over-cap spend</button>
+      <button class="btn freeze" id="btn-freeze">■ Freeze all rails</button>
+      <button class="btn" id="btn-reset">↺ Reset</button>
+      <span class="clock" id="clock">elapsed <b id="ms">0</b> ms</span>
+    </div>
+
+    <div class="stage">
+      <div class="frame">
+        <svg class="map" viewBox="0 0 760 600" role="img" aria-label="Countersign system map">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3a4566"/></marker>
+            <marker id="arrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7c9cff"/></marker>
+            <linearGradient id="coreg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e1422"/><stop offset="1" stop-color="#0a0d15"/></linearGradient>
+            <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+          </defs>
+
+          <!-- ===== CLIENTS ROW ===== -->
+          <g font-family="var(--cs-font-mono)" font-size="11">
+            <text x="30" y="34" fill="#5b6478" font-size="10.5" letter-spacing="1.6">CLIENTS · HOLD NO KEYS</text>
+            <!-- MCP -->
+            <g>
+              <rect x="40" y="44" width="200" height="52" rx="9" fill="#0b0e15" stroke="#262f42"/>
+              <text x="56" y="70" fill="#e9edf6" font-size="13" font-weight="700">@countersign/mcp</text>
+              <text x="56" y="86" fill="#868fa3" font-size="10.5">tools inside Claude / Cursor</text>
+            </g>
+            <!-- SDK -->
+            <g>
+              <rect x="280" y="44" width="200" height="52" rx="9" fill="#0b0e15" stroke="#262f42"/>
+              <text x="296" y="70" fill="#e9edf6" font-size="13" font-weight="700">@countersign/sdk</text>
+              <text x="296" y="86" fill="#868fa3" font-size="10.5">typed client · live ledger</text>
+            </g>
+            <!-- Dashboard / Operator -->
+            <g>
+              <rect x="520" y="44" width="200" height="52" rx="9" fill="#0b0e15" stroke="#262f42"/>
+              <text x="536" y="70" fill="#e9edf6" font-size="13" font-weight="700">Dashboard</text>
+              <text x="536" y="86" fill="#868fa3" font-size="10.5">operator · big red FREEZE</text>
+            </g>
+          </g>
+
+          <!-- client -> core arrows -->
+          <g stroke="#2b3550" stroke-width="1.4" fill="none">
+            <path d="M140 96 L140 150 Q140 160 150 160 L300 160" marker-end="url(#arrow)"/>
+            <path d="M380 96 L380 160" marker-end="url(#arrow)"/>
+            <path d="M620 96 L620 150 Q620 160 610 160 L460 160" marker-end="url(#arrow)"/>
+          </g>
+          <text x="392" y="120" fill="#5cf2a9" font-family="var(--cs-font-mono)" font-size="9.5" letter-spacing="1">REST + ws · OpenAPI</text>
+
+          <!-- trust boundary -->
+          <line x1="30" y1="138" x2="730" y2="138" stroke="#5cf2a9" stroke-width="1" stroke-dasharray="3 5" opacity=".5"/>
+          <text x="30" y="132" fill="#5cf2a9" font-family="var(--cs-font-mono)" font-size="9" letter-spacing="1.2" opacity=".8">TRUST BOUNDARY — language boundary; keys live only below</text>
+
+          <!-- ===== CORE ===== -->
+          <g id="core">
+            <rect x="60" y="166" width="640" height="150" rx="14" fill="url(#coreg)" stroke="#38435c"/>
+            <text x="80" y="190" fill="#aec2ff" font-family="var(--cs-font-mono)" font-size="11" letter-spacing="1.4" font-weight="700">COUNTERSIGN CORE — the brain · keys + vendor SDKs</text>
+
+            <!-- guard -->
+            <g><rect x="80" y="204" width="140" height="46" rx="8" fill="#0b1018" stroke="#2b3550"/>
+              <text x="92" y="226" fill="#e9edf6" font-size="12" font-weight="700">Spend guard</text>
+              <text x="92" y="241" fill="#868fa3" font-size="10" font-family="var(--cs-font-mono)">/evaluate</text></g>
+            <!-- compiler -->
+            <g><rect x="232" y="204" width="140" height="46" rx="8" fill="#0b1018" stroke="#2b3550"/>
+              <text x="244" y="226" fill="#e9edf6" font-size="12" font-weight="700">Policy compiler</text>
+              <text x="244" y="241" fill="#868fa3" font-size="10" font-family="var(--cs-font-mono)">core IP</text></g>
+            <!-- freeze -->
+            <g id="freezeCtl"><rect x="384" y="204" width="148" height="46" rx="8" fill="#160a0d" stroke="#5a2730"/>
+              <text x="396" y="226" fill="#ff9d9d" font-size="12" font-weight="700">Freeze controller</text>
+              <text x="396" y="241" fill="#b98088" font-size="10" font-family="var(--cs-font-mono)">fail-closed · fan-out</text></g>
+            <!-- anomaly -->
+            <g><rect x="544" y="204" width="136" height="46" rx="8" fill="#0b1018" stroke="#2b3550"/>
+              <text x="556" y="226" fill="#e9edf6" font-size="12" font-weight="700">Anomaly</text>
+              <text x="556" y="241" fill="#868fa3" font-size="10" font-family="var(--cs-font-mono)">velocity → auto-freeze</text></g>
+            <!-- ledger -->
+            <g id="ledgerNode"><rect x="80" y="262" width="600" height="40" rx="8" fill="#0a0f1a" stroke="#2b3550"/>
+              <circle cx="100" cy="282" r="5" fill="#7c9cff"/>
+              <text x="116" y="286" fill="#aec2ff" font-size="12" font-weight="700">Hash-chained ledger</text>
+              <text x="270" y="286" fill="#868fa3" font-size="10.5" font-family="var(--cs-font-mono)">append-only · Ed25519-signed · the source of truth</text></g>
+          </g>
+
+          <!-- EnforcementProvider interface bar -->
+          <g>
+            <rect x="60" y="340" width="640" height="30" rx="7" fill="#0b0e15" stroke="#262f42"/>
+            <text x="380" y="360" text-anchor="middle" fill="#aec2ff" font-family="var(--cs-font-mono)" font-size="11" letter-spacing="1.4">EnforcementProvider — one interface for every backend</text>
+          </g>
+          <!-- core -> interface -->
+          <line x1="380" y1="316" x2="380" y2="340" stroke="#2b3550" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+          <!-- ===== RAILS ===== -->
+          <g font-family="var(--cs-font-mono)">
+            <!-- connectors interface -> rails -->
+            <g stroke="#2b3550" stroke-width="1.4" fill="none" id="railLinks">
+              <path id="lk0" d="M150 370 L150 408" marker-end="url(#arrow)"/>
+              <path id="lk1" d="M305 370 L305 408" marker-end="url(#arrow)"/>
+              <path id="lk2" d="M455 370 L455 408" marker-end="url(#arrow)"/>
+              <path id="lk3" d="M610 370 L610 408" marker-end="url(#arrow)"/>
+            </g>
+
+            <g id="rail0" class="rail allow">
+              <rect class="node-box" x="78" y="410" width="148" height="58" rx="9" fill="rgba(92,242,169,.08)" stroke="#5cf2a9"/>
+              <circle cx="98" cy="432" r="4.5" fill="#4c83ff"/>
+              <text x="112" y="436" fill="#e9edf6" font-size="13" font-weight="700">Coinbase</text>
+              <text x="92" y="456" fill="#868fa3" font-size="10">MPC · native cap</text>
+              <g class="lock"><rect x="196" y="420" width="20" height="16" rx="3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/><path d="M199 420 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/></g>
+            </g>
+            <g id="rail1" class="rail allow">
+              <rect class="node-box" x="234" y="410" width="142" height="58" rx="9" fill="rgba(92,242,169,.08)" stroke="#5cf2a9"/>
+              <circle cx="254" cy="432" r="4.5" fill="#8a7cff"/>
+              <text x="268" y="436" fill="#e9edf6" font-size="13" font-weight="700">Turnkey</text>
+              <text x="248" y="456" fill="#868fa3" font-size="10">in-enclave CEL</text>
+              <g class="lock"><rect x="346" y="420" width="20" height="16" rx="3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/><path d="M349 420 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/></g>
+            </g>
+            <g id="rail2" class="rail allow">
+              <rect class="node-box" x="384" y="410" width="142" height="58" rx="9" fill="rgba(92,242,169,.08)" stroke="#5cf2a9"/>
+              <circle cx="404" cy="432" r="4.5" fill="#5cf2a9"/>
+              <text x="418" y="436" fill="#e9edf6" font-size="13" font-weight="700">Openfort</text>
+              <text x="398" y="456" fill="#868fa3" font-size="10">on-chain policy</text>
+              <g class="lock"><rect x="496" y="420" width="20" height="16" rx="3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/><path d="M499 420 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/></g>
+            </g>
+            <g id="rail3" class="rail allow">
+              <rect class="node-box" x="534" y="410" width="148" height="58" rx="9" fill="rgba(92,242,169,.08)" stroke="#5cf2a9"/>
+              <circle cx="554" cy="432" r="4.5" fill="#ffcf6b"/>
+              <text x="568" y="436" fill="#e9edf6" font-size="13" font-weight="700">Lithic</text>
+              <text x="548" y="456" fill="#868fa3" font-size="10">Visa card · ASA</text>
+              <g class="lock"><rect x="652" y="420" width="20" height="16" rx="3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/><path d="M655 420 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="#ff5f6b" stroke-width="1.6"/></g>
+            </g>
+          </g>
+
+          <!-- venues -->
+          <g font-family="var(--cs-font-mono)" font-size="10" fill="#5b6478">
+            <text x="30" y="506" letter-spacing="1.6">VENUES · TESTNET ONLY</text>
+            <g stroke="#1a2030" stroke-width="1.2" fill="none">
+              <path d="M150 468 L150 520"/><path d="M305 468 L305 520"/><path d="M455 468 L455 520"/><path d="M610 468 L610 520"/>
+            </g>
+            <g fill="#0b0e15" stroke="#1a2030"><rect x="92" y="520" width="116" height="30" rx="7"/><rect x="247" y="520" width="116" height="30" rx="7"/><rect x="397" y="520" width="116" height="30" rx="7"/><rect x="552" y="520" width="116" height="30" rx="7"/></g>
+            <g fill="#aeb7c9" font-size="10.5" text-anchor="middle"><text x="150" y="539">Base Sepolia</text><text x="305" y="539">Ethereum Sepolia</text><text x="455" y="539">Polygon Amoy</text><text x="610" y="539">Visa sandbox</text></g>
+          </g>
+
+          <!-- animated pulse dots (driven by JS) -->
+          <circle id="p0" class="pulse-dot" r="5" fill="#ff5f6b"/>
+          <circle id="p1" class="pulse-dot" r="5" fill="#ff5f6b"/>
+          <circle id="p2" class="pulse-dot" r="5" fill="#ff5f6b"/>
+          <circle id="p3" class="pulse-dot" r="5" fill="#ff5f6b"/>
+          <circle id="pe" class="pulse-dot" r="5" fill="#5cf2a9"/>
+        </svg>
+      </div>
+
+      <!-- LEDGER -->
+      <div class="ledger">
+        <div class="bar"><span class="d" style="background:#ff5f5f"></span><span class="d" style="background:#ffbd2e"></span><span class="d" style="background:#28c840"></span><span class="t">ledger — append-only</span><span class="v" id="chainv">chain ✓</span></div>
+        <div class="log" id="log">
+          <div class="ln"><span class="ts">00:00.000</span><span class="seal">countersign ledger ready · run a control above ↑</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="flow"></i> request / decision flow</span>
+      <span><i class="kill"></i> freeze fan-out</span>
+      <span><i class="boundary"></i> trust boundary</span>
+      <span style="color:var(--cs-accent)">● allowed / live</span>
+      <span style="color:var(--cs-red-300)">● denied / frozen</span>
+    </div>
+  </section>
+
+  <!-- FLOWS -->
+  <section>
+    <div class="seyebrow">Flow 01 · the spend guard</div>
+    <h2>Ask before you spend.</h2>
+    <p class="lead">Every transaction calls <code>/evaluate</code> first. The Core returns <b style="color:var(--cs-accent)">allow</b>, <b style="color:var(--cs-red-300)">deny</b>, or <b style="color:var(--cs-amber-300)">needs-approval</b> — and the matching native control is already pushed into the rail, so even a direct send that bypasses Countersign is rejected by the backend itself.</p>
+    <div class="grid g3">
+      <div class="panel"><span class="num">01</span><h3>Within policy → allow</h3><p>Under the per-tx and rolling daily caps, on the allowlist → the agent gets a green light and the rail enforces the cap natively.</p></div>
+      <div class="panel"><span class="num">02</span><h3>Over cap / off-list → deny</h3><p>Fail-closed. The spend never executes, and <code>action_blocked</code> is written to the ledger with the reason.</p></div>
+      <div class="panel"><span class="num">03</span><h3>Above threshold → hold</h3><p>Routed to a human approval. A freeze always overrides a pending approval.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="seyebrow">Flow 02 · the kill switch</div>
+    <h2>Stop everything, fail-closed, under a second.</h2>
+    <p class="lead">One signal — from an operator or the anomaly monitor — fans out to every rail concurrently. A backend whose freeze won't confirm is <b>escalated</b> (revoke session), never reported as safe. Every step is countersigned into the ledger.</p>
+    <div class="grid g2">
+      <div class="panel">
+        <p class="step"><b>1 ·</b> freeze_requested → written first<br/><b>2 ·</b> freeze() → all rails, concurrent, bounded by timeout<br/><b>3 ·</b> confirmed → freeze_result + freeze_resolved (&lt;1s)<br/><b>4 ·</b> unconfirmed → revokeSession (escalate)<br/><b>5 ·</b> ledger re-verified intact</p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Proven, not promised</h3>
+        <p>A four-rail live freeze — three crypto wallets <i>and</i> a Visa card — confirmed in <b style="color:var(--cs-fg)">~432ms</b> on testnet, signed hash-chained ledger verified. Run it yourself: <code>pnpm exec tsx packages/agent-harness/live-freeze.ts</code>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+    <span class="spacer"></span>
+    <a href="design-system.html">Design system</a>
+    <a href="roadmap.html">Roadmap</a>
+    <a href="whitepaper.html">White paper</a>
+  </div>
+  <div class="wrap"><p class="mono-note" style="margin-top:18px">Illustrative simulation for the brand surface. Testnet only; mainnet follows a third-party audit. © 2026 Countersign.</p></div>
+</footer>
+
+<script>
+  const log = document.getElementById('log');
+  const msEl = document.getElementById('ms');
+  const rails = [0,1,2,3].map(i=>document.getElementById('rail'+i));
+  const railName = ['coinbase','turnkey','openfort','lithic'];
+  const railX = [150,305,455,610];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let busy=false, t0=0, tick=null;
+
+  function startClock(){ t0=performance.now(); if(tick) cancelAnimationFrame(tick); const loop=()=>{ msEl.textContent=Math.round(performance.now()-t0); tick=requestAnimationFrame(loop); }; loop(); }
+  function stopClock(v){ if(tick) cancelAnimationFrame(tick); if(v!=null) msEl.textContent=v; }
+  function clk(){ const ms=Math.round(performance.now()-t0); const s=String(Math.floor(ms/1000)).padStart(2,'0'); const m=String(ms%1000).padStart(3,'0'); return '00:'+s+'.'+m; }
+  function line(ev,cls,txt){ const d=document.createElement('div'); d.className='ln'; d.innerHTML=`<span class="ts">${clk()}</span><span class="ev ${cls}">${ev}</span><span>${txt}</span>`; log.appendChild(d); log.scrollTop=log.scrollHeight; }
+  function clearLog(){ log.innerHTML=''; }
+  function setRail(i,state){ rails[i].className='rail '+state; }
+
+  function flyPulse(id, x, y0, y1, dur, cb){
+    const p=document.getElementById(id); p.setAttribute('cx',x); p.style.opacity='1';
+    if(reduce){ cb&&cb(); p.style.opacity='0'; return; }
+    const start=performance.now();
+    (function step(now){ const k=Math.min(1,(now-start)/dur); p.setAttribute('cy', y0+(y1-y0)*k); if(k<1){ requestAnimationFrame(step); } else { p.style.opacity='0'; cb&&cb(); } })(start);
+  }
+
+  function lock(on){ [document.getElementById('btn-allow'),document.getElementById('btn-deny'),document.getElementById('btn-freeze')].forEach(b=>b.disabled=on); busy=on; }
+
+  function reset(){
+    if(busy) return; clearLog(); stopClock(0);
+    rails.forEach((_,i)=>setRail(i,'allow'));
+    document.getElementById('chainv').textContent='chain ✓';
+    line('ready','ok','ledger reset · all rails live');
+  }
+
+  function evaluate(allow){
+    if(busy) return; lock(true); clearLog(); startClock();
+    const i=Math.floor(Math.random()*4);
+    line('action_requested','hash', `agent_07 → ${railName[i]} · 250 USDC`);
+    flyPulse('pe', railX[i], 96, 226, 360, ()=>{
+      if(allow){ line('decision','allow','ALLOW · within per-tx + daily cap'); setRail(i,'allow');
+        flyPulse('pe', railX[i], 240, 432, 320, ()=>{ line('action_allowed','allow', `${railName[i]} · native cap enforced`); seal(()=>lock(false)); });
+      } else {
+        line('decision','deny','DENY · exceeds per-tx cap (200 USDC)'); setRail(i,'deny');
+        line('action_blocked','deny', `${railName[i]} · fail-closed, no spend`);
+        setTimeout(()=>{ seal(()=>{ setTimeout(()=>setRail(i,'allow'),500); lock(false); }); },260);
+      }
+    });
+  }
+
+  function seal(cb){ const h='0x'+Math.random().toString(16).slice(2,10)+'…'; line('ledger.append','hash', 'entry sealed · prev⟶ '+h); stopClock(); cb&&cb(); }
+
+  function freeze(){
+    if(busy) return; lock(true); clearLog(); startClock();
+    line('freeze_requested','freeze','operator → FREEZE ALL · written first');
+    let done=0;
+    rails.forEach((_,i)=>{
+      const delay = reduce?0:(40+i*22);
+      setTimeout(()=>{
+        flyPulse('p'+i, railX[i], 226, 432, reduce?0:300, ()=>{
+          setRail(i,'frozen');
+          line('freeze('+railName[i]+')','freeze', i===3?'PAUSE card · confirmed':'revoke session · confirmed');
+          if(++done===4){
+            const total = 380+Math.floor(Math.random()*90); // ~432ms feel
+            setTimeout(()=>{
+              line('freeze_resolved','ok', `all 4 rails frozen in ~${total}ms (< 1s)`);
+              line('ledger.verify','hash','re-verifying hash chain…');
+              setTimeout(()=>{ line('chain.ok','ok','✓ chain intact · '+ (4) +' freezes countersigned'); stopClock(total); lock(false); }, reduce?0:240);
+            }, reduce?0:120);
+          }
+        });
+      }, delay);
+    });
+  }
+
+  document.getElementById('btn-allow').onclick=()=>evaluate(true);
+  document.getElementById('btn-deny').onclick=()=>evaluate(false);
+  document.getElementById('btn-freeze').onclick=freeze;
+  document.getElementById('btn-reset').onclick=reset;
+</script>
+</body>
+</html>

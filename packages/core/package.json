@@ -9,8 +9,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "devDependencies": {
-    "@countersign/policy": "workspace:*"
-  },
-  "comment": "@countersign/policy is a TYPE-ONLY (erased) back-reference for UnifiedPolicy in the EnforcementProvider interface — no runtime dependency, hence devDependency."
+  "dependencies": {
+    "zod": "^4.4.0"
+  }
 }

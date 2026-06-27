@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Countersign — Brand & Ecosystem Kit</title>
+<meta name="description" content="The Countersign brand and ecosystem kit: design system, interactive system map, ecosystem roadmap, and white paper for every developer and marketing surface." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--cs-bg); color:var(--cs-fg); font-family:var(--cs-font-sans); line-height:var(--cs-leading-body); -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
+  body::before { content:""; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:var(--cs-blueprint); background-size:var(--cs-grid-cell) var(--cs-grid-cell); -webkit-mask-image:radial-gradient(1200px 820px at 70% -6%, #000 26%, transparent 80%); mask-image:radial-gradient(1200px 820px at 70% -6%, #000 26%, transparent 80%); }
+  body::after { content:""; position:fixed; top:-26%; right:-12%; width:60vw; height:60vw; z-index:0; pointer-events:none; background:var(--cs-aurora); filter:blur(6px); }
+  .wrap { max-width:var(--cs-maxw); margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+  a { color:var(--cs-link); text-decoration:none; } a:hover { color:var(--cs-link-hover); }
+
+  header { position:sticky; top:0; z-index:30; backdrop-filter:blur(12px); background:rgba(7,8,11,.74); border-bottom:1px solid var(--cs-border); }
+  nav { display:flex; align-items:center; gap:18px; height:62px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:var(--cs-weight-bold); letter-spacing:-.3px; color:var(--cs-fg); font-size:var(--cs-text-base); }
+  .brand svg { width:26px; height:26px; }
+  .brand .tag { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1.4px; color:var(--cs-fg-muted); text-transform:uppercase; border-left:1px solid var(--cs-border-strong); padding-left:10px; }
+  nav .spacer { flex:1; }
+  nav a.navlink { color:var(--cs-fg-muted); font-family:var(--cs-font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:1.2px; }
+  nav a.navlink:hover { color:var(--cs-fg); }
+  @media (max-width:760px){ nav a.navlink{ display:none; } }
+
+  .hero { padding:84px 0 30px; }
+  .pill { display:inline-flex; align-items:center; gap:9px; font-family:var(--cs-font-mono); font-size:12px; letter-spacing:.5px; color:var(--cs-accent); border:1px solid rgba(92,242,169,.28); background:rgba(92,242,169,.06); padding:6px 13px; border-radius:var(--cs-radius-pill); }
+  .blip { width:7px; height:7px; border-radius:50%; background:var(--cs-accent); box-shadow:0 0 10px var(--cs-glow-accent); animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+  h1 { font-size:clamp(38px,6vw,66px); line-height:1.02; margin:22px 0 16px; letter-spacing:var(--cs-tracking-display); font-weight:var(--cs-weight-black); }
+  h1 .grad { background:linear-gradient(96deg,var(--cs-brand-strong),var(--cs-accent)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+  .sub { font-size:clamp(16px,2.2vw,20px); color:var(--cs-fg-soft); max-width:680px; }
+  .proof { display:flex; flex-wrap:wrap; gap:10px 22px; margin-top:24px; color:var(--cs-fg-muted); font-family:var(--cs-font-mono); font-size:12.5px; }
+  .proof span { display:inline-flex; align-items:center; gap:7px; }
+  .proof span::before { content:"+"; color:var(--cs-accent); font-weight:700; }
+  .proof b { color:var(--cs-fg); }
+
+  section { padding:54px 0; border-top:1px solid var(--cs-border); position:relative; }
+  section::before { content:"+"; position:absolute; top:-9px; left:-1px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:15px; }
+  .eyebrow { color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:600; font-size:11px; letter-spacing:var(--cs-tracking-mono); text-transform:uppercase; }
+  h2 { font-size:clamp(23px,3.4vw,33px); margin:12px 0 8px; letter-spacing:var(--cs-tracking-tight); font-weight:var(--cs-weight-black); }
+  .lead { color:var(--cs-fg-muted); max-width:720px; margin-bottom:26px; }
+
+  /* kit cards */
+  .kit { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  @media (max-width:820px){ .kit{ grid-template-columns:1fr; } }
+  .card { display:block; background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-xl); padding:0; position:relative; overflow:hidden; transition:border-color var(--cs-dur),transform var(--cs-dur),box-shadow var(--cs-dur); }
+  .card:hover { border-color:var(--cs-border-strong); transform:translateY(-3px); box-shadow:var(--cs-shadow-card); }
+  .card .thumb { height:150px; border-bottom:1px solid var(--cs-border); position:relative; overflow:hidden; background:var(--cs-code-bg); }
+  .card .body { padding:18px 20px 20px; }
+  .card .k { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--cs-accent); }
+  .card h3 { margin:8px 0 6px; font-size:19px; letter-spacing:-.4px; }
+  .card p { margin:0 0 12px; color:var(--cs-fg-muted); font-size:14px; }
+  .card .go { font-family:var(--cs-font-mono); font-size:12px; color:var(--cs-fg-soft); display:inline-flex; gap:8px; align-items:center; }
+  .card:hover .go { color:var(--cs-accent); }
+  .card .alt { font-family:var(--cs-font-mono); font-size:11px; color:var(--cs-fg-faint); margin-left:14px; }
+  .card .alt:hover { color:var(--cs-accent); }
+
+  /* thumbs (pure CSS/SVG mini-previews) */
+  .th-grid { position:absolute; inset:0; background-image:var(--cs-blueprint); background-size:22px 22px; opacity:.5; }
+  .th-aurora { position:absolute; top:-40%; right:-20%; width:70%; height:120%; background:var(--cs-aurora); }
+  .sw-row { position:absolute; left:18px; bottom:18px; display:flex; gap:8px; }
+  .sw-row i { width:30px; height:30px; border-radius:7px; border:1px solid rgba(255,255,255,.08); }
+
+  /* at a glance */
+  .glance { display:grid; grid-template-columns:1.1fr .9fr; gap:16px; }
+  @media (max-width:820px){ .glance{ grid-template-columns:1fr; } }
+  .panel { background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border:1px solid var(--cs-border); border-radius:var(--cs-radius-lg); padding:20px; }
+  .panel .lab { font-family:var(--cs-font-mono); font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--cs-fg-muted); margin-bottom:12px; }
+  .palette { display:flex; gap:8px; flex-wrap:wrap; }
+  .palette i { flex:1 1 70px; height:54px; border-radius:8px; border:1px solid rgba(255,255,255,.06); position:relative; }
+  .palette i span { position:absolute; left:8px; bottom:7px; font-family:var(--cs-font-mono); font-size:9.5px; color:rgba(255,255,255,.85); text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .claim { font-family:var(--cs-font-mono); font-size:13.5px; color:var(--cs-fg-soft); line-height:1.7; }
+  .claim b { color:var(--cs-accent); }
+  .statline { display:flex; flex-wrap:wrap; gap:18px 30px; margin-top:6px; }
+  .statline .s .n { font-family:var(--cs-font-mono); font-size:26px; font-weight:800; letter-spacing:-1px; }
+  .statline .s .n .u { color:var(--cs-accent); }
+  .statline .s .l { font-family:var(--cs-font-mono); font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--cs-fg-muted); }
+
+  footer { border-top:1px solid var(--cs-border); padding:34px 0 60px; color:var(--cs-fg-muted); font-size:13.5px; }
+  .frow { display:flex; flex-wrap:wrap; gap:20px; align-items:center; } .frow .spacer{ flex:1; }
+  .frow a:not(.brand) { font-family:var(--cs-font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--cs-fg-muted); }
+  .mono-note { font-family:var(--cs-font-mono); font-size:12px; color:var(--cs-fg-faint); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="index.html">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Countersign <span class="tag">Brand Kit</span>
+      </a>
+      <span class="spacer"></span>
+      <a class="navlink" href="design-system.html">Design system</a>
+      <a class="navlink" href="system-map.html">System map</a>
+      <a class="navlink" href="roadmap.html">Roadmap</a>
+      <a class="navlink" href="whitepaper.html">White paper</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="border-top:0">
+    <span class="pill"><span class="blip"></span> Brand &amp; ecosystem kit · v1</span>
+    <h1>One identity for the <span class="grad">control plane of agent money.</span></h1>
+    <p class="sub">Everything a developer or marketer needs to represent Countersign consistently — the design system, an interactive system map, the ecosystem roadmap, and the white paper. Built on one set of tokens, so every surface looks like the same company.</p>
+    <div class="proof">
+      <span><b>4</b> surfaces, one system</span>
+      <span><b>~432ms</b> four-rail freeze</span>
+      <span><b>Apache-2.0</b> open core</span>
+      <span><b>tokens.css</b> single source</span>
+    </div>
+  </section>
+
+  <section id="kit">
+    <div class="eyebrow">The kit</div>
+    <h2>Four surfaces.</h2>
+    <p class="lead">Each is self-contained and themed entirely from <code style="font-family:var(--cs-font-mono);color:#cfe0ff">tokens.css</code>. Use them for docs, decks, the site, and partner pages.</p>
+    <div class="kit">
+
+      <a class="card" href="design-system.html">
+        <div class="thumb"><div class="th-grid"></div>
+          <div class="sw-row"><i style="background:#07080b"></i><i style="background:#7c9cff"></i><i style="background:#5cf2a9"></i><i style="background:#ffcf6b"></i><i style="background:#ff5f6b"></i></div>
+        </div>
+        <div class="body">
+          <div class="k">01 · Foundations</div>
+          <h3>Design system</h3>
+          <p>Brand story, the shield-check logo &amp; usage, color, type, the component library, motifs, and voice &amp; tone.</p>
+          <span class="go">Open design system →</span>
+        </div>
+      </a>
+
+      <a class="card" href="system-map.html">
+        <div class="thumb"><div class="th-grid"></div><div class="th-aurora"></div>
+          <svg viewBox="0 0 300 150" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="60" y="20" width="180" height="26" rx="6" fill="#0b0e15" stroke="#262f42"/>
+            <rect x="40" y="62" width="220" height="30" rx="7" fill="#0c1220" stroke="#38435c"/>
+            <g fill="none" stroke="#5cf2a9" stroke-width="1.4"><rect x="55" y="106" width="40" height="22" rx="5" fill="rgba(92,242,169,.08)"/><rect x="110" y="106" width="40" height="22" rx="5" fill="rgba(92,242,169,.08)"/><rect x="165" y="106" width="40" height="22" rx="5" fill="rgba(92,242,169,.08)"/><rect x="220" y="106" width="40" height="22" rx="5" fill="rgba(255,95,107,.1)" stroke="#ff5f6b"/></g>
+            <g stroke="#2b3550" stroke-width="1.2"><line x1="150" y1="46" x2="150" y2="62"/><line x1="75" y1="92" x2="75" y2="106"/><line x1="130" y1="92" x2="130" y2="106"/><line x1="185" y1="92" x2="185" y2="106"/><line x1="240" y1="92" x2="240" y2="106"/></g>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="k">02 · Interactive</div>
+          <h3>System map</h3>
+          <p>Drive it yourself: evaluate a spend, then freeze all four rails at once and watch the tamper-evident ledger fill.</p>
+          <span class="go">Open system map →</span>
+        </div>
+      </a>
+
+      <a class="card" href="roadmap.html">
+        <div class="thumb"><div class="th-grid"></div>
+          <svg viewBox="0 0 300 150" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <line x1="30" y1="22" x2="30" y2="130" stroke="#38435c" stroke-width="2"/>
+            <circle cx="30" cy="34" r="5" fill="none" stroke="#5cf2a9" stroke-width="2"/><rect x="46" y="26" width="220" height="16" rx="5" fill="#0b0e15" stroke="#1a2030"/>
+            <circle cx="30" cy="62" r="5" fill="none" stroke="#7c9cff" stroke-width="2"/><rect x="46" y="54" width="190" height="16" rx="5" fill="#0b0e15" stroke="#1a2030"/>
+            <circle cx="30" cy="90" r="5" fill="none" stroke="#7c9cff" stroke-width="2"/><rect x="46" y="82" width="210" height="16" rx="5" fill="#0b0e15" stroke="#1a2030"/>
+            <circle cx="30" cy="118" r="5" fill="none" stroke="#ffcf6b" stroke-width="2"/><rect x="46" y="110" width="160" height="16" rx="5" fill="#0b0e15" stroke="#1a2030"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="k">03 · Strategy</div>
+          <h3>Ecosystem roadmap</h3>
+          <p>The five moats and the Tier 0–4 integration horizon — from the live crypto rails to enterprise custody.</p>
+          <span class="go">Open roadmap →</span>
+        </div>
+      </a>
+
+      <a class="card" href="whitepaper.html">
+        <div class="thumb"><div class="th-grid"></div><div class="th-aurora"></div>
+          <svg viewBox="0 0 300 150" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="92" y="18" width="116" height="120" rx="8" fill="#0b0e15" stroke="#262f42"/>
+            <rect x="104" y="34" width="20" height="20" rx="5" fill="none" stroke="#7c9cff" stroke-width="1.6"/>
+            <rect x="104" y="66" width="92" height="6" rx="3" fill="#5cf2a9"/>
+            <rect x="104" y="80" width="80" height="4" rx="2" fill="#2b3550"/><rect x="104" y="90" width="92" height="4" rx="2" fill="#2b3550"/><rect x="104" y="100" width="70" height="4" rx="2" fill="#2b3550"/><rect x="104" y="114" width="50" height="4" rx="2" fill="#2b3550"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="k">04 · Document</div>
+          <h3>White paper</h3>
+          <p>The full technical &amp; strategic paper — architecture, the falsifiable freeze, the security model, the moat, the roadmap.</p>
+          <span class="go">Read on the web →</span><a class="alt" href="countersign-whitepaper.pdf">↓ Download PDF</a>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <section id="glance">
+    <div class="eyebrow">Brand at a glance</div>
+    <h2>The one line, the one signal, the one number.</h2>
+    <div class="glance">
+      <div class="panel">
+        <div class="lab">Core palette</div>
+        <div class="palette">
+          <i style="background:#07080b"><span>canvas</span></i>
+          <i style="background:#0b0e15"><span>surface</span></i>
+          <i style="background:#7c9cff"><span style="color:#06101f">brand</span></i>
+          <i style="background:#5cf2a9"><span style="color:#04130c">signal</span></i>
+          <i style="background:#ffcf6b"><span style="color:#241803">caution</span></i>
+          <i style="background:#ff5f6b"><span style="color:#1a0507">freeze</span></i>
+        </div>
+        <div class="lab" style="margin-top:20px">Type</div>
+        <p class="claim" style="margin:0"><b style="color:var(--cs-fg)">Inter</b> — the human voice (prose, headlines).<br/><b style="color:var(--cs-fg)">SF Mono</b> — the machine voice (labels, metrics, code).</p>
+      </div>
+      <div class="panel">
+        <div class="lab">Positioning</div>
+        <p class="claim">The neutral kill switch and audit ledger for AI agents that spend money — <b>one policy, one freeze, one tamper-evident ledger across every wallet vendor at once.</b></p>
+        <div class="lab" style="margin-top:18px">Proof</div>
+        <div class="statline">
+          <div class="s"><div class="n">432<span class="u">ms</span></div><div class="l">4-rail freeze</div></div>
+          <div class="s"><div class="n">4</div><div class="l">rails live</div></div>
+          <div class="s"><div class="n">&lt;1<span class="u">s</span></div><div class="l">SLO</div></div>
+          <div class="s"><div class="n">115<span class="u">+</span></div><div class="l">tests</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+    <span class="spacer"></span>
+    <a href="https://github.com/countersign-network/countersign">GitHub</a>
+    <a href="https://countersign.network">countersign.network</a>
+    <a href="countersign-whitepaper.pdf">White paper PDF</a>
+  </div>
+  <div class="wrap"><p class="mono-note" style="margin-top:18px">Countersign holds policy, freeze, and a tamper-evident ledger — it never takes custody of funds. Testnet only; mainnet follows a third-party audit. © 2026 Countersign. Apache-2.0 open core.</p></div>
+</footer>
+</body>
+</html>

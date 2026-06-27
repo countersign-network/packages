@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Countersign — Design System</title>
+<meta name="description" content="The Countersign design system: brand, logo, color, type, components and voice for every developer and marketing surface." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--cs-bg); color: var(--cs-fg);
+    font-family: var(--cs-font-sans); line-height: var(--cs-leading-body);
+    -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: var(--cs-blueprint); background-size: var(--cs-grid-cell) var(--cs-grid-cell);
+    -webkit-mask-image: radial-gradient(1200px 800px at 78% -8%, #000 26%, transparent 80%);
+    mask-image: radial-gradient(1200px 800px at 78% -8%, #000 26%, transparent 80%);
+  }
+  body::after {
+    content: ""; position: fixed; top: -26%; right: -14%; width: 60vw; height: 60vw; z-index: 0;
+    pointer-events: none; background: var(--cs-aurora); filter: blur(6px);
+  }
+  a { color: var(--cs-link); text-decoration: none; }
+  a:hover { color: var(--cs-link-hover); }
+  .wrap { max-width: var(--cs-maxw); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); background: rgba(7,8,11,.74); border-bottom: 1px solid var(--cs-border); }
+  nav { display: flex; align-items: center; gap: 18px; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: var(--cs-weight-bold); letter-spacing: -.3px; color: var(--cs-fg); font-size: var(--cs-text-base); }
+  .brand svg { width: 26px; height: 26px; }
+  .brand .tag { font-family: var(--cs-font-mono); font-size: 10.5px; letter-spacing: 1.4px; color: var(--cs-fg-muted); text-transform: uppercase; border-left: 1px solid var(--cs-border-strong); padding-left: 10px; margin-left: 2px; }
+  nav .spacer { flex: 1; }
+  nav a.navlink { color: var(--cs-fg-muted); font-family: var(--cs-font-mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.2px; }
+  nav a.navlink:hover { color: var(--cs-fg); }
+  @media (max-width: 760px) { nav a.navlink { display: none; } }
+
+  /* Hero */
+  .hero { padding: 80px 0 36px; }
+  .eyebrow { color: var(--cs-accent); font-family: var(--cs-font-mono); font-weight: var(--cs-weight-semi); font-size: 11px; letter-spacing: var(--cs-tracking-mono); text-transform: uppercase; }
+  h1 { font-size: clamp(34px, 5.4vw, 58px); line-height: var(--cs-leading-tight); margin: 16px 0 14px; letter-spacing: var(--cs-tracking-display); font-weight: var(--cs-weight-black); }
+  h1 .grad { background: linear-gradient(96deg, var(--cs-brand-strong), var(--cs-accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: clamp(16px, 2vw, 19px); color: var(--cs-fg-soft); max-width: 680px; }
+
+  /* Section scaffold */
+  section { padding: 56px 0; border-top: 1px solid var(--cs-border); position: relative; }
+  section::before { content: "+"; position: absolute; top: -9px; left: -1px; color: var(--cs-border-loud); font-family: var(--cs-font-mono); font-size: 15px; line-height: 1; }
+  .seyebrow { color: var(--cs-accent); font-family: var(--cs-font-mono); font-weight: var(--cs-weight-semi); font-size: 11px; letter-spacing: var(--cs-tracking-mono); text-transform: uppercase; }
+  h2 { font-size: clamp(24px, 3.4vw, 34px); margin: 12px 0 8px; letter-spacing: var(--cs-tracking-tight); font-weight: var(--cs-weight-black); }
+  h3 { letter-spacing: -.3px; }
+  .lead { color: var(--cs-fg-muted); max-width: 720px; margin-bottom: 26px; }
+  .kicker { font-family: var(--cs-font-mono); font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--cs-fg-muted); margin: 30px 0 14px; }
+
+  /* Grid helpers */
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 860px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+
+  .panel { background: linear-gradient(180deg, var(--cs-surface), var(--cs-bg-raised)); border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: 22px; position: relative; }
+  .panel.node::after { content: "+"; position: absolute; top: 9px; right: 12px; color: var(--cs-border-loud); font-family: var(--cs-font-mono); font-size: 13px; }
+
+  /* ---- Component specimens ---- */
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: var(--cs-radius-sm); font-weight: var(--cs-weight-semi); font-size: 13px; border: 1px solid var(--cs-border-strong); color: var(--cs-fg); background: transparent; cursor: pointer; font-family: var(--cs-font-mono); letter-spacing: .4px; transition: border-color var(--cs-dur), color var(--cs-dur), box-shadow var(--cs-dur), background var(--cs-dur); }
+  .btn:hover { border-color: var(--cs-accent); color: var(--cs-accent); box-shadow: var(--cs-ring-accent); }
+  .btn.primary { background: var(--cs-accent); color: var(--cs-accent-ink); border-color: var(--cs-accent); box-shadow: 0 0 32px -10px var(--cs-glow-accent); }
+  .btn.primary:hover { background: var(--cs-accent-hi); color: var(--cs-accent-ink); }
+  .btn.freeze { background: var(--cs-state-freeze); border-color: var(--cs-state-freeze); color: #fff; box-shadow: 0 0 32px -10px var(--cs-glow-freeze); }
+  .btn.ghost { border-color: var(--cs-border); color: var(--cs-fg-muted); }
+
+  /* pill */
+  .pill { display: inline-flex; align-items: center; gap: 9px; font-family: var(--cs-font-mono); font-size: 12px; letter-spacing: .5px; color: var(--cs-accent); border: 1px solid rgba(92,242,169,.28); background: rgba(92,242,169,.06); padding: 6px 13px; border-radius: var(--cs-radius-pill); }
+  .blip { width: 7px; height: 7px; border-radius: 50%; background: var(--cs-accent); box-shadow: 0 0 10px var(--cs-glow-accent); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+  /* badges */
+  .badge { font-family: var(--cs-font-mono); font-size: 10.5px; font-weight: var(--cs-weight-bold); letter-spacing: 1px; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; }
+  .badge.live { color: var(--cs-green-400); background: rgba(92,242,169,.08); border: 1px solid rgba(92,242,169,.3); }
+  .badge.soon { color: var(--cs-amber-400); background: rgba(255,207,107,.07); border: 1px solid rgba(255,207,107,.28); }
+  .badge.deny { color: var(--cs-red-300); background: rgba(255,95,107,.08); border: 1px solid rgba(255,95,107,.32); }
+  .badge.brand { color: var(--cs-blue-300); background: rgba(124,156,255,.08); border: 1px solid rgba(124,156,255,.3); }
+
+  /* code */
+  pre { margin: 0; background: var(--cs-code-bg); border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: 16px; overflow: auto; }
+  code { font-family: var(--cs-font-mono); font-size: 13px; color: #cfe0ff; }
+  .tok-k { color: var(--cs-blue-400); } .tok-s { color: var(--cs-accent); } .tok-c { color: var(--cs-fg-faint); }
+
+  /* command box */
+  .cmd { display: inline-flex; align-items: center; gap: 14px; font-family: var(--cs-font-mono); font-size: 13.5px; background: var(--cs-code-bg); border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); padding: 10px 14px; color: #cfe0ff; }
+  .cmd .dollar { color: var(--cs-accent); }
+
+  /* color swatches */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .sw { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md); overflow: hidden; background: var(--cs-surface); }
+  .sw .chip { height: 64px; }
+  .sw .meta { padding: 9px 11px; }
+  .sw .nm { font-size: 12.5px; font-weight: var(--cs-weight-semi); }
+  .sw .hex { font-family: var(--cs-font-mono); font-size: 11px; color: var(--cs-fg-muted); text-transform: uppercase; }
+  .sw .var { font-family: var(--cs-font-mono); font-size: 10.5px; color: var(--cs-fg-faint); margin-top: 2px; }
+
+  /* type specimen */
+  .specimen { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: 22px; background: var(--cs-surface); }
+  .specimen .row { display: flex; align-items: baseline; gap: 16px; padding: 12px 0; border-top: 1px dashed var(--cs-border); }
+  .specimen .row:first-child { border-top: 0; }
+  .specimen .label { font-family: var(--cs-font-mono); font-size: 11px; color: var(--cs-fg-faint); width: 120px; flex: 0 0 120px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* rail row */
+  .rail { display: flex; align-items: center; gap: 12px; }
+  .rail .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cs-accent); box-shadow: 0 0 10px var(--cs-glow-accent); flex: 0 0 auto; }
+  .rail .dot.soon { background: var(--cs-amber-400); box-shadow: 0 0 10px rgba(255,207,107,.5); }
+
+  /* stat counter */
+  .stat { font-family: var(--cs-font-mono); }
+  .stat .n { font-size: 40px; font-weight: var(--cs-weight-black); letter-spacing: -1.5px; color: var(--cs-fg); line-height: 1; }
+  .stat .n .u { color: var(--cs-accent); }
+  .stat .l { font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--cs-fg-muted); margin-top: 8px; }
+
+  /* do / dont */
+  .dd { border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); padding: 18px 20px; background: var(--cs-surface); }
+  .dd .h { font-family: var(--cs-font-mono); font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .dd.do .h { color: var(--cs-accent); }
+  .dd.dont .h { color: var(--cs-red-300); }
+  .dd ul { margin: 0; padding-left: 18px; color: var(--cs-fg-soft); font-size: 14px; }
+  .dd li { margin: 6px 0; }
+  .tick, .cross { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; }
+  .tick { background: rgba(92,242,169,.12); color: var(--cs-accent); }
+  .cross { background: rgba(255,95,107,.12); color: var(--cs-red-300); }
+
+  .mono-note { font-family: var(--cs-font-mono); font-size: 12px; color: var(--cs-fg-faint); }
+  .desc { color: var(--cs-fg-muted); font-size: 14px; margin: 6px 0 0; }
+  .logo-stage { display: flex; align-items: center; justify-content: center; min-height: 150px; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-lg); background: var(--cs-surface); }
+  .logo-stage.light { background: #eef1f8; }
+  .clearspace { position: relative; }
+
+  footer { border-top: 1px solid var(--cs-border); padding: 36px 0 60px; color: var(--cs-fg-muted); font-size: 13.5px; position: relative; z-index: 1; }
+  .frow { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+  .frow .spacer { flex: 1; }
+  .frow a { font-family: var(--cs-font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--cs-fg-muted); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="index.html">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Countersign <span class="tag">Design System</span>
+      </a>
+      <span class="spacer"></span>
+      <a class="navlink" href="#brand">Brand</a>
+      <a class="navlink" href="#logo">Logo</a>
+      <a class="navlink" href="#color">Color</a>
+      <a class="navlink" href="#type">Type</a>
+      <a class="navlink" href="#components">Components</a>
+      <a class="navlink" href="#voice">Voice</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" style="border-top:0">
+    <div class="eyebrow">Countersign · v1 Brand Guidelines</div>
+    <h1>The design system for the <span class="grad">control plane of agent money.</span></h1>
+    <p class="lede">One reference for every Countersign surface — the SDK docs, the dashboard, the landing page, the white paper, the badge in someone else's README. Build only with the tokens here, and a developer page and a marketing page will always look like the same company.</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:24px;">
+      <span class="pill"><span class="blip"></span> Dark blueprint · signal-green system</span>
+      <span class="cmd"><span class="dollar">@</span>&nbsp;import "tokens.css"</span>
+    </div>
+  </section>
+
+  <!-- BRAND -->
+  <section id="brand">
+    <div class="seyebrow">01 · Brand foundation</div>
+    <h2>What we are, in one line.</h2>
+    <p class="lead">The neutral kill switch and audit ledger for AI agents that spend money — one policy, one freeze, one tamper-evident ledger <b>across every wallet vendor at once</b>. Every word of copy ladders up to that sentence.</p>
+    <div class="grid g3">
+      <div class="panel node">
+        <div class="kicker" style="margin-top:0">The name</div>
+        <p class="desc">To <b>countersign</b> is to add a second, approving signature to something already initiated. That is exactly the product: the second signer on an agent's transaction — the pre-flight guard, the human approval, the freeze. Not "co-sign" (jointly); <i>counter</i>sign (approve after).</p>
+      </div>
+      <div class="panel node">
+        <div class="kicker" style="margin-top:0">The category</div>
+        <p class="desc">Cross-vendor <b>agent-spend governance</b>. We are a network, not a wallet — hence <code>.network</code>. We never take custody; we hold the policy, the freeze, and the proof.</p>
+      </div>
+      <div class="panel node">
+        <div class="kicker" style="margin-top:0">The proof</div>
+        <p class="desc">A single falsifiable claim anchors the brand: <b>freeze agents across four rails at once, in ~432ms, with a tamper-evident ledger of every attempt.</b> Lead with the number; invite people to falsify it.</p>
+      </div>
+    </div>
+
+    <div class="kicker">Brand attributes</div>
+    <div class="grid g4">
+      <div class="panel"><h3 style="margin:0 0 6px; font-size:15px">Neutral</h3><p class="desc" style="margin:0">Vendor-agnostic by construction. We never favor a rail.</p></div>
+      <div class="panel"><h3 style="margin:0 0 6px; font-size:15px">Falsifiable</h3><p class="desc" style="margin:0">Claims you can run. Numbers, not adjectives.</p></div>
+      <div class="panel"><h3 style="margin:0 0 6px; font-size:15px">Fail-closed</h3><p class="desc" style="margin:0">Safety is the default. Doubt means deny.</p></div>
+      <div class="panel"><h3 style="margin:0 0 6px; font-size:15px">Legible</h3><p class="desc" style="margin:0">Engineered and clear — a blueprint, not a billboard.</p></div>
+    </div>
+  </section>
+
+  <!-- LOGO -->
+  <section id="logo">
+    <div class="seyebrow">02 · Logo & mark</div>
+    <h2>The shield-check.</h2>
+    <p class="lead">A shield (custody, protection) with a check (the approving countersignature) inside it. Blue draws the structure; green confirms the state. The mark is the favicon, the app icon, and the seal on the "Spending governed by Countersign" badge.</p>
+
+    <div class="grid g3">
+      <div>
+        <div class="logo-stage">
+          <svg viewBox="0 0 32 32" width="96" height="96" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="mono-note" style="margin-top:10px">Primary · on dark</p>
+      </div>
+      <div>
+        <div class="logo-stage light">
+          <svg viewBox="0 0 32 32" width="96" height="96" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="mono-note" style="margin-top:10px">On light · keep the dark tile</p>
+      </div>
+      <div>
+        <div class="logo-stage" style="flex-direction:column; gap:12px">
+          <div class="brand" style="font-size:22px">
+            <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Countersign
+          </div>
+        </div>
+        <p class="mono-note" style="margin-top:10px">Horizontal lockup · mark + wordmark</p>
+      </div>
+    </div>
+
+    <div class="kicker">Clear space, sizing & don'ts</div>
+    <div class="grid g2">
+      <div class="dd do">
+        <div class="h"><span class="tick">✓</span> Do</div>
+        <ul>
+          <li>Keep clear space around the mark equal to the height of the check.</li>
+          <li>Render the mark on its dark tile, even over light layouts.</li>
+          <li>Minimum size 20px (favicon) / 24px (UI). Below that, drop the wordmark, keep the mark.</li>
+          <li>Pair the wordmark in Inter Bold at the weight shown.</li>
+        </ul>
+      </div>
+      <div class="dd dont">
+        <div class="h"><span class="cross">✕</span> Don't</div>
+        <ul>
+          <li>Recolor the shield or check outside the brand blue / signal green.</li>
+          <li>Add gradients, bevels, or drop shadows to the mark itself.</li>
+          <li>Stretch, rotate, or outline the wordmark.</li>
+          <li>Place the mark on a busy photo without the dark tile behind it.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOR -->
+  <section id="color">
+    <div class="seyebrow">03 · Color</div>
+    <h2>Near-black canvas, one signal.</h2>
+    <p class="lead">The system is monochrome ink with three meaningful hues: <b>brand blue</b> for structure, <b>signal green</b> for the live/safe/allowed state, and used sparingly, <b>amber</b> for caution and <b>red</b> for the freeze. Color carries meaning — never decoration.</p>
+
+    <div class="kicker">Surfaces & lines (ink)</div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#07080b"></div><div class="meta"><div class="nm">Canvas</div><div class="hex">#07080B</div><div class="var">--cs-bg</div></div></div>
+      <div class="sw"><div class="chip" style="background:#0b0e15"></div><div class="meta"><div class="nm">Surface</div><div class="hex">#0B0E15</div><div class="var">--cs-surface</div></div></div>
+      <div class="sw"><div class="chip" style="background:#050609"></div><div class="meta"><div class="nm">Code well</div><div class="hex">#050609</div><div class="var">--cs-code-bg</div></div></div>
+      <div class="sw"><div class="chip" style="background:#1a2030"></div><div class="meta"><div class="nm">Hairline</div><div class="hex">#1A2030</div><div class="var">--cs-border</div></div></div>
+      <div class="sw"><div class="chip" style="background:#262f42"></div><div class="meta"><div class="nm">Border strong</div><div class="hex">#262F42</div><div class="var">--cs-border-strong</div></div></div>
+    </div>
+
+    <div class="kicker">Text</div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#e9edf6"></div><div class="meta"><div class="nm">Primary</div><div class="hex">#E9EDF6</div><div class="var">--cs-fg</div></div></div>
+      <div class="sw"><div class="chip" style="background:#aeb7c9"></div><div class="meta"><div class="nm">Soft</div><div class="hex">#AEB7C9</div><div class="var">--cs-fg-soft</div></div></div>
+      <div class="sw"><div class="chip" style="background:#868fa3"></div><div class="meta"><div class="nm">Muted</div><div class="hex">#868FA3</div><div class="var">--cs-fg-muted</div></div></div>
+      <div class="sw"><div class="chip" style="background:#5b6478"></div><div class="meta"><div class="nm">Faint</div><div class="hex">#5B6478</div><div class="var">--cs-fg-faint</div></div></div>
+    </div>
+
+    <div class="kicker">Brand & state</div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#7c9cff"></div><div class="meta"><div class="nm">Brand blue</div><div class="hex">#7C9CFF</div><div class="var">--cs-brand · structure</div></div></div>
+      <div class="sw"><div class="chip" style="background:#5cf2a9"></div><div class="meta"><div class="nm">Signal green</div><div class="hex">#5CF2A9</div><div class="var">--cs-accent · allow/live</div></div></div>
+      <div class="sw"><div class="chip" style="background:#ffcf6b"></div><div class="meta"><div class="nm">Amber</div><div class="hex">#FFCF6B</div><div class="var">--cs-state-caution</div></div></div>
+      <div class="sw"><div class="chip" style="background:#ff5f6b"></div><div class="meta"><div class="nm">Freeze red</div><div class="hex">#FF5F6B</div><div class="var">--cs-state-freeze</div></div></div>
+    </div>
+
+    <div class="grid g3" style="margin-top:22px">
+      <div class="panel"><div class="rail"><span class="dot"></span><b>Allowed / live</b></div><p class="desc" style="margin-top:8px">Signal green. A spend within policy; a confirmed freeze; a live rail.</p></div>
+      <div class="panel"><div class="rail"><span class="dot soon"></span><b>Needs approval / soon</b></div><p class="desc" style="margin-top:8px">Amber. Held for a human; a roadmap item not yet shipped.</p></div>
+      <div class="panel"><div class="rail"><span class="dot" style="background:#ff5f6b;box-shadow:0 0 10px var(--cs-glow-freeze)"></span><b>Denied / freeze</b></div><p class="desc" style="margin-top:8px">Red. A blocked transaction or the kill switch — used with weight, never as filler.</p></div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section id="type">
+    <div class="seyebrow">04 · Typography</div>
+    <h2>Two voices: human and machine.</h2>
+    <p class="lead"><b>Inter</b> writes the prose and the headlines — the human voice. <b>SF Mono</b> writes labels, eyebrows, metrics, commands and code — the machine voice. Uppercase mono with wide tracking is the system's signature for any label.</p>
+    <div class="specimen">
+      <div class="row"><span class="label">Display</span><span style="font-size:46px; font-weight:800; letter-spacing:-2px; line-height:1">Freeze in &lt;1s</span></div>
+      <div class="row"><span class="label">H2 / Inter 800</span><span style="font-size:30px; font-weight:800; letter-spacing:-1px">Build the layer above the wallets</span></div>
+      <div class="row"><span class="label">H3 / Inter 700</span><span style="font-size:19px; font-weight:700">One policy, compiled to each rail</span></div>
+      <div class="row"><span class="label">Body / Inter 400</span><span style="font-size:16px; color:var(--cs-fg-soft); max-width:520px">A neutral control plane that holds the policy, the freeze, and the audit ledger across every agent-wallet backend at once.</span></div>
+      <div class="row"><span class="label">Eyebrow / mono</span><span style="font-family:var(--cs-font-mono); font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--cs-accent)">How it works</span></div>
+      <div class="row"><span class="label">Metric / mono</span><span style="font-family:var(--cs-font-mono); font-size:30px; font-weight:800; letter-spacing:-1px">432<span style="color:var(--cs-accent)">ms</span></span></div>
+      <div class="row"><span class="label">Code / mono</span><span style="font-family:var(--cs-font-mono); font-size:13.5px; color:#cfe0ff">await cs.freeze();</span></div>
+    </div>
+  </section>
+
+  <!-- MOTIFS -->
+  <section id="motifs">
+    <div class="seyebrow">05 · Motifs & texture</div>
+    <h2>The blueprint, the aurora, the node.</h2>
+    <p class="lead">Three repeatable textures make any surface unmistakably Countersign without a single logo: a hairline <b>blueprint grid</b>, a single <b>signal-green aurora</b> behind the hero, and the <b>+ node</b> where structural lines meet.</p>
+    <div class="grid g3">
+      <div class="panel" style="overflow:hidden; min-height:150px; background-image:var(--cs-blueprint); background-size:28px 28px; background-color:var(--cs-surface)"><div class="kicker" style="margin:0">Blueprint grid</div><p class="desc">46px lattice at 5% blue, masked toward the corners. The engineering substrate.</p></div>
+      <div class="panel" style="overflow:hidden; min-height:150px; position:relative"><div style="position:absolute; inset:0; background:var(--cs-aurora); opacity:.9"></div><div class="kicker" style="margin:0; position:relative">Signal aurora</div><p class="desc" style="position:relative">One soft green glow, top-right, behind the hero only. The product is "one signal," visually too.</p></div>
+      <div class="panel node" style="min-height:150px"><div class="kicker" style="margin:0">The + node</div><p class="desc">A mono plus where a section rule meets the margin, or in a card corner. The blueprint's connection point.</p></div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section id="components">
+    <div class="seyebrow">06 · Components</div>
+    <h2>The kit.</h2>
+    <p class="lead">The building blocks every surface shares. Copy the markup, theme it with tokens.</p>
+
+    <div class="kicker">Buttons</div>
+    <div class="panel" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
+      <a class="btn primary">Get your key →</a>
+      <a class="btn">★ Star on GitHub</a>
+      <a class="btn ghost">Read the docs</a>
+      <a class="btn freeze">■ Freeze all</a>
+    </div>
+    <p class="desc">Primary = signal green (the one positive action per view). Freeze red is reserved for the kill switch. Ghost for tertiary. All button labels are mono.</p>
+
+    <div class="kicker">Pills, badges & status</div>
+    <div class="panel" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
+      <span class="pill"><span class="blip"></span> Four rails frozen in ~432ms</span>
+      <span class="badge live">Live</span>
+      <span class="badge soon">Soon</span>
+      <span class="badge brand">Apache-2.0</span>
+      <span class="badge deny">Denied</span>
+    </div>
+
+    <div class="kicker">Cards</div>
+    <div class="grid g3">
+      <div class="panel node"><h3 style="margin:2px 0 8px; font-size:17px">One unified policy</h3><p class="desc" style="margin:0">Per-tx caps, daily caps, allow/deny lists, approval thresholds, freeze. Written once.</p></div>
+      <div class="panel node"><h3 style="margin:2px 0 8px; font-size:17px">Compiled to each rail</h3><p class="desc" style="margin:0">Lowered to every backend's native controls — a hard limit, not a polite request.</p></div>
+      <div class="panel node"><h3 style="margin:2px 0 8px; font-size:17px">One freeze, audited</h3><p class="desc" style="margin:0">Stops every backend in &lt;1s, fail-closed, into a signed append-only ledger.</p></div>
+    </div>
+
+    <div class="kicker">Code & command</div>
+    <div class="grid g2">
+      <pre><code><span class="tok-k">import</span> { CountersignClient } <span class="tok-k">from</span> <span class="tok-s">"@countersign/sdk"</span>;
+<span class="tok-k">const</span> cs = <span class="tok-k">new</span> CountersignClient({ baseUrl, apiKey });
+
+<span class="tok-c">// may this spend happen?</span>
+<span class="tok-k">await</span> cs.evaluate({ agentId, amount, asset, venue });
+<span class="tok-c">// kill switch — every wallet, &lt; 1s</span>
+<span class="tok-k">await</span> cs.freeze();</code></pre>
+      <div>
+        <div class="cmd" style="margin-bottom:12px"><span><span class="dollar">$</span> npm i @countersign/sdk</span></div>
+        <div class="cmd"><span><span class="dollar">$</span> npx @countersign/mcp</span></div>
+        <p class="desc">Command boxes use the code well, a green <code>$</code>/<code>@</code> sigil, and a copy affordance on marketing surfaces.</p>
+      </div>
+    </div>
+
+    <div class="kicker">Metrics / stat band</div>
+    <div class="panel grid g4">
+      <div class="stat"><div class="n">432<span class="u">ms</span></div><div class="l">Four-rail freeze</div></div>
+      <div class="stat"><div class="n">4</div><div class="l">Rails live</div></div>
+      <div class="stat"><div class="n">115<span class="u">+</span></div><div class="l">Tests passing</div></div>
+      <div class="stat"><div class="n">&lt;1<span class="u">s</span></div><div class="l">Cross-vendor SLO</div></div>
+    </div>
+
+    <div class="kicker">Rail rows (ecosystem)</div>
+    <div class="grid g4">
+      <div class="panel"><div class="rail"><span class="dot"></span><h3 style="margin:0; font-size:15px">Coinbase</h3></div><p class="desc" style="margin-top:8px">MPC wallet · native per-tx cap.</p><span class="badge live">Live</span></div>
+      <div class="panel"><div class="rail"><span class="dot"></span><h3 style="margin:0; font-size:15px">Turnkey</h3></div><p class="desc" style="margin-top:8px">In-enclave CEL policy.</p><span class="badge live">Live</span></div>
+      <div class="panel"><div class="rail"><span class="dot"></span><h3 style="margin:0; font-size:15px">Openfort</h3></div><p class="desc" style="margin-top:8px">On-chain session-key policy.</p><span class="badge live">Live</span></div>
+      <div class="panel"><div class="rail"><span class="dot"></span><h3 style="margin:0; font-size:15px">Lithic</h3></div><p class="desc" style="margin-top:8px">Virtual Visa card · ASA.</p><span class="badge live">Live</span></div>
+    </div>
+  </section>
+
+  <!-- VOICE -->
+  <section id="voice">
+    <div class="seyebrow">07 · Voice & tone</div>
+    <h2>Precise, falsifiable, calm.</h2>
+    <p class="lead">We sound like a security engineer who respects your time: confident because the claim is runnable, never hyped. Lead with the number. Name the threat plainly. Never overstate what's shipped — testnet is testnet.</p>
+    <div class="grid g2">
+      <div class="dd do">
+        <div class="h"><span class="tick">✓</span> Write like this</div>
+        <ul>
+          <li>"Freeze four rails in ~432ms. Don't take our word for it — run it."</li>
+          <li>"Fail-closed: no decision, no spend."</li>
+          <li>"One policy, compiled to each backend's native controls."</li>
+          <li>"Testnet today; mainnet follows a third-party audit."</li>
+        </ul>
+      </div>
+      <div class="dd dont">
+        <div class="h"><span class="cross">✕</span> Not like this</div>
+        <ul>
+          <li>"Revolutionary, AI-powered, next-gen security platform."</li>
+          <li>"Guaranteed to stop all fraud, instantly, forever."</li>
+          <li>Vague superlatives with no number behind them.</li>
+          <li>Implying mainnet/custody we don't yet offer.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <div class="kicker" style="margin-top:0">Lexicon</div>
+      <p class="desc">Prefer: <b>control plane</b>, <b>rail</b>, <b>kill switch</b>, <b>spend guard</b>, <b>fail-closed</b>, <b>tamper-evident ledger</b>, <b>cross-vendor</b>, <b>neutral</b>. Avoid: "wallet" (we're above wallets), "custody" (we never custody), "blockchain" as a buzzword, "AI" as decoration.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap frow">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+    <span class="spacer"></span>
+    <a href="system-map.html">System map</a>
+    <a href="roadmap.html">Roadmap</a>
+    <a href="whitepaper.html">White paper</a>
+    <a href="index.html">Brand hub</a>
+  </div>
+  <div class="wrap"><p class="mono-note" style="margin-top:18px">Countersign holds policy, freeze, and a tamper-evident ledger — it never takes custody of funds. © 2026 Countersign. Apache-2.0 open core.</p></div>
+</footer>
+</body>
+</html>

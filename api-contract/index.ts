@@ -7,8 +7,7 @@
  * still only call these endpoints — it holds no keys and cannot weaken policy or move funds.
  */
 
-import type { EnforcementMode, FreezeReport, LedgerEvent } from "@countersign/core";
-import type { UnifiedPolicy } from "@countersign/policy";
+import type { EnforcementMode, FreezeReport, LedgerEvent, UnifiedPolicy } from "@countersign/core";
 
 export const WS_PATH = "/events";
 

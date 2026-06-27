@@ -17,7 +17,6 @@ export default {
     alias({
       entries: [
         { find: "@countersign/core", replacement: emitted("packages/core/src/index.d.ts") },
-        { find: "@countersign/policy", replacement: emitted("packages/policy/src/index.d.ts") },
       ],
     }),
     dts(),
