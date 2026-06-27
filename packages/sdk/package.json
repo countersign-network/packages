@@ -1,6 +1,6 @@
 {
   "name": "@countersign/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Countersign SDK — the typed client agents and operators use to wire in the cross-vendor freeze, spend-guard, and live audit ledger. Browser + Node.",
   "license": "Apache-2.0",
   "type": "module",
@@ -9,7 +9,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE"],
   "publishConfig": {
     "access": "public",
     "main": "./dist/index.cjs",

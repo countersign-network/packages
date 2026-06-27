@@ -1,6 +1,6 @@
 {
   "name": "@countersign/api-contract",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Countersign Core API contract — typed REST + ws schema and OpenAPI spec for the cross-vendor agent-spend control plane.",
   "license": "Apache-2.0",
   "type": "module",
@@ -10,7 +10,7 @@
     ".": "./index.ts",
     "./openapi": "./openapi.yaml"
   },
-  "files": ["dist", "openapi.yaml"],
+  "files": ["dist", "openapi.yaml", "LICENSE"],
   "publishConfig": {
     "access": "public",
     "main": "./dist/index.cjs",
@@ -36,6 +36,9 @@
   },
   "homepage": "https://countersign.network",
   "keywords": ["countersign", "ai-agents", "agent-payments", "openapi", "policy", "freeze"],
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
   "devDependencies": {
     "@countersign/core": "workspace:*",
     "@countersign/policy": "workspace:*",

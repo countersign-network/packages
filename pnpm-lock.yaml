@@ -41,6 +41,10 @@ importers:
         version: 2.1.9(@types/node@22.19.21)
 
   api-contract:
+    dependencies:
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@countersign/core':
         specifier: workspace:*
