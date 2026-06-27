@@ -44,6 +44,13 @@ export interface TurnkeyConfig {
   apiPrivateKey?: string;
   organizationId?: string;
   apiBaseUrl?: string;
+  /**
+   * Turnkey user id(s) allowed to co-approve an over-threshold spend. When set, the compiled
+   * approval-threshold clause is installed as Turnkey's NATIVE consensus gate (a spend above the cap
+   * returns ACTIVITY_STATUS_CONSENSUS_NEEDED and won't sign until one of these users approves). When
+   * empty, that clause stays Countersign-layer-enforced (we won't push a placeholder approver).
+   */
+  approverUserIds?: string[];
 }
 
 /** Everything we provision per agent, so we can later policy/freeze/revoke it. */
@@ -66,6 +73,21 @@ interface TurnkeyAgent {
   turnkeyPolicyIds: string[];
   /** The EFFECT_DENY policy id installed by freeze() (so unfreeze can deletePolicy it). */
   freezePolicyId?: string;
+}
+
+/**
+ * Substitute the compiled approval-threshold consensus placeholder with real Turnkey approver user
+ * id(s). Each id is asserted safe FIRST (alphanumeric + hyphen) so nothing can break out of the CEL
+ * string — CEL-injection defense in depth, mirroring the policy compiler's qAddr.
+ */
+function bindApprovers(consensus: string, approverUserIds: string[]): string {
+  const clauses = approverUserIds.map((id) => {
+    if (!/^[A-Za-z0-9-]{1,64}$/.test(id)) {
+      throw new Error(`turnkey: refusing to embed an unsafe approver user id: ${JSON.stringify(id).slice(0, 24)}…`);
+    }
+    return `u.id == '${id}'`;
+  });
+  return consensus.replace(`u.id == '${HUMAN_APPROVER_PLACEHOLDER}'`, clauses.join(" || "));
 }
 
 export class TurnkeyProvider implements EnforcementProvider {
@@ -209,14 +231,20 @@ export class TurnkeyProvider implements EnforcementProvider {
     const client = this.client();
     const native: TurnkeyPolicyDoc = compile(policy, "pre-sign-policy");
 
+    const approvers = this.config.approverUserIds ?? [];
     let boundClauses = 0;
     const countersignTracked: string[] = [...native.unsupported.map((u) => u.field)];
     for (const entry of native.policies) {
-      // Never silently weaken (invariant #5): a clause that needs a human approver we don't have
-      // configured is NOT pushed loosened — it's tracked as Countersign-enforced instead.
-      if (entry.consensus && entry.consensus.includes(HUMAN_APPROVER_PLACEHOLDER)) {
-        countersignTracked.push(entry.policyName);
-        continue;
+      let consensus = entry.consensus ?? undefined;
+      // A clause that needs a human approver: bind it to the configured Turnkey approver id(s) so the
+      // native CONSENSUS_NEEDED gate is real. Never silently weaken (invariant #5) — if no approver is
+      // configured we DON'T push a placeholder; the clause is tracked as Countersign-enforced instead.
+      if (consensus && consensus.includes(HUMAN_APPROVER_PLACEHOLDER)) {
+        if (approvers.length === 0) {
+          countersignTracked.push(entry.policyName);
+          continue;
+        }
+        consensus = bindApprovers(consensus, approvers);
       }
       // condition gates WHEN; consensus (only when the compiler set one) gates WHO must approve.
       const res = await client.createPolicy({
@@ -225,7 +253,7 @@ export class TurnkeyProvider implements EnforcementProvider {
         effect: entry.effect,
         condition: entry.condition,
         notes: entry.notes,
-        ...(entry.consensus ? { consensus: entry.consensus } : {}),
+        ...(consensus ? { consensus } : {}),
       });
       if (!res.policyId) throw new Error(`turnkey: createPolicy did not confirm (${entry.policyName})`);
       a.turnkeyPolicyIds.push(res.policyId);
