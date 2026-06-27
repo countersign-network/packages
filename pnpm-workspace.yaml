@@ -7,12 +7,15 @@ allowBuilds:
   '@openfort/openfort-node': false
   esbuild: true
 # Force patched transitive deps everywhere (prod audit gates CI on high+):
-#  - ws    (vulnerable via viem/isows — GHSA-96hv-2xvq-fx4p)
-#  - axios (cleartext-transmission advisory; bumped past the Aikido finding on <1.18.1)
-#  - hono  (race-condition advisory fixed in 4.12.27 — pulled in transitively by a vendor SDK)
+#  - ws               (vulnerable via viem/isows — GHSA-96hv-2xvq-fx4p)
+#  - axios            (cleartext-transmission advisory; past the Aikido finding on <1.18.1)
+#  - hono             (race-condition advisory fixed in 4.12.27 — transitive via the MCP SDK)
+#  - @hono/node-server (advisory fixed in 2.0.5 — transitive via the MCP SDK's HTTP transport,
+#                       which we never load: our MCP server is stdio-only, so this is runtime-inert)
 overrides:
   ws: '>=8.21.0'
   axios: '>=1.18.1'
   hono: '>=4.12.27'
+  '@hono/node-server': '>=2.0.5'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
