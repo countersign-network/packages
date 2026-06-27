@@ -1,0 +1,59 @@
+name: Release (npm publish + provenance)
+
+# Publishes the open-core front-door packages to npm WITH provenance — a signed,
+# verifiable attestation (via GitHub's OIDC) that the tarball was built from this
+# repo at this commit. npm shows a "Provenance" badge and the build/source links.
+#
+# ONE-TIME SETUP (the only manual step): create an npm *Automation* access token for
+# the `screan` account (npmjs.com → Access Tokens → Generate → Automation — classic,
+# NOT granular: granular tokens 403 on npm's 2FA-publish gate) and add it to this
+# repo as a secret named NPM_TOKEN (GitHub → Settings → Secrets and variables →
+# Actions → New repository secret).
+#
+# TO RELEASE: bump the version in the package(s), commit, then push a tag, e.g.
+#   git tag v0.1.2 && git push origin v0.1.2
+# (or run this workflow manually from the Actions tab). It publishes whatever
+# versions are currently in the manifests; npm rejects a version that already exists.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # REQUIRED for npm provenance (OIDC). Without it, --provenance fails.
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org # writes the token-based .npmrc
+
+      - run: pnpm install --frozen-lockfile
+
+      # Gate: never publish a broken build.
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # Publish order matters: sdk depends on api-contract (workspace:^ → ^x.y.z).
+      # prepublishOnly builds each package; publishConfig swaps src→dist entry points.
+      - name: Publish @countersign/api-contract
+        run: pnpm --filter @countersign/api-contract publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @countersign/sdk
+        run: pnpm --filter @countersign/sdk publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
