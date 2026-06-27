@@ -13,6 +13,7 @@ import {
   type AgentId,
   type AgentRef,
   type EnforcementProvider,
+  type FreezeAlert,
   type FreezeReport,
   type LedgerEvent,
   type ProviderId,
@@ -34,6 +35,8 @@ export interface CountersignCoreOptions {
   ledger?: LedgerPort<LedgerEvent>;
   /** External anchor for the ledger head (published after each freeze). See ledger/anchor.ts. */
   anchor?: LedgerAnchor;
+  /** Human-escalation hook: called when a freeze resolves STILL DANGEROUS (wire to a pager). */
+  alert?: (alert: FreezeAlert) => void | Promise<void>;
   freezeTimeoutMs?: number;
   escalateTimeoutMs?: number;
   now?: () => number;
@@ -62,6 +65,7 @@ export class CountersignCore {
     if (opts.anchor) this.anchor = opts.anchor;
     this.controller = new FreezeController(this.registrations, {
       record: (e) => this.append(e),
+      ...(opts.alert !== undefined ? { alert: opts.alert } : {}),
       ...(opts.freezeTimeoutMs !== undefined ? { freezeTimeoutMs: opts.freezeTimeoutMs } : {}),
       ...(opts.escalateTimeoutMs !== undefined ? { escalateTimeoutMs: opts.escalateTimeoutMs } : {}),
       ...(opts.now !== undefined ? { now: opts.now } : {}),

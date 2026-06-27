@@ -50,8 +50,26 @@ export interface FreezeReport {
   providers: PerProviderFreeze[];
 }
 
+/**
+ * Emitted ONLY when a freeze cannot be fully confirmed (some agent/provider is still dangerous after
+ * escalation). Production wires this to a pager/Slack — a kill switch nobody is alerted about isn't one.
+ */
+export interface FreezeAlert {
+  freezeId: string;
+  /** Providers/agents that could NOT be confirmed stopped — the live dangerous window. */
+  dangerous: { providerId: ProviderId; agentId?: AgentId }[];
+  windowMs: number;
+  reason: string;
+  ts: number;
+}
+
 export interface FreezeControllerOptions {
   record: LedgerSink["append"];
+  /**
+   * Called when a freeze resolves STILL DANGEROUS (best-effort; a failing alert never aborts or
+   * crashes the freeze). This is the human-escalation hook for production (PagerDuty/Slack/etc.).
+   */
+  alert?: (alert: FreezeAlert) => void | Promise<void>;
   /** Per-provider freeze timeout. A hung backend must not block the fan-out. Default 800ms. */
   freezeTimeoutMs?: number;
   /** Per-agent escalation (revokeSession) timeout. Default 800ms. */
@@ -102,12 +120,14 @@ export class FreezeController {
   private readonly now: () => number;
   private readonly idFactory: () => string;
   private readonly sink: LedgerSink["append"];
+  private readonly alertSink: ((alert: FreezeAlert) => void | Promise<void>) | undefined;
 
   constructor(
     private readonly registrations: ProviderRegistration[],
     opts: FreezeControllerOptions,
   ) {
     this.sink = opts.record;
+    this.alertSink = opts.alert;
     this.freezeTimeoutMs = opts.freezeTimeoutMs ?? 800;
     this.escalateTimeoutMs = opts.escalateTimeoutMs ?? 800;
     this.now = opts.now ?? (() => Date.now());
@@ -148,17 +168,14 @@ export class FreezeController {
         dangerous: dangerous.map((r) => r.providerId),
         ts: this.now(),
       });
-      await this.record({
-        kind: "still_dangerous",
-        freezeId,
-        dangerous: dangerous.flatMap((r) =>
-          r.dangerousAgents.length > 0
-            ? r.dangerousAgents.map((agentId) => ({ providerId: r.providerId, agentId }))
-            : [{ providerId: r.providerId }],
-        ),
-        windowMs,
-        ts: this.now(),
-      });
+      const dangerousList = dangerous.flatMap((r) =>
+        r.dangerousAgents.length > 0
+          ? r.dangerousAgents.map((agentId) => ({ providerId: r.providerId, agentId }))
+          : [{ providerId: r.providerId }],
+      );
+      await this.record({ kind: "still_dangerous", freezeId, dangerous: dangerousList, windowMs, ts: this.now() });
+      // Page a human — the ledger row alone isn't an alert. Best-effort: never abort the freeze.
+      await this.raiseAlert({ freezeId, dangerous: dangerousList, windowMs, reason, ts: this.now() });
     }
 
     return { freezeId, requestedAt: t0, windowMs, allStopped: dangerous.length === 0, providers: results };
@@ -224,6 +241,16 @@ export class FreezeController {
       }),
     );
     return outcomes.filter((o) => !o.ok).map((o) => o.agentId);
+  }
+
+  /** Best-effort human alert — a failing/ slow pager must never crash or block the kill switch. */
+  private async raiseAlert(alert: FreezeAlert): Promise<void> {
+    if (!this.alertSink) return;
+    try {
+      await this.alertSink(alert);
+    } catch (err) {
+      console.error("[freeze-controller] alert sink failed:", err);
+    }
   }
 
   /** Best-effort audit write — a logging failure must never crash the kill switch. */

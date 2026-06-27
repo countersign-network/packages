@@ -7,7 +7,7 @@
  * watch every backend stop and subsequent spends get blocked. Unfreeze to replay.
  */
 
-import type { LedgerEvent } from "@countersign/core";
+import type { FreezeAlert, LedgerEvent } from "@countersign/core";
 import { definePolicy, type SpendAttempt } from "@countersign/policy";
 import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@countersign/ledger";
 import { AnomalyMonitor, CountersignCore, createCountersignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
@@ -33,10 +33,31 @@ const anchor = anchorFile ? new FileAnchor(anchorFile) : undefined;
 //    at a time in the dashboard, and the headline action is connecting a SECOND backend.
 const ambient = process.env["COUNTERSIGN_DEMO_TRAFFIC"] === "on";
 
+// Human escalation: POST a still-dangerous freeze to a pager/Slack webhook if one is configured.
+// A kill switch nobody is alerted about isn't one (the ledger row alone won't page anyone).
+const alertWebhook = process.env["COUNTERSIGN_ALERT_WEBHOOK"];
+const alert = alertWebhook
+  ? async (a: FreezeAlert): Promise<void> => {
+      try {
+        await fetch(alertWebhook, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            text: `⚠️ Countersign freeze STILL DANGEROUS (${a.freezeId}): ${a.dangerous.length} target(s) not confirmed stopped in ${a.windowMs}ms`,
+            alert: a,
+          }),
+        });
+      } catch (err) {
+        console.error("[countersign] alert webhook POST failed:", err);
+      }
+    }
+  : undefined;
+if (alert) console.log("  alerting: still-dangerous freezes POST → COUNTERSIGN_ALERT_WEBHOOK");
+
 let core: CountersignCore;
 let fleet: DemoFleetMember[] = [];
 if (ambient) {
-  ({ core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}) }));
+  ({ core, fleet } = await createDemoCore({ applyDefaultPolicy: false, ledger, ...(anchor ? { anchor } : {}), ...(alert ? { alert } : {}) }));
   // A policy with an approval band so the live dashboard surfaces pending approvals to act on.
   await core.applyPolicy(
     definePolicy({
@@ -48,7 +69,7 @@ if (ambient) {
     }),
   );
 } else {
-  core = new CountersignCore({ ledger, ...(anchor ? { anchor } : {}) });
+  core = new CountersignCore({ ledger, ...(anchor ? { anchor } : {}), ...(alert ? { alert } : {}) });
 }
 console.log(`  mode: ${ambient ? "ambient fleet demo" : "connect demo (start empty → connect backends)"}`);
 console.log(`  ledger: ${databaseUrl ? "Postgres" : "in-memory"} · signed (verify pubkey: ${signer.publicKey.slice(0, 24)}…)${anchor ? ` · anchoring → ${anchorFile}` : ""}`);

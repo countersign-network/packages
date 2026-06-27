@@ -5,7 +5,7 @@
  * and by embedded mode, so "one command, no config" works everywhere.
  */
 
-import { asAgentId, type AgentId, type EnforcementMode, type LedgerEvent } from "@countersign/core";
+import { asAgentId, type AgentId, type EnforcementMode, type FreezeAlert, type LedgerEvent } from "@countersign/core";
 import { definePolicy } from "@countersign/policy";
 import { MockProvider } from "@countersign/provider-mock";
 import type { LedgerAnchor, LedgerPort } from "@countersign/ledger";
@@ -83,10 +83,12 @@ export async function createDemoCore(opts?: {
   applyDefaultPolicy?: boolean;
   ledger?: LedgerPort<LedgerEvent>;
   anchor?: LedgerAnchor;
+  alert?: (a: FreezeAlert) => void | Promise<void>;
 }): Promise<{ core: CountersignCore; fleet: DemoFleetMember[] }> {
   const core = new CountersignCore({
     ...(opts?.ledger ? { ledger: opts.ledger } : {}),
     ...(opts?.anchor ? { anchor: opts.anchor } : {}),
+    ...(opts?.alert ? { alert: opts.alert } : {}),
   });
   const specs: { id: string; mode: EnforcementMode; venue: string; label: string }[] = [
     { id: "coinbase", mode: "native-session-caps", venue: "base-sepolia", label: "payments-bot" },

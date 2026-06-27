@@ -179,6 +179,34 @@ describe("FreezeController — fail-closed cross-vendor freeze", () => {
     expect(p95).toBeLessThan(1000);
   });
 
+  it("alert sink fires ONLY when still-dangerous, with the dangerous targets", async () => {
+    const { record } = recorder();
+    const alerts: { freezeId: string; dangerous: { providerId: string; agentId?: string }[] }[] = [];
+    const alert = (a: { freezeId: string; dangerous: { providerId: string; agentId?: string }[] }) => void alerts.push(a);
+
+    // All confirm → no alert.
+    await new FreezeController([fakeRegistration({ id: "coinbase", freeze: "confirm" })], { record, alert }).freezeAll();
+    expect(alerts).toHaveLength(0);
+
+    // Unconfirmed + revoke fails → still dangerous → exactly one alert naming the target.
+    await new FreezeController(
+      [fakeRegistration({ id: "turnkey", mode: "pre-sign-policy", freeze: "unconfirmed", revoke: "fail" })],
+      { record, alert },
+    ).freezeAll("kill");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.dangerous).toEqual([{ providerId: "turnkey", agentId: "turnkey-agent" }]);
+  });
+
+  it("a throwing alert sink never breaks the freeze (best-effort)", async () => {
+    const { record } = recorder();
+    const c = new FreezeController(
+      [fakeRegistration({ id: "turnkey", mode: "pre-sign-policy", freeze: "unconfirmed", revoke: "fail" })],
+      { record, alert: () => { throw new Error("pager down"); } },
+    );
+    const report = await c.freezeAll();
+    expect(report.allStopped).toBe(false); // freeze still returns its verdict despite the alert throwing
+  });
+
   it("parallel fan-out (fake timers): three freezes of 300/500/800ms settle within one 800ms window", async () => {
     vi.useFakeTimers();
     const { events, record } = recorder();
