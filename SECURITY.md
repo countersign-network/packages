@@ -12,7 +12,7 @@ Do **not** use it with mainnet funds or real custody. (Prime directive #6: testn
 
 Please report privately — do **not** open a public issue:
 
-- Email **simon.crean@gmail.com** with `[countersign-security]` in the subject, or
+- Email **support@countersign.network** with `[countersign-security]` in the subject, or
 - Use GitHub's **private vulnerability reporting** (Security → Report a vulnerability).
 
 Include a description, affected component (package/file), and reproduction steps. We aim to
