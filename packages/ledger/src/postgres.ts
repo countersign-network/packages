@@ -12,6 +12,10 @@ import { APPEND_ONLY_TRIGGER_SQL, type LedgerPort } from "./port";
  * connection pool. This assumes a SINGLE writer instance (the right shape for a ledger writer); a
  * multi-instance deployment would need a DB advisory lock / SELECT ... FOR UPDATE on the head row.
  */
+// Fixed key for the ledger's transaction-scoped advisory lock (0x434E5452 = "CNTR"). All Core
+// instances on the same DB contend on this one lock, so appends serialize cluster-wide.
+const LEDGER_ADVISORY_LOCK_KEY = 0x434e5452;
+
 interface Row {
   idx: number;
   prev_hash: string;
@@ -57,15 +61,32 @@ export class PostgresLedger<T = LedgerEvent> implements LedgerPort<T> {
   }
 
   private async appendNow(payload: T): Promise<LedgerRecord<T>> {
-    const head = await this.getHead();
-    const prev = head?.rowHash ?? GENESIS_HASH;
-    const index = head ? head.index + 1 : 0;
-    const rec = makeRecord<T>(index, prev, payload, this.signer);
-    await this.pool.query(
-      "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload, signature) VALUES ($1, $2, $3, $4, $5::jsonb, $6)",
-      [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload), rec.signature ?? null],
-    );
-    return rec;
+    // HA-safe across instances: the in-app `tail` mutex only serializes ONE process. With multiple
+    // Core instances on the same DB, two appends could read the same head, compute the same idx, and
+    // collide on the PK / fork the chain. So acquire a transaction-scoped Postgres ADVISORY LOCK,
+    // then read the head and insert inside that same transaction — the lock auto-releases on commit/
+    // rollback, serializing the head-read→insert critical section cluster-wide.
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock($1)", [LEDGER_ADVISORY_LOCK_KEY]);
+      const headRes = await client.query<Row>("SELECT * FROM ledger ORDER BY idx DESC LIMIT 1");
+      const head = headRes.rows[0] ? this.toRecord(headRes.rows[0]) : undefined;
+      const prev = head?.rowHash ?? GENESIS_HASH;
+      const index = head ? head.index + 1 : 0;
+      const rec = makeRecord<T>(index, prev, payload, this.signer);
+      await client.query(
+        "INSERT INTO ledger (idx, prev_hash, payload_hash, row_hash, payload, signature) VALUES ($1, $2, $3, $4, $5::jsonb, $6)",
+        [rec.index, rec.prevHash, rec.payloadHash, rec.rowHash, JSON.stringify(rec.payload), rec.signature ?? null],
+      );
+      await client.query("COMMIT");
+      return rec;
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   private toRecord(r: Row): LedgerRecord<T> {
