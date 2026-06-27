@@ -339,8 +339,14 @@
   function startClock(){ t0=performance.now(); if(tick) cancelAnimationFrame(tick); const loop=()=>{ msEl.textContent=Math.round(performance.now()-t0); tick=requestAnimationFrame(loop); }; loop(); }
   function stopClock(v){ if(tick) cancelAnimationFrame(tick); if(v!=null) msEl.textContent=v; }
   function clk(){ const ms=Math.round(performance.now()-t0); const s=String(Math.floor(ms/1000)).padStart(2,'0'); const m=String(ms%1000).padStart(3,'0'); return '00:'+s+'.'+m; }
-  function line(ev,cls,txt){ const d=document.createElement('div'); d.className='ln'; d.innerHTML=`<span class="ts">${clk()}</span><span class="ev ${cls}">${ev}</span><span>${txt}</span>`; log.appendChild(d); log.scrollTop=log.scrollHeight; }
-  function clearLog(){ log.innerHTML=''; }
+  function line(ev,cls,txt){
+    const d=document.createElement('div'); d.className='ln';
+    const ts=document.createElement('span'); ts.className='ts'; ts.textContent=clk();
+    const e=document.createElement('span'); e.className='ev '+cls; e.textContent=ev;
+    const t=document.createElement('span'); t.textContent=txt;
+    d.append(ts,e,t); log.appendChild(d); log.scrollTop=log.scrollHeight;
+  }
+  function clearLog(){ log.replaceChildren(); }
   function setRail(i,state){ rails[i].className='rail '+state; }
 
   function flyPulse(id, x, y0, y1, dur, cb){
