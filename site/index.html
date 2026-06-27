@@ -150,11 +150,11 @@
           </div>
           <div class="card">
             <span class="num">3</span>
-            <h3>Run the live demo</h3>
-            <p>3 agents · 3 backends · 3 venues · one freeze under a second, with a re-verified hash-chained ledger.</p>
-            <span class="cmd" style="font-size:12.5px"><span>pnpm install &amp;&amp; pnpm demo</span>
-              <button class="copy" data-copy="git clone https://github.com/countersign-network/countersign && cd countersign && pnpm install && pnpm demo">Copy</button></span>
-            <p class="kv" style="margin-top:12px">Also: ship it as <b>MCP tools</b> inside Claude / Cursor, or govern <b>x402</b> machine-payments.</p>
+            <h3>Drop it into your agent (MCP)</h3>
+            <p>Add Countersign as <b>MCP tools</b> in Claude, Cursor, or any MCP client — the kill switch + spend guard, one line.</p>
+            <span class="cmd" style="font-size:12.5px"><span><span class="dollar">$</span> npx @countersign/mcp</span>
+              <button class="copy" data-copy='{ "mcpServers": { "countersign": { "command": "npx", "args": ["-y", "@countersign/mcp"], "env": { "COUNTERSIGN_URL": "https://app.countersign.network", "COUNTERSIGN_API_KEY": "csk_…" } } } }'>Copy config</button></span>
+            <p class="kv" style="margin-top:12px">Or run the full demo locally: <b>pnpm demo</b> — 3 agents, 3 backends, one freeze &lt;1s.</p>
           </div>
         </div>
       </section>
@@ -182,7 +182,7 @@
         <div class="grid g4" style="margin-top:16px">
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">x402</h3></div><p class="kv" style="margin-top:10px">Govern the HTTP-402 machine-payment rail before it pays.</p><span class="badge live">LIVE</span></div>
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">MCP</h3></div><p class="kv" style="margin-top:10px">Kill switch + spend guard as tools inside any MCP client.</p><span class="badge live">LIVE</span></div>
-          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">npm</h3></div><p class="kv" style="margin-top:10px"><code>@countersign/sdk</code> · <code>@countersign/api-contract</code></p><span class="badge live">PUBLISHED</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">npm</h3></div><p class="kv" style="margin-top:10px"><code>@countersign/sdk</code> · <code>@countersign/mcp</code> · <code>@countersign/api-contract</code></p><span class="badge live">PUBLISHED</span></div>
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Open core</h3></div><p class="kv" style="margin-top:10px">Front-door packages under Apache-2.0. Audit it yourself.</p><span class="badge live">APACHE-2.0</span></div>
         </div>
       </section>
