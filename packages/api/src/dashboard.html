@@ -166,8 +166,11 @@
         if (e.kind === "freeze_requested") $("cFreeze").textContent = ++freezes;
         const div = document.createElement("div");
         div.className = "row k-" + e.kind;
-        div.innerHTML = '<span class="ix">#' + rec.index + '</span><span class="msg"></span>';
-        div.querySelector(".msg").textContent = fmt(e);
+        const ix = document.createElement("span");
+        ix.className = "ix"; ix.textContent = "#" + rec.index;
+        const msg = document.createElement("span");
+        msg.className = "msg"; msg.textContent = fmt(e); // textContent — payloads carry agent data
+        div.append(ix, msg);
         const feed = $("feed");
         feed.insertBefore(div, feed.firstChild);
         while (feed.childNodes.length > 300) feed.removeChild(feed.lastChild);
@@ -175,33 +178,54 @@
 
       function renderMoat(m) {
         const el = $("moat");
+        // Build with text nodes + <b> elements (no innerHTML) — uniform with the data-driven renderers.
+        const set = (parts) => {
+          el.textContent = "";
+          for (const p of parts) {
+            if (typeof p === "string") el.appendChild(document.createTextNode(p));
+            else { const b = document.createElement("b"); b.textContent = p.b; el.appendChild(b); }
+          }
+        };
         if (m.connectedCount === 0) {
           el.className = "moat hint";
-          el.innerHTML = "Connect a backend to begin. The whole thesis: <b>connect a second one</b> — one policy, one freeze, one ledger across rails no single wallet vendor can span.";
+          set(["Connect a backend to begin. The whole thesis: ", { b: "connect a second one" }, " — one policy, one freeze, one ledger across rails no single wallet vendor can span."]);
         } else if (m.multiBackend) {
           el.className = "moat live";
           const t = m.timeToSecondBackendMs != null ? " (2nd connected " + (m.timeToSecondBackendMs / 1000).toFixed(1) + "s after the 1st)" : "";
-          el.innerHTML = "✓ <b>Multi-backend control plane live</b> — " + m.connectedCount + " backends under one freeze" + t + ". This is the moat.";
+          set(["✓ ", { b: "Multi-backend control plane live" }, " — " + m.connectedCount + " backends under one freeze" + t + ". This is the moat."]);
         } else {
           el.className = "moat hint";
-          el.innerHTML = "<b>1 backend connected.</b> Now connect a <b>second</b> — that's the one thing a single wallet vendor can't do for you.";
+          set([{ b: "1 backend connected." }, " Now connect a ", { b: "second" }, " — that's the one thing a single wallet vendor can't do for you."]);
         }
       }
 
       async function loadBackends() {
         const data = await fetch("/backends").then((r) => r.json());
         renderMoat(data.metrics);
-        $("backends").innerHTML = data.backends
-          .map((b) =>
-            '<div class="bk ' + (b.connected ? "on" : "") + '"><div class="info">' +
-            '<div class="name">' + b.label + "</div>" +
-            '<div class="sub">' + b.mode + " · " + b.blurb + "</div></div>" +
-            (b.connected
-              ? '<span class="on-tag">connected</span>'
-              : '<button class="conn" data-connect="' + b.id + '">+ Connect</button>') +
-            "</div>",
-          )
-          .join("");
+        const host = $("backends");
+        host.textContent = "";
+        for (const b of data.backends) {
+          const card = document.createElement("div");
+          card.className = "bk" + (b.connected ? " on" : "");
+          const info = document.createElement("div");
+          info.className = "info";
+          const name = document.createElement("div");
+          name.className = "name"; name.textContent = b.label;
+          const sub = document.createElement("div");
+          sub.className = "sub"; sub.textContent = b.mode + " · " + b.blurb;
+          info.append(name, sub);
+          card.appendChild(info);
+          if (b.connected) {
+            const tag = document.createElement("span");
+            tag.className = "on-tag"; tag.textContent = "connected";
+            card.appendChild(tag);
+          } else {
+            const btn = document.createElement("button");
+            btn.className = "conn"; btn.textContent = "+ Connect"; btn.dataset.connect = b.id;
+            card.appendChild(btn);
+          }
+          host.appendChild(card);
+        }
       }
 
       $("backends").addEventListener("click", async (e) => {
@@ -236,15 +260,31 @@
       async function loadApprovals() {
         const { approvals } = await fetch("/approvals").then((r) => r.json());
         const el = $("approvals");
-        if (!approvals.length) { el.innerHTML = '<div class="empty">none</div>'; return; }
-        el.innerHTML = approvals
-          .map((a) =>
-            '<div class="appr"><div class="who">' + a.agentId + " · " + usdc(a.amount) + " → " + (a.counterparty || "?") + "</div>" +
-            '<div class="why">' + a.reason + "</div>" +
-            '<div class="btns"><button class="ok" data-ok="' + a.approvalToken + '">Approve</button>' +
-            '<button class="no" data-no="' + a.approvalToken + '">Deny</button></div></div>',
-          )
-          .join("");
+        el.textContent = "";
+        if (!approvals.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty"; empty.textContent = "none";
+          el.appendChild(empty);
+          return;
+        }
+        for (const a of approvals) {
+          const wrap = document.createElement("div");
+          wrap.className = "appr";
+          const who = document.createElement("div");
+          who.className = "who";
+          who.textContent = a.agentId + " · " + usdc(a.amount) + " → " + (a.counterparty || "?");
+          const why = document.createElement("div");
+          why.className = "why"; why.textContent = a.reason; // agent-supplied — textContent, never innerHTML
+          const btns = document.createElement("div");
+          btns.className = "btns";
+          const ok = document.createElement("button");
+          ok.className = "ok"; ok.textContent = "Approve"; ok.dataset.ok = a.approvalToken;
+          const no = document.createElement("button");
+          no.className = "no"; no.textContent = "Deny"; no.dataset.no = a.approvalToken;
+          btns.append(ok, no);
+          wrap.append(who, why, btns);
+          el.appendChild(wrap);
+        }
       }
       $("approvals").addEventListener("click", async (e) => {
         const el = e.target;

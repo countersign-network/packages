@@ -9,13 +9,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false # this job never pushes; don't leave the token in .git/config
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -35,15 +37,19 @@ jobs:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0 # scan full history, not just the latest commit
+          persist-credentials: false # this job never pushes; don't leave the token in .git/config
       # Run the gitleaks CLI directly (Apache/MIT, no license key). The gitleaks-action@v2 wrapper
       # now requires a paid GITLEAKS_LICENSE secret for orgs; the binary does not. Same scan, same
-      # auto-discovered .gitleaks.toml, fails the job on any finding.
+      # auto-discovered .gitleaks.toml, fails the job on any finding. The tarball is pinned AND its
+      # SHA-256 is verified before use — never run a binary fetched from the network unchecked.
       - name: gitleaks (CLI)
         run: |
           GL_VERSION=8.21.2
+          GL_SHA256=5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          echo "${GL_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           /tmp/gitleaks detect --source . --redact --verbose --exit-code 1
