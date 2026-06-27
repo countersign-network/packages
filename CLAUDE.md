@@ -20,7 +20,8 @@ because they only govern their own rail.
 
 Fetch and verify the CURRENT SDK/API for that vendor first — they ship fast.
 Verified references live in `docs/sdk-research/`. Adapters in `packages/providers/*`
-are skeletons until credentials exist (see §"Status" below).
+are LIVE on testnet (Coinbase / Turnkey / Openfort / Lithic); remaining work is
+native-enforcement parity, not bring-up (see §"Status" below).
 
 ## Stack
 

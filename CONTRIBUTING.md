@@ -29,9 +29,11 @@ Every change must respect the prime directives:
   first (`docs/sdk-research/`) and never weaken the fail-closed contract.
 - Add tests with behaviour changes; the fail-closed paths especially must be covered.
 
-## Working a vendor adapter from a skeleton
+## Working a vendor adapter
 
-`packages/providers/{coinbase,turnkey,openfort}` are skeletons. To finish one: install its SDK,
-fill the methods per `docs/sdk-research/<vendor>.md`, supply credentials via `.env` (see
-`.env.example`), and keep `freeze()` fail-closed (return `{ confirmed: false }` if the stop can't be
-confirmed).
+`packages/providers/{coinbase,turnkey,openfort,lithic}` are LIVE on testnet. To add a new rail or
+deepen native enforcement on an existing one: install its SDK, implement against the
+`EnforcementProvider` interface per `docs/sdk-research/<vendor>.md`, supply credentials via `.env`
+(see `.env.example`), prove it with a `smoke.ts` (creds) + `spike.ts` (in-policy allowed / over-cap
+declined), and keep `freeze()` fail-closed (return `{ confirmed: false }` if the stop can't be
+confirmed — never report a freeze as safe when the backend didn't confirm it).

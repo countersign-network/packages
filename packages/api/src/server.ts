@@ -43,11 +43,26 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(json);
 }
 
+/** Thrown for a malformed/oversized request body; mapped to 400 by the handler. */
+class BadRequestError extends Error {}
+
+const MAX_BODY_BYTES = 64 * 1024; // cap the body — don't buffer unbounded input into memory (DoS).
+
 async function readJson<T>(req: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
+  let size = 0;
+  for await (const c of req) {
+    size += (c as Buffer).length;
+    if (size > MAX_BODY_BYTES) throw new BadRequestError("request body too large");
+    chunks.push(c as Buffer);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? (JSON.parse(raw) as T) : ({} as T);
+  if (!raw) return {} as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    throw new BadRequestError("invalid JSON body");
+  }
 }
 
 const toDto = (r: { index: number; prevHash: string; payloadHash: string; rowHash: string; payload: unknown }): LedgerRecordDTO =>
@@ -135,8 +150,13 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
     Promise.resolve(resolveCore(tenantId))
       .then((core) => handle(core, req, res, tenantId))
       .catch((err) => {
-        send(res, 500, { error: err instanceof Error ? err.message : String(err) });
-    });
+        // Malformed/oversized input is the client's fault → 400 with a safe message.
+        if (err instanceof BadRequestError) return send(res, 400, { error: err.message });
+        // Everything else: log the detail server-side, return a generic message. Never leak raw
+        // vendor/internal error strings (backend identity, library internals) to the caller.
+        console.error("[countersign] request error:", err);
+        send(res, 500, { error: "internal error" });
+      });
   });
 
   const wss = new WebSocketServer({ server: http, path: WS_PATH });

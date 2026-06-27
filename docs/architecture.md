@@ -33,8 +33,9 @@ flowchart TB
   subgraph BACKENDS["Enforcement backends (integrate, never rebuild)"]
     direction LR
     CB["Coinbase ✅ LIVE<br/>native MPC cap + freeze"]
-    TK["Turnkey<br/>skeleton"]
-    OF["Openfort<br/>skeleton"]
+    TK["Turnkey ✅ LIVE<br/>in-enclave CEL"]
+    OF["Openfort ✅ LIVE<br/>backend wallet"]
+    LT["Lithic ✅ LIVE<br/>virtual Visa card"]
     MK["Mock<br/>tests + demo"]
   end
 
@@ -100,7 +101,7 @@ sequenceDiagram
 | `core` | `EnforcementProvider` interface, branded ids, money, event vocabulary, **freeze controller** |
 | `policy` | `UnifiedPolicy` + the **compiler** → Coinbase / Turnkey / Openfort native shapes |
 | `ledger` | `LedgerPort` + InMemory / pglite / **Postgres**; DB-agnostic hash chain |
-| `providers/*` | adapters: **coinbase** (live), turnkey, openfort (skeletons), mock |
+| `providers/*` | adapters: **coinbase / turnkey / openfort** (live, testnet), **lithic** card (live), mock |
 | `api` | `CountersignCore` (brain) + REST/ws server + web dashboard + embedded adapter |
 | `sdk` | typed client over the Core API (the TS twin of the Dart client) |
 | `mcp` | Countersign as MCP tools (kill switch + spend guard inside any MCP client) |
