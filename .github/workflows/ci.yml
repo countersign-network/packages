@@ -38,7 +38,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # scan full history, not just the latest commit
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Run the gitleaks CLI directly (Apache/MIT, no license key). The gitleaks-action@v2 wrapper
+      # now requires a paid GITLEAKS_LICENSE secret for orgs; the binary does not. Same scan, same
+      # auto-discovered .gitleaks.toml, fails the job on any finding.
+      - name: gitleaks (CLI)
+        run: |
+          GL_VERSION=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact --verbose --exit-code 1
