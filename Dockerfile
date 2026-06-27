@@ -11,6 +11,11 @@ RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
 
+# Drop root: run as the image's built-in unprivileged `node` user (uid 1000). The control plane
+# holds vendor keys + the ledger — a container escape as root is far worse than as a sandboxed user.
+RUN chown -R node:node /app
+USER node
+
 # The host (Render) injects PORT; main.ts binds process.env.PORT. EXPOSE is informational only.
 EXPOSE 8080
 

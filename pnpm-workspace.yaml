@@ -7,10 +7,12 @@ allowBuilds:
   '@openfort/openfort-node': false
   esbuild: true
 # Force patched transitive deps everywhere (prod audit gates CI on high+):
-#  - ws  (vulnerable via viem/isows — GHSA-96hv-2xvq-fx4p)
-#  - axios (vulnerable <1.16.0 via @openfort/openfort-node>@openfort/shield-js — GHSA-35jp-ww65-95wh et al.)
+#  - ws    (vulnerable via viem/isows — GHSA-96hv-2xvq-fx4p)
+#  - axios (cleartext-transmission advisory; bumped past the Aikido finding on <1.18.1)
+#  - hono  (race-condition advisory fixed in 4.12.27 — pulled in transitively by a vendor SDK)
 overrides:
   ws: '>=8.21.0'
-  axios: '>=1.16.0'
+  axios: '>=1.18.1'
+  hono: '>=4.12.27'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
