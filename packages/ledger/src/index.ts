@@ -10,3 +10,4 @@ export * from "./in-memory";
 export * from "./pg";
 export * from "./postgres";
 export * from "./anchor";
+export * from "./gcp-kms";

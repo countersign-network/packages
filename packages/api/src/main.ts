@@ -9,12 +9,34 @@
 
 import type { FreezeAlert, LedgerEvent } from "@countersign/core";
 import { definePolicy, type SpendAttempt } from "@countersign/policy";
-import { FileAnchor, InMemoryLedger, PostgresLedger, createEd25519Signer } from "@countersign/ledger";
+import {
+  FileAnchor,
+  InMemoryLedger,
+  PostgresLedger,
+  createEd25519Signer,
+  createGcpKmsSigner,
+  type GcpKmsClient,
+  type LedgerSigner,
+} from "@countersign/ledger";
 import { AnomalyMonitor, CountersignCore, createCountersignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
 
-// Sign the ledger so it's tamper-evident even against the DB owner. Set COUNTERSIGN_LEDGER_KEY (base64
-// PKCS8) for a stable identity; otherwise a fresh key is generated each boot.
-const signer = createEd25519Signer(process.env["COUNTERSIGN_LEDGER_KEY"]);
+// Sign the ledger so it's tamper-evident even against the DB owner.
+//  - PRODUCTION: set GCP_KMS_KEY_VERSION → the key lives in Cloud KMS and never enters this process.
+//  - else: COUNTERSIGN_LEDGER_KEY (base64 PKCS8) for a stable in-process Ed25519 identity; otherwise
+//    a fresh key is generated each boot (dev only).
+const kmsKeyVersion = process.env["GCP_KMS_KEY_VERSION"];
+let signer: LedgerSigner;
+if (kmsKeyVersion) {
+  // @google-cloud/kms is a deploy-only optional dep; load it WITHOUT a static import so the core
+  // install stays GCP-free (and typecheck doesn't require the package). Add it on the KMS deploy:
+  //   pnpm --filter @countersign/api add @google-cloud/kms
+  const loadKms = new Function("m", "return import(m)") as (m: string) => Promise<{ KeyManagementServiceClient: new () => GcpKmsClient }>;
+  const { KeyManagementServiceClient } = await loadKms("@google-cloud/kms");
+  signer = await createGcpKmsSigner(kmsKeyVersion, new KeyManagementServiceClient());
+  console.log(`  ledger signer: GCP Cloud KMS (…/${kmsKeyVersion.split("/").slice(-3).join("/")})`);
+} else {
+  signer = createEd25519Signer(process.env["COUNTERSIGN_LEDGER_KEY"]);
+}
 // Durable Postgres ledger when DATABASE_URL is set (Render managed PG); in-memory otherwise.
 const databaseUrl = process.env["DATABASE_URL"];
 const ledger = databaseUrl
