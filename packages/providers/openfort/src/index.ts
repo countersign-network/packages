@@ -96,6 +96,10 @@ export class OpenfortProvider implements EnforcementProvider {
     const policyId = nextId("pol");
     a.policyId = policyId;
     this.emit({ type: "policy_applied", agentId, policyId, ts: Date.now() });
+    // Be honest + auditable: the policy is enforced at the Countersign pre-flight layer; the on-chain
+    // KeysManager guard (supportsOnchainGuard=false) is NOT wired yet, so native on-chain enforcement
+    // is not confirmed. Surface it in the ledger rather than implying a native guarantee.
+    this.emit({ type: "error", agentId, message: "openfort: Countersign-layer enforcement only — on-chain KeysManager guard not yet active", ts: Date.now() });
     return { policyId };
   }
 

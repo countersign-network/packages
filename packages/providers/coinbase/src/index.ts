@@ -107,6 +107,10 @@ export class CoinbaseProvider implements EnforcementProvider {
         status = `native cap active (policy ${await this.pushNative(agentId, policy)})`;
       } catch (err) {
         status = `native push failed (Countersign-layer still enforces): ${err instanceof Error ? err.message : String(err)}`;
+        // Make the degraded enforcement AUDITABLE — never let "native cap not confirmed" be silent.
+        // The policy is still live at the Countersign pre-flight layer, but native MPC enforcement
+        // (which survives a compromised agent) is NOT confirmed; surface it in the ledger.
+        this.emit({ type: "error", agentId, message: "coinbase: native per-tx cap NOT confirmed — Countersign-layer enforcement only", ts: Date.now() });
       }
     }
     this.nativeStatus.set(agentId, status);

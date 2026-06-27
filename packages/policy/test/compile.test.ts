@@ -82,3 +82,11 @@ describe("policy injection defense — addresses must be hex (CEL-injection vect
     expect(() => compile(crafted, "pre-sign-policy")).toThrow(/non-hex address/i);
   });
 });
+
+describe("policy never silently weakens — unmapped venue (invariant #5)", () => {
+  it("flags a venue with no known chain id as unsupported (Turnkey CEL can't express it)", () => {
+    const p = definePolicy({ asset: "USDC", allowlist: ["0x000000000000000000000000000000000000dEaD"], venues: ["base-sepolia", "no-such-chain"] });
+    const t = compile(p, "pre-sign-policy") as TurnkeyPolicyDoc;
+    expect(t.unsupported.map((u) => u.field)).toContain("venues");
+  });
+});
