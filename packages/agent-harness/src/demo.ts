@@ -28,8 +28,8 @@ function section(title: string): void {
 const usdc = (base: string) => `${(Number(BigInt(base)) / 1e6).toFixed(2)} USDC`;
 const ms = (n: number) => `${n}ms`;
 
-const TREASURY = "0xTREASURY";
-const STRANGER = "0xSTRANGER";
+const TREASURY = "0x000000000000000000000000000000000000dEaD";
+const STRANGER = "0x0000000000000000000000000000000000005a7a";
 
 const POLICY: UnifiedPolicy = definePolicy({
   asset: "USDC",

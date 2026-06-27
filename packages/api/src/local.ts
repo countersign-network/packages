@@ -103,7 +103,7 @@ export async function createDemoCore(opts?: {
   }
   if (opts?.applyDefaultPolicy !== false) {
     await core.applyPolicy(
-      definePolicy({ asset: "USDC", perTxCap: "100000000", dailyCap: "100000000000", allowlist: ["0xTREASURY"] }),
+      definePolicy({ asset: "USDC", perTxCap: "100000000", dailyCap: "100000000000", allowlist: ["0x000000000000000000000000000000000000dEaD"] }),
     );
   }
   return { core, fleet };

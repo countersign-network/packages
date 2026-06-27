@@ -4,8 +4,8 @@ import { definePolicy } from "@countersign/policy";
 import { CountersignCore, createDemoCore } from "@countersign/api";
 
 const kindsOf = (records: { payload: LedgerEvent }[]) => records.map((r) => r.payload.kind);
-const APPROVAL_POLICY = definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" });
-const bigSpend = { amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" }; // > 60, <= 100
+const APPROVAL_POLICY = definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0x000000000000000000000000000000000000dEaD"], approvalThreshold: "60000000" });
+const bigSpend = { amount: "80000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" }; // > 60, <= 100
 
 async function withApprovalPolicy(): Promise<{ core: CountersignCore; agent: AgentId }> {
   const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false });

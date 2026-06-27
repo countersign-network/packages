@@ -7,7 +7,7 @@ const kindsOf = (records: { payload: LedgerEvent }[]) => records.map((r) => r.pa
 const anomalies = (records: { payload: LedgerEvent }[]) =>
   records.map((r) => r.payload).filter((p): p is Extract<LedgerEvent, { kind: "anomaly_detected" }> => p.kind === "anomaly_detected");
 
-const spend = (amount: string, counterparty = "0xTREASURY") => ({ amount, asset: "USDC", counterparty, venue: "base-sepolia" });
+const spend = (amount: string, counterparty = "0x000000000000000000000000000000000000dEaD") => ({ amount, asset: "USDC", counterparty, venue: "base-sepolia" });
 // The auto-freeze / anomaly record is fired-and-forgotten from the spend path; let it settle.
 const settle = () => new Promise((r) => setTimeout(r, 50));
 
@@ -42,12 +42,12 @@ describe("AnomalyMonitor — heuristic circuit breakers", () => {
 
   it("new-counterparty rule flags a first-seen payee (after a baseline is established)", async () => {
     const { core, fleet } = await createDemoCore({ applyDefaultPolicy: false });
-    await core.applyPolicy(definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xA", "0xB"] }), fleet[0]!.agentId);
+    await core.applyPolicy(definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0x000000000000000000000000000000000000000a", "0x000000000000000000000000000000000000000b"] }), fleet[0]!.agentId);
     const monitor = new AnomalyMonitor(core, { newCounterparty: { action: "alert" } });
     const cb = fleet[0]!;
 
-    await cb.provider.attemptSpend(cb.agentId, spend("1000000", "0xA")); // baseline — no flag
-    await cb.provider.attemptSpend(cb.agentId, spend("1000000", "0xB")); // new payee — flag
+    await cb.provider.attemptSpend(cb.agentId, spend("1000000", "0x000000000000000000000000000000000000000a")); // baseline — no flag
+    await cb.provider.attemptSpend(cb.agentId, spend("1000000", "0x000000000000000000000000000000000000000b")); // new payee — flag
     await settle();
 
     expect(anomalies(await core.ledgerRecords()).filter((x) => x.rule === "new_counterparty")).toHaveLength(1);

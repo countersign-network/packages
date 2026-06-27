@@ -52,21 +52,21 @@ describe("@countersign/mcp — Countersign as MCP tools", () => {
   });
 
   it("apply_policy then request_spend guards correctly (allow / deny)", async () => {
-    expect(await call("countersign_apply_policy", { asset: "USDC", perTxCap: "100", allowlist: ["0xTREASURY"] })).toContain("Applied to 3");
+    expect(await call("countersign_apply_policy", { asset: "USDC", perTxCap: "100", allowlist: ["0x000000000000000000000000000000000000dEaD"] })).toContain("Applied to 3");
 
-    const ok = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "50", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    const ok = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "50", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(ok).toContain("ALLOW");
 
-    const overCap = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "500", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    const overCap = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "500", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(overCap).toContain("DENY");
 
-    const stranger = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "1", asset: "USDC", counterparty: "0xSTRANGER", venue: "base-sepolia" });
+    const stranger = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "1", asset: "USDC", counterparty: "0x0000000000000000000000000000000000005a7a", venue: "base-sepolia" });
     expect(stranger).toContain("DENY");
   });
 
   it("approval tools: a spend needing approval can be listed and approved from chat", async () => {
-    await call("countersign_apply_policy", { asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" });
-    const res = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    await call("countersign_apply_policy", { asset: "USDC", perTxCap: "100000000", allowlist: ["0x000000000000000000000000000000000000dEaD"], approvalThreshold: "60000000" });
+    const res = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(res).toContain("NEEDS_APPROVAL");
     const token = res.match(/approvalToken (\S+)\)/)?.[1];
     expect(token).toBeTruthy();

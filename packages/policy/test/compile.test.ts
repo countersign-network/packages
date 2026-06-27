@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { compile, definePolicy, type CoinbaseControls, type OpenfortOnchainPolicy, type TurnkeyPolicyDoc } from "@countersign/policy";
+import { compile, definePolicy, parsePolicy, type CoinbaseControls, type OpenfortOnchainPolicy, type TurnkeyPolicyDoc, type UnifiedPolicy } from "@countersign/policy";
 
 const FULL = definePolicy({
   asset: "USDC",
   perTxCap: "100000000", // 100 USDC (6-dec)
   dailyCap: "500000000", // 500 USDC
-  allowlist: ["0xTREASURY"],
-  denylist: ["0xBADGUY"],
+  allowlist: ["0x000000000000000000000000000000000000dEaD"],
+  denylist: ["0x000000000000000000000000000000000000bad6"],
   approvalThreshold: "200000000",
   venues: ["base-sepolia"],
 });
@@ -23,7 +23,7 @@ describe("compile — one policy, three native shapes (the core IP)", () => {
     const accept = c.policy!.rules.find((r) => r.action === "accept")!;
     expect(accept.criteria).toEqual([
       { type: "ethValue", ethValue: "100000000", operator: "<=" },
-      { type: "evmAddress", addresses: ["0xTREASURY"], operator: "in" },
+      { type: "evmAddress", addresses: ["0x000000000000000000000000000000000000dEaD"], operator: "in" },
       { type: "evmNetwork", networks: ["base-sepolia"], operator: "in" },
     ]);
     // approval threshold has no native counterpart on a caps-only backend
@@ -34,7 +34,7 @@ describe("compile — one policy, three native shapes (the core IP)", () => {
     const t = compile(FULL, "pre-sign-policy") as TurnkeyPolicyDoc;
     expect(t.provider).toBe("turnkey");
     const allow = t.policies.find((p) => p.policyName === "agent-spend-allow")!;
-    expect(allow.condition).toBe("eth.tx.value <= 100000000 && eth.tx.to in ['0xTREASURY'] && eth.tx.chain_id in [84532]");
+    expect(allow.condition).toBe("eth.tx.value <= 100000000 && eth.tx.to in ['0x000000000000000000000000000000000000dEaD'] && eth.tx.chain_id in [84532]");
     const denyl = t.policies.find((p) => p.policyName === "denylist")!;
     expect(denyl.effect).toBe("EFFECT_DENY");
     const approval = t.policies.find((p) => p.policyName === "approval-threshold")!;
@@ -47,7 +47,7 @@ describe("compile — one policy, three native shapes (the core IP)", () => {
   it("Openfort (onchain-policy): allowlist -> setCanCall, daily cap -> tokenSpend; per-tx/deny/approval unsupported", () => {
     const o = compile(FULL, "onchain-policy") as OpenfortOnchainPolicy;
     expect(o.provider).toBe("openfort");
-    expect(o.canCall).toEqual([{ target: "0xTREASURY", selector: "*" }]);
+    expect(o.canCall).toEqual([{ target: "0x000000000000000000000000000000000000dEaD", selector: "*" }]);
     expect(o.tokenSpend).toEqual({ token: "USDC", limit: "500000000", period: "day" });
     expect(unsupportedFields(o)).toEqual(["approvalThreshold", "denylist", "perTxCap"]);
   });
@@ -67,5 +67,18 @@ describe("compile — one policy, three native shapes (the core IP)", () => {
     expect(t.policies.some((x) => x.policyName === "empty-allowlist-deny-all")).toBe(true);
     const o = compile(p, "onchain-policy") as OpenfortOnchainPolicy;
     expect(o.canCall).toEqual([]);
+  });
+});
+
+describe("policy injection defense — addresses must be hex (CEL-injection vector)", () => {
+  it("parse rejects non-hex / CEL-metachar allowlist entries; accepts a real address", () => {
+    expect(() => parsePolicy({ schemaVersion: 1, asset: "USDC", allowlist: ["0xX'] || ['evil"] })).toThrow();
+    expect(() => parsePolicy({ schemaVersion: 1, asset: "USDC", allowlist: ["0xTREASURY"] })).toThrow();
+    expect(() => parsePolicy({ schemaVersion: 1, asset: "USDC", allowlist: ["0x000000000000000000000000000000000000dEaD"] })).not.toThrow();
+  });
+
+  it("the Turnkey compiler refuses a non-hex address even if the schema is bypassed", () => {
+    const crafted = { schemaVersion: 1, asset: "USDC", allowlist: ["0xBEEF'] || eth.tx.value >= ['0"] } as unknown as UnifiedPolicy;
+    expect(() => compile(crafted, "pre-sign-policy")).toThrow(/non-hex address/i);
   });
 });

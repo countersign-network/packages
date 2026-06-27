@@ -5,7 +5,12 @@ const amount = z
   .string()
   .regex(/^\d+$/, "amount must be a non-negative integer base-unit string");
 
-const address = z.string().min(1);
+// A 0x-prefixed 40-hex EVM address. Strict on purpose: addresses are interpolated into backend-native
+// policy controls (e.g. Turnkey CEL conditions), so anything other than hex is both a real-world
+// footgun and a policy-injection vector. Validating here is the first line of that defense.
+const address = z
+  .string()
+  .regex(/^0x[0-9a-fA-F]{40}$/, "address must be a 0x-prefixed 40-hex EVM address");
 
 /**
  * The ONE declarative policy an operator writes. The compiler lowers it to each backend's

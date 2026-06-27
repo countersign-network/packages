@@ -52,6 +52,11 @@ export class CoinbaseProvider implements EnforcementProvider {
   private readonly nativePolicyId = new Map<AgentId, string>();
   private readonly nativeStatus = new Map<AgentId, string>();
 
+  /** Inject a CDP client for tests (the lazy default constructs a real one from env creds). */
+  constructor(cdp?: CdpClient) {
+    if (cdp) this.cdp = cdp;
+  }
+
   /** Lazy — so the provider can be constructed (and capabilities() read) without credentials. */
   private client(): CdpClient {
     return (this.cdp ??= new CdpClient());
@@ -111,12 +116,23 @@ export class CoinbaseProvider implements EnforcementProvider {
 
   async freeze(scope: FreezeScope): Promise<FreezeResult> {
     if (scope.kind === "provider-all") this.providerFrozen = true;
-    else this.frozenAgents.add(scope.agentId);
-    const frozenAgents = scope.kind === "provider-all" ? [...this.accounts.keys()] : [scope.agentId];
-    // Best-effort NATIVE freeze: attach a deny-all account policy so Coinbase rejects even a direct send.
-    await Promise.all(frozenAgents.map((a) => this.nativeFreeze(a).catch(() => undefined)));
+    const targets = scope.kind === "provider-all" ? [...this.accounts.keys()] : [scope.agentId];
+    // Cosign-layer stop always applies (blocks any spend mediated through Countersign)…
+    for (const a of targets) this.frozenAgents.add(a);
+    // …but the NATIVE deny-all (so even a direct send via a compromised agent is rejected by Coinbase's
+    // MPC) is what we report as CONFIRMED. Fail-closed: confirmed ONLY if every target's native deny
+    // policy was attached + verified. Any failure => confirmed:false so the controller escalates
+    // (revokeSession) and records it still_dangerous — never claim a stop we didn't verify.
+    const results = await Promise.allSettled(targets.map((a) => this.nativeFreeze(a)));
+    const frozenAgents: AgentId[] = [];
+    let confirmed = true;
+    results.forEach((r, i) => {
+      const agent = targets[i]!;
+      frozenAgents.push(agent);
+      if (r.status === "rejected") confirmed = false;
+    });
     this.emit({ type: "frozen", scope, mechanism: "policy-deny", ts: Date.now() });
-    return { confirmed: true, frozenAgents, mechanism: "policy-deny", at: Date.now() };
+    return { confirmed, frozenAgents, mechanism: "policy-deny", at: Date.now() };
   }
 
   async unfreeze(scope: FreezeScope): Promise<void> {
@@ -203,10 +219,14 @@ export class CoinbaseProvider implements EnforcementProvider {
     return created.id;
   }
 
-  /** Attach a deny-all account policy so Coinbase rejects every signature for this agent. */
+  /**
+   * Attach a deny-all account policy so Coinbase's MPC rejects every signature for this agent.
+   * THROWS on any failure (incl. unknown agent) so freeze() reports confirmed:false and the controller
+   * escalates — never silently succeed.
+   */
   private async nativeFreeze(agentId: AgentId): Promise<void> {
     const acct = this.accounts.get(agentId);
-    if (!acct) return;
+    if (!acct) throw new Error(`coinbase: cannot freeze unknown agent ${String(agentId)}`);
     const created = await this.client().policies.createPolicy({
       policy: {
         scope: "account",
@@ -217,7 +237,14 @@ export class CoinbaseProvider implements EnforcementProvider {
         ],
       },
     });
-    await this.client().evm.updateAccount({ address: acct.address, update: { accountPolicy: created.id } });
+    const updated = await this.client().evm.updateAccount({ address: acct.address, update: { accountPolicy: created.id } });
+    // Read-back confirmation: the deny policy must be the account's active policy (don't trust the
+    // call resolving alone). updateAccount returns the updated account; verify the policy id stuck.
+    const active = (updated as { accountPolicy?: string } | undefined)?.accountPolicy;
+    if (active !== undefined && active !== created.id) {
+      throw new Error(`coinbase: freeze policy not confirmed active for ${String(agentId)}`);
+    }
+    this.nativePolicyId.set(agentId, created.id);
   }
 
   /**

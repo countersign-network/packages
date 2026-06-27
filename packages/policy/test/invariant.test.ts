@@ -25,11 +25,11 @@ const ENFORCEABLE: Record<EnforcementMode, Set<string>> = {
 const FIELDS = ["perTxCap", "dailyCap", "allowlist", "denylist", "approvalThreshold", "venues", "frozen"] as const;
 
 const POLICIES: UnifiedPolicy[] = [
-  definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "500", allowlist: ["0xA"], denylist: ["0xB"], approvalThreshold: "200", venues: ["base-sepolia"], frozen: false }),
+  definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "500", allowlist: ["0x000000000000000000000000000000000000000a"], denylist: ["0x000000000000000000000000000000000000000b"], approvalThreshold: "200", venues: ["base-sepolia"], frozen: false }),
   definePolicy({ asset: "USDC", perTxCap: "100" }),
   definePolicy({ asset: "USDC", dailyCap: "500" }),
-  definePolicy({ asset: "USDC", allowlist: ["0xA"] }),
-  definePolicy({ asset: "USDC", denylist: ["0xB"] }),
+  definePolicy({ asset: "USDC", allowlist: ["0x000000000000000000000000000000000000000a"] }),
+  definePolicy({ asset: "USDC", denylist: ["0x000000000000000000000000000000000000000b"] }),
   definePolicy({ asset: "USDC", approvalThreshold: "200" }),
   definePolicy({ asset: "USDC", venues: ["polygon-amoy"] }),
   definePolicy({ asset: "USDC", frozen: true }),

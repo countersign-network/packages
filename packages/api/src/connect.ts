@@ -101,7 +101,7 @@ export async function connectBackend(core: CountersignCore, providerId: string, 
     if (!core.hasProvider(spec.id)) await core.registerProvider(new MockProvider({ id: spec.id, mode: spec.mode }));
     await core.provisionAgent(spec.id, asAgentId(`${spec.id}-agent`), spec.venue);
     // One unified policy, compiled to each backend's native controls (re-applied across all agents).
-    await core.applyPolicy(definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"] }));
+    await core.applyPolicy(definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0x000000000000000000000000000000000000dEaD"] }));
     // Durable, auditable record of the connect — the moat metric is derived from these rows.
     await core.recordEvent({ kind: "backend_connected", providerId: asProviderId(spec.id), ts: nowMs() });
   }

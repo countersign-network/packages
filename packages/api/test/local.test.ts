@@ -16,9 +16,9 @@ describe("embedded front door (createLocalApi over createDemoCore)", () => {
 
     // default demo policy: perTxCap 100 USDC, allowlist [0xTREASURY]
     const base = { agentId: "payments-bot", asset: "USDC", venue: "base-sepolia" };
-    expect((await api.evaluate({ ...base, amount: "50000000", counterparty: "0xTREASURY" })).outcome).toBe("allow");
-    expect((await api.evaluate({ ...base, amount: "150000000", counterparty: "0xTREASURY" })).outcome).toBe("deny");
-    expect((await api.evaluate({ ...base, amount: "1", counterparty: "0xSTRANGER" })).outcome).toBe("deny");
+    expect((await api.evaluate({ ...base, amount: "50000000", counterparty: "0x000000000000000000000000000000000000dEaD" })).outcome).toBe("allow");
+    expect((await api.evaluate({ ...base, amount: "150000000", counterparty: "0x000000000000000000000000000000000000dEaD" })).outcome).toBe("deny");
+    expect((await api.evaluate({ ...base, amount: "1", counterparty: "0x0000000000000000000000000000000000005a7a" })).outcome).toBe("deny");
 
     const report = await api.freeze({ reason: "embedded test" });
     expect(report.allStopped).toBe(true);
