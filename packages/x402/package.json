@@ -1,19 +1,56 @@
 {
   "name": "@countersign/x402",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Govern x402 (HTTP-402 machine payments) with Countersign — guard an agent's payment against policy before it pays.",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
   "dependencies": {
-    "@countersign/api-contract": "workspace:*",
-    "@countersign/policy": "workspace:*"
+    "@countersign/api-contract": "workspace:^"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*"
+    "@countersign/api": "workspace:*",
+    "tsup": "^8.5.1"
   },
-  "comment": "Governs x402 (the HTTP 402 machine-payment rail) as a first-class Countersign action: parse a payment challenge -> route through the spend guard -> only pay if policy allows. Countersign governs; it never moves funds (prime directive #1)."
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/countersign-network/countersign.git",
+    "directory": "packages/x402"
+  },
+  "homepage": "https://countersign.network",
+  "keywords": [
+    "countersign",
+    "x402",
+    "machine-payments",
+    "http-402",
+    "ai-agents",
+    "agent-payments",
+    "spend-guard"
+  ]
 }

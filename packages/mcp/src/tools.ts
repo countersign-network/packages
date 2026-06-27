@@ -14,6 +14,7 @@
 
 import { z, type ZodRawShape } from "zod";
 import type { CountersignApi } from "@countersign/api-contract";
+import { parseX402, guardX402, type X402PaymentRequired } from "@countersign/x402";
 
 export interface CountersignTool {
   name: string;
@@ -114,6 +115,33 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
         });
         const line = `${d.outcome.toUpperCase()}${d.reason ? `: ${d.reason}` : ""}${d.approvalToken ? ` (approvalToken ${d.approvalToken})` : ""}`;
         // Decision is computed and returned verbatim; only on a hard DENY do we append the (optional) peer line.
+        return d.outcome === "deny" ? line + PROPAGATE : line;
+      },
+    },
+    {
+      name: "countersign_guard_x402",
+      description:
+        "Govern an x402 (HTTP-402) machine payment BEFORE paying. Pass the agentId + the 402 challenge's `accepts` array; Countersign picks the cheapest option, evaluates it against policy, and returns allow / deny / needs_approval. Only pay if it returns allow — a rogue or over-budget agent never pays.",
+      schema: {
+        agentId: z.string(),
+        accepts: z
+          .array(
+            z.object({
+              network: z.string().describe("CAIP-2 (eip155:84532) or venue name"),
+              maxAmountRequired: z.string().describe("atomic units"),
+              payTo: z.string(),
+              asset: z.string().optional(),
+              extra: z.object({ name: z.string().optional() }).optional(),
+            }),
+          )
+          .describe("the `accepts` array from the 402 Payment Required body"),
+      },
+      handler: async (args) => {
+        const body = { accepts: (args["accepts"] as X402PaymentRequired["accepts"]) ?? [] } satisfies X402PaymentRequired;
+        const charge = parseX402(body);
+        if (!charge) return "No acceptable x402 payment option in the challenge.";
+        const d = await guardX402(client, String(args["agentId"]), charge);
+        const line = `${d.outcome.toUpperCase()}${d.reason ? `: ${d.reason}` : ""} — pay ${charge.amount} ${charge.asset} to ${charge.payTo} on ${charge.venue}${d.approvalToken ? ` (approvalToken ${d.approvalToken})` : ""}`;
         return d.outcome === "deny" ? line + PROPAGATE : line;
       },
     },

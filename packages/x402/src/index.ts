@@ -9,7 +9,15 @@
  */
 
 import type { CountersignApi, EvaluateRequest, EvaluateResponse } from "@countersign/api-contract";
-import { VENUE_CHAIN_IDS } from "@countersign/policy";
+
+// Public chain-id map for the supported testnet venues (inlined so this front-door package carries no
+// dependency on the proprietary policy compiler — kept in sync with packages/policy/src/venues.ts).
+const VENUE_CHAIN_IDS: Readonly<Record<string, number>> = {
+  "base-sepolia": 84532,
+  "ethereum-sepolia": 11155111,
+  "polygon-amoy": 80002,
+  "optimism-sepolia": 11155420,
+};
 
 /** An entry from an x402 "accepts" array (v2 "exact" scheme, EVM). */
 export interface X402Accepts {
