@@ -52,7 +52,13 @@ interface TurnkeyAgent {
   walletAddress: string;
   /** The agent's delegated (non-root) user id — what policies target and what we delete to revoke. */
   agentUserId: string;
-  /** The agent's session keypair (P-256). The private key is held only to sign spends later. */
+  /**
+   * The agent's session keypair (P-256). `privateKey` is stored NON-ENUMERABLE (see provisionWallet)
+   * so it can never land in a log line, a structured-log dump, or the ledger via an accidental
+   * JSON.stringify/console.log of an agent record. Production posture: the session key should be
+   * generated where the agent actually runs (or in a KMS/enclave) and the control plane handed only
+   * the public key; v1 holds it in-process so the signing spike can demonstrate end-to-end.
+   */
   agentKey: { publicKey: string; privateKey: string };
   /** The applied unified-policy id (Countersign-side handle). */
   policyId?: string;
@@ -170,11 +176,23 @@ export class TurnkeyProvider implements EnforcementProvider {
     const agentUserId = created.userIds?.[0];
     if (!agentUserId) throw new Error("turnkey: createUsers returned no user id");
 
+    // Hold the session private key NON-ENUMERABLE so it's excluded from any enumeration/serialization
+    // (JSON.stringify, console.log, structured logs, the ledger) — it must never leak into an audit
+    // record. Explicit access (getAgent().agentKey.privateKey, used by the in-process signing spike)
+    // still works because non-enumerable ≠ inaccessible.
+    const agentKeyStore = { publicKey: agentKey.publicKey } as { publicKey: string; privateKey: string };
+    Object.defineProperty(agentKeyStore, "privateKey", {
+      value: agentKey.privateKey,
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
+
     this.agents.set(agentId, {
       subOrgId,
       walletAddress,
       agentUserId,
-      agentKey: { publicKey: agentKey.publicKey, privateKey: agentKey.privateKey },
+      agentKey: agentKeyStore,
       turnkeyPolicyIds: [],
     });
     return { provider: this.id, agentId, wallet: walletAddress, venue: opts.venue };
