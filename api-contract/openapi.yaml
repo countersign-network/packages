@@ -115,6 +115,17 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LedgerResponse" }
+  /ws-ticket:
+    post:
+      summary: >
+        Exchange an API key for a short-lived, single-use ticket to open the /events websocket. The
+        ws URL carries ?ticket=<t>, never the raw key (which would leak into access logs). Any role.
+      responses:
+        "200":
+          description: A one-shot ws ticket (valid for expiresInMs)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WsTicketResponse" }
 components:
   schemas:
     ProviderHealth:
@@ -253,6 +264,12 @@ components:
               stopped: { type: boolean }
               dangerousAgents: { type: array, items: { type: string } }
               latencyMs: { type: integer }
+    WsTicketResponse:
+      type: object
+      required: [ticket, expiresInMs]
+      properties:
+        ticket: { type: string }
+        expiresInMs: { type: integer }
     LedgerResponse:
       type: object
       required: [records, verified]

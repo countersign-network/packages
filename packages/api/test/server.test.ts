@@ -10,6 +10,25 @@ let server: CountersignServer;
 let base: string;
 let wsUrl: string;
 
+/** Resolve with the ws close code (for unauthorized-handshake assertions). */
+function wsClosed(url: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timer = setTimeout(() => reject(new Error("ws neither closed nor messaged")), 4000);
+    ws.addEventListener("close", (ev) => { clearTimeout(timer); resolve((ev as CloseEvent).code); });
+    ws.addEventListener("message", () => { clearTimeout(timer); ws.close(); reject(new Error("expected close, got a message")); });
+  });
+}
+/** Resolve with the type of the first ws message (for authorized-handshake assertions). */
+function wsFirstType(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timer = setTimeout(() => reject(new Error("no ws message")), 4000);
+    ws.addEventListener("message", (ev) => { clearTimeout(timer); const m = JSON.parse(String((ev as MessageEvent).data)); ws.close(); resolve(m.type); });
+    ws.addEventListener("close", () => { clearTimeout(timer); reject(new Error("ws closed before any message")); });
+  });
+}
+
 beforeAll(async () => {
   const core = new CountersignCore({ freezeTimeoutMs: 300, escalateTimeoutMs: 300 });
   const fleet = [
@@ -131,6 +150,23 @@ describe("API auth + RBAC + tenant seam", () => {
     expect((await fetch(`${authBase}/agents`, { headers: viewKey })).status).toBe(200); // read ok
     expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: viewKey })).status).toBe(403); // write denied
     expect((await fetch(`${authBase}/freeze`, { method: "POST", headers: opKey })).status).toBe(200); // operator ok
+  });
+
+  it("ws needs a single-use ticket — a raw key in the URL never authenticates the stream", async () => {
+    const wsBase = authBase.replace(/^http/, "ws");
+    // No ticket, a bogus ticket, and even the real key as ?key= are all rejected (1008).
+    expect(await wsClosed(`${wsBase}/events`)).toBe(1008);
+    expect(await wsClosed(`${wsBase}/events?ticket=nope`)).toBe(1008);
+    expect(await wsClosed(`${wsBase}/events?key=view-key`)).toBe(1008);
+  });
+
+  it("POST /ws-ticket: needs a valid key, then yields a one-shot ticket that opens the stream", async () => {
+    expect((await fetch(`${authBase}/ws-ticket`, { method: "POST" })).status).toBe(401); // no key
+    const { ticket } = await (await fetch(`${authBase}/ws-ticket`, { method: "POST", headers: viewKey })).json(); // viewer is enough (read-only stream)
+    expect(typeof ticket).toBe("string");
+    const wsBase = authBase.replace(/^http/, "ws");
+    expect(await wsFirstType(`${wsBase}/events?ticket=${ticket}`)).toBe("hello"); // first use connects
+    expect(await wsClosed(`${wsBase}/events?ticket=${ticket}`)).toBe(1008); // reuse rejected (single-use)
   });
 
   it("RBAC: the connect-demo routes are gated — /connect is operator+, /backends is viewer+", async () => {

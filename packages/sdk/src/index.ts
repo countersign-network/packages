@@ -64,16 +64,20 @@ export class CountersignApiError extends Error {
 
 export interface CountersignClientOptions {
   baseUrl: string;
+  /** API key. Sent as `Authorization: Bearer <key>` on REST; exchanged for a ws ticket on subscribe. */
+  apiKey?: string;
   /** Override fetch (tests / non-global environments). Defaults to the global fetch. */
   fetch?: typeof fetch;
 }
 
 export class CountersignClient implements CountersignApi {
   private readonly baseUrl: string;
+  private readonly apiKey: string | undefined;
   private readonly doFetch: typeof fetch;
 
   constructor(opts: CountersignClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, "");
+    this.apiKey = opts.apiKey;
     this.doFetch = opts.fetch ?? fetch;
   }
 
@@ -132,24 +136,44 @@ export class CountersignClient implements CountersignApi {
    * function. Uses the global WebSocket — available in browsers and Node 22+.
    */
   subscribe(onMessage: (message: WsServerMessage) => void): () => void {
-    const url = this.baseUrl.replace(/^http/, "ws") + WS_PATH;
-    const ws = new WebSocket(url);
-    ws.addEventListener("message", (ev) => {
-      try {
-        onMessage(JSON.parse(String((ev as MessageEvent).data)) as WsServerMessage);
-      } catch {
-        /* ignore malformed frames */
-      }
-    });
-    return () => ws.close();
+    let ws: WebSocket | undefined;
+    let closed = false;
+    const open = (query: string): void => {
+      if (closed) return;
+      ws = new WebSocket(this.baseUrl.replace(/^http/, "ws") + WS_PATH + query);
+      ws.addEventListener("message", (ev) => {
+        try {
+          onMessage(JSON.parse(String((ev as MessageEvent).data)) as WsServerMessage);
+        } catch {
+          /* ignore malformed frames */
+        }
+      });
+    };
+    if (this.apiKey) {
+      // Authenticated stream: exchange the key for a single-use ws ticket so it stays out of the URL.
+      this.request<{ ticket: string }>("POST", "/ws-ticket", {})
+        .then((r) => open(`?ticket=${encodeURIComponent(r.ticket)}`))
+        .catch(() => {
+          /* unauthorized / offline — leave unsubscribed; the caller can retry */
+        });
+    } else {
+      open("");
+    }
+    return () => {
+      closed = true;
+      ws?.close();
+    };
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const init: RequestInit = { method };
+    const headers: Record<string, string> = {};
+    if (this.apiKey) headers["authorization"] = `Bearer ${this.apiKey}`;
     if (body !== undefined) {
-      init.headers = { "content-type": "application/json" };
+      headers["content-type"] = "application/json";
       init.body = JSON.stringify(body);
     }
+    if (Object.keys(headers).length > 0) init.headers = headers;
     const res = await this.doFetch(this.baseUrl + path, init);
     if (!res.ok) throw new CountersignApiError(res.status, await res.text());
     return (await res.json()) as T;
