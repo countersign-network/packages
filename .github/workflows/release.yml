@@ -59,3 +59,14 @@ jobs:
         run: pnpm --filter @countersign/sdk publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # x402 depends on api-contract; mcp depends on sdk + x402 — publish after both.
+      - name: Publish @countersign/x402
+        run: pnpm --filter @countersign/x402 publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @countersign/mcp
+        run: pnpm --filter @countersign/mcp publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
