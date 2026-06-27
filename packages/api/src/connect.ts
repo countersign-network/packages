@@ -17,7 +17,7 @@ import { definePolicy } from "@countersign/policy";
 import { MockProvider } from "@countersign/provider-mock";
 import type { CountersignCore } from "./core-service";
 
-export interface BackendSpec {
+interface BackendSpec {
   id: string;
   label: string;
   mode: EnforcementMode;
@@ -26,7 +26,7 @@ export interface BackendSpec {
 }
 
 /** The connectable backends — one per enforcement mode, mirroring the three live adapters. */
-export const BACKEND_CATALOG: BackendSpec[] = [
+const BACKEND_CATALOG: BackendSpec[] = [
   { id: "coinbase", label: "Coinbase", mode: "native-session-caps", venue: "base-sepolia", blurb: "MPC session caps" },
   { id: "turnkey", label: "Turnkey", mode: "pre-sign-policy", venue: "ethereum-sepolia", blurb: "Pre-sign CEL policy" },
   { id: "openfort", label: "Openfort", mode: "onchain-policy", venue: "polygon-amoy", blurb: "On-chain session keys" },

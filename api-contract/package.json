@@ -36,9 +36,6 @@
   },
   "homepage": "https://countersign.network",
   "keywords": ["countersign", "ai-agents", "agent-payments", "openapi", "policy", "freeze"],
-  "dependencies": {
-    "zod": "^3.23.8"
-  },
   "devDependencies": {
     "@countersign/core": "workspace:*",
     "@countersign/policy": "workspace:*",
