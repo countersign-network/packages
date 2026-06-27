@@ -8,7 +8,6 @@
  */
 
 import { z, type ZodRawShape } from "zod";
-import { definePolicy } from "@countersign/policy";
 import type { CountersignApi } from "@countersign/api-contract";
 
 export interface CountersignTool {
@@ -60,7 +59,10 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
         agentId: z.string().optional(),
       },
       handler: async (args) => {
-        const policy = definePolicy({
+        // Build the unified-policy object inline; the Core validates it server-side (POST /policy).
+        // (No dependency on the proprietary compiler — this package is the open remote front door.)
+        const policy = {
+          schemaVersion: 1 as const,
           asset: String(args["asset"]),
           ...(str(args["perTxCap"]) !== undefined ? { perTxCap: str(args["perTxCap"])! } : {}),
           ...(str(args["dailyCap"]) !== undefined ? { dailyCap: str(args["dailyCap"])! } : {}),
@@ -69,7 +71,7 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
           ...(str(args["approvalThreshold"]) !== undefined ? { approvalThreshold: str(args["approvalThreshold"])! } : {}),
           ...(typeof args["frozen"] === "boolean" ? { frozen: args["frozen"] } : {}),
           ...(strArr(args["venues"]) !== undefined ? { venues: strArr(args["venues"])! } : {}),
-        });
+        };
         const agentId = str(args["agentId"]);
         const res = await client.applyPolicy({ policy, ...(agentId !== undefined ? { agentId } : {}) });
         const failed = res.failed.length > 0 ? ` ${res.failed.length} FAILED (fail-closed — not live): ${res.failed.map((f) => f.providerId).join(", ")}.` : "";

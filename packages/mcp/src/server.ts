@@ -1,40 +1,39 @@
-#!/usr/bin/env -S npx tsx
+#!/usr/bin/env node
 /**
- * The runnable Countersign MCP server (stdio). Drop it into any MCP client (Claude Desktop/Code, …).
+ * Countersign MCP server (stdio) — the cross-vendor kill switch + spend guard as tools inside any
+ * MCP client (Claude Desktop/Code, Cursor, …). It governs a running Countersign Core; no keys or
+ * crypto live here. Configure via env:
  *
- * Two modes, zero-config by default:
- *   - EMBEDDED (default): no env needed. Spins up an in-process Core over the mock fleet — one
- *     command, no separate server, no credentials. Great for "try it in 60 seconds".
- *       { "command": "pnpm", "args": ["--filter", "@countersign/mcp", "start"] }
- *   - REMOTE: set COUNTERSIGN_URL to govern a real running Core (your hosted/self-hosted control plane).
- *       env: { "COUNTERSIGN_URL": "https://core.your-countersign.example" }
+ *   COUNTERSIGN_URL       (required)  your Core, e.g. https://app.countersign.network
+ *   COUNTERSIGN_API_KEY   (required when the Core has auth enabled)
+ *
+ * Example MCP client config:
+ *   { "command": "npx", "args": ["-y", "@countersign/mcp"],
+ *     "env": { "COUNTERSIGN_URL": "https://app.countersign.network", "COUNTERSIGN_API_KEY": "csk_…" } }
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CountersignClient } from "@countersign/sdk";
-import { createDemoCore, createLocalApi } from "@countersign/api";
-import type { CountersignApi } from "@countersign/api-contract";
 import { createCountersignTools } from "./tools";
 
-const remote = process.env["COUNTERSIGN_URL"];
-let api: CountersignApi;
-let mode: string;
-if (remote) {
-  api = new CountersignClient({ baseUrl: remote });
-  mode = `remote Core ${remote}`;
-} else {
-  const { core } = await createDemoCore();
-  api = createLocalApi(core);
-  mode = "embedded Core (mock fleet — no setup, no credentials)";
+const baseUrl = process.env["COUNTERSIGN_URL"];
+if (!baseUrl) {
+  console.error(
+    "countersign-mcp: set COUNTERSIGN_URL to your Countersign Core (e.g. https://app.countersign.network),\n" +
+      "and COUNTERSIGN_API_KEY if it requires auth. See https://countersign.network.",
+  );
+  process.exit(1);
 }
+const apiKey = process.env["COUNTERSIGN_API_KEY"];
+const client = new CountersignClient({ baseUrl, ...(apiKey ? { apiKey } : {}) });
 
 const server = new McpServer({ name: "countersign", version: "0.1.0" });
-for (const t of createCountersignTools(api)) {
+for (const t of createCountersignTools(client)) {
   server.tool(t.name, t.description, t.schema, async (args: Record<string, unknown>) => ({
     content: [{ type: "text" as const, text: await t.handler(args) }],
   }));
 }
 
 await server.connect(new StdioServerTransport());
-console.error(`countersign-mcp connected — ${mode}`);
+console.error(`countersign-mcp connected → ${baseUrl}${apiKey ? " (authenticated)" : ""}`);
