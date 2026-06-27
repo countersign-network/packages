@@ -13,9 +13,7 @@
     "@countersign/policy": "workspace:*"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*",
-    "@countersign/core": "workspace:*",
-    "@countersign/provider-mock": "workspace:*"
+    "@countersign/api": "workspace:*"
   },
   "comment": "Governs x402 (the HTTP 402 machine-payment rail) as a first-class Countersign action: parse a payment challenge -> route through the spend guard -> only pay if policy allows. Countersign governs; it never moves funds (prime directive #1)."
 }
