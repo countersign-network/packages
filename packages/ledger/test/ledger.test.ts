@@ -101,6 +101,17 @@ for (const adapter of adapters) {
       expect((l as unknown as Record<string, unknown>)["update"]).toBeUndefined();
       expect((l as unknown as Record<string, unknown>)["delete"]).toBeUndefined();
     });
+
+    it("serializes concurrent appends — contiguous indices, no collision, chain verifies", async () => {
+      const l = await adapter.make();
+      const N = 25;
+      // Fire all appends at once: without serialization they'd read the same head, compute the same
+      // idx, and collide on the PK / fork the chain.
+      const recs = await Promise.all(Array.from({ length: N }, (_, i) => l.append(freezeReq(i))));
+      const indices = recs.map((r) => r.index).sort((a, b) => a - b);
+      expect(indices).toEqual(Array.from({ length: N }, (_, i) => i)); // 0..N-1, each exactly once
+      expect(await l.verify()).toEqual({ ok: true });
+    });
   });
 }
 

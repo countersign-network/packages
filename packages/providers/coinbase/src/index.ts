@@ -178,14 +178,32 @@ export class CoinbaseProvider implements EnforcementProvider {
 
     const acct = this.require(agentId);
     const to = (attempt.counterparty ?? acct.address) as `0x${string}`;
-    const { transactionHash } = await this.client().evm.sendTransaction({
-      address: acct.address,
-      transaction: { to, value: BigInt(attempt.amount) },
-      network: attempt.venue as "base-sepolia",
-    });
-    if (attempt.asset === policy.asset) {
+
+    // Reserve against the rolling daily tally BEFORE the send await. evaluatePolicy read the tally
+    // synchronously above; reserving here (no await in between) serializes concurrent in-policy
+    // spends on the single-threaded loop. Without it, two spends both read the pre-spend total, both
+    // pass the cap check, and both send — breaching the daily cap (TOCTOU).
+    const counted = attempt.asset === policy.asset;
+    if (counted) {
       const prior = this.dailySpent.get(agentId) ?? "0";
       this.dailySpent.set(agentId, (BigInt(prior) + BigInt(attempt.amount)).toString());
+    }
+
+    let transactionHash: string;
+    try {
+      ({ transactionHash } = await this.client().evm.sendTransaction({
+        address: acct.address,
+        transaction: { to, value: BigInt(attempt.amount) },
+        network: attempt.venue as "base-sepolia",
+      }));
+    } catch (err) {
+      // Send failed → release the reservation (subtract our amount from the CURRENT tally, so a
+      // concurrent spend's reservation made after ours is preserved). Then surface the failure.
+      if (counted) {
+        const cur = this.dailySpent.get(agentId) ?? "0";
+        this.dailySpent.set(agentId, (BigInt(cur) - BigInt(attempt.amount)).toString());
+      }
+      throw err;
     }
     const allowedAction: ActionRequest = { ...action, raw: { transactionHash } };
     this.emit({ type: "action_allowed", agentId, action: allowedAction, policyId, ts: Date.now() });

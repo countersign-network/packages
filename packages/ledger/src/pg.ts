@@ -24,6 +24,7 @@ interface Row {
 }
 
 export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
+  private tail: Promise<unknown> = Promise.resolve();
   readonly publicKey: string | undefined;
 
   private constructor(
@@ -51,7 +52,16 @@ export class PgLedger<T = LedgerEvent> implements LedgerPort<T> {
     return new PgLedger<T>(db, signer);
   }
 
-  async append(payload: T): Promise<LedgerRecord<T>> {
+  append(payload: T): Promise<LedgerRecord<T>> {
+    // Serialize appends: the hash chain is inherently sequential (each row's prevHash is the prior
+    // row's rowHash), so two concurrent appends must not both read the same head — they'd compute the
+    // same idx and collide on the PRIMARY KEY (or fork the chain). Chain off a tail promise.
+    const next = this.tail.then(() => this.appendNow(payload));
+    this.tail = next.catch(() => undefined); // keep the chain going even if one append rejects
+    return next;
+  }
+
+  private async appendNow(payload: T): Promise<LedgerRecord<T>> {
     const head = await this.getHead();
     const prev = head?.rowHash ?? GENESIS_HASH;
     const index = head ? head.index + 1 : 0;
