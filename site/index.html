@@ -5,107 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Countersign — the kill switch for AI agents that spend money</title>
     <meta name="description" content="A neutral, cross-vendor control plane for AI agents that spend money. One policy, one freeze, one tamper-evident ledger — across every agent-wallet backend at once." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1020'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%2358e6a8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <meta property="og:title" content="Countersign — control plane for AI agents that spend" />
     <meta property="og:description" content="One policy, one freeze, one audit ledger across every agent-wallet backend. Proven across four rails in ~432ms." />
     <meta property="og:type" content="website" />
     <style>
       :root {
-        --bg: #0b1020; --bg2: #0e1530; --card: #131c3a; --line: #243056;
-        --fg: #eaf0ff; --muted: #9fb0d6; --brand: #7c9cff; --accent: #58e6a8; --warn: #ffcf6b;
-        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+        --bg: #07080b; --bg2: #0a0c11; --panel: #0b0e15; --panel2: #0d1119; --code: #05070c;
+        --line: #1a2030; --line2: #262f42;
+        --fg: #e9edf6; --muted: #868fa3; --faint: #5b6478;
+        --brand: #7c9cff; --accent: #5cf2a9; --accent2: #36d98a; --warn: #ffcf6b;
+        --glow: rgba(92, 242, 169, .55);
+        --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", Consolas, monospace;
+        --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --maxw: 1080px;
       }
       * { box-sizing: border-box; }
       html { scroll-behavior: smooth; }
-      body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #16224a 0%, var(--bg) 55%); color: var(--fg); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
-      a { color: var(--brand); text-decoration: none; }
-      a:hover { color: #a9c0ff; }
-      .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
+      body {
+        margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans);
+        line-height: 1.6; -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden;
+      }
+      /* blueprint grid backdrop — bittensor-grade hairline lattice, faded out below the fold */
+      body::before {
+        content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background-image:
+          linear-gradient(rgba(124, 156, 255, .05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 156, 255, .05) 1px, transparent 1px);
+        background-size: 46px 46px;
+        -webkit-mask-image: radial-gradient(1200px 760px at 72% -6%, #000 28%, transparent 82%);
+        mask-image: radial-gradient(1200px 760px at 72% -6%, #000 28%, transparent 82%);
+      }
+      /* signal-green aurora behind the hero */
+      body::after {
+        content: ""; position: fixed; top: -28%; right: -12%; width: 62vw; height: 62vw; z-index: 0;
+        pointer-events: none; background: radial-gradient(closest-side, rgba(92, 242, 169, .10), transparent 70%);
+        filter: blur(8px);
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { color: #8ff7c4; }
+      .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
       .muted { color: var(--muted); }
 
-      header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px); background: rgba(11,16,32,.72); border-bottom: 1px solid var(--line); }
-      nav { display: flex; align-items: center; gap: 18px; height: 62px; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; color: var(--fg); }
+      header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); background: rgba(7,8,11,.74); border-bottom: 1px solid var(--line); }
+      nav { display: flex; align-items: center; gap: 20px; height: 64px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.3px; color: var(--fg); font-size: 16px; }
       .brand svg { width: 26px; height: 26px; }
       nav .spacer { flex: 1; }
-      nav a.navlink { color: var(--muted); font-size: 14px; }
+      nav a.navlink { color: var(--muted); font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; }
       nav a.navlink:hover { color: var(--fg); }
-      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid var(--line); color: var(--fg); background: #16224a; cursor: pointer; }
-      .btn:hover { border-color: var(--brand); }
-      .btn.primary { background: linear-gradient(180deg, #7c9cff, #5f82ff); color: #08102a; border: 0; }
-      .btn.primary:hover { filter: brightness(1.06); color: #08102a; }
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 7px; font-weight: 600; font-size: 13px; border: 1px solid var(--line2); color: var(--fg); background: transparent; cursor: pointer; font-family: var(--mono); letter-spacing: .4px; transition: border-color .18s, color .18s, box-shadow .18s, background .18s, filter .18s; }
+      .btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 26px -8px var(--glow); }
+      .btn.primary { background: var(--accent); color: #04130c; border: 1px solid var(--accent); box-shadow: 0 0 32px -10px var(--glow); }
+      .btn.primary:hover { background: #76f7ba; color: #04130c; box-shadow: 0 0 42px -8px var(--glow); }
 
-      .hero { padding: 78px 0 38px; }
-      .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent); border: 1px solid #1d3a32; background: #0e2018; padding: 5px 12px; border-radius: 999px; }
-      h1 { font-size: clamp(34px, 5.4vw, 58px); line-height: 1.04; margin: 18px 0 14px; letter-spacing: -1px; }
-      h1 .grad { background: linear-gradient(90deg, #9fb6ff, #58e6a8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .sub { font-size: clamp(17px, 2.4vw, 21px); color: var(--muted); max-width: 720px; }
-      .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 14px; align-items: center; }
-      .proof { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 22px; color: var(--muted); font-size: 14px; }
-      .proof b { color: var(--fg); }
+      .hero { padding: 92px 0 52px; }
+      .pill { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 12px; letter-spacing: .5px; color: var(--accent); border: 1px solid rgba(92,242,169,.28); background: rgba(92,242,169,.06); padding: 6px 13px; border-radius: 999px; }
+      .blip { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--glow); animation: pulse 2.4s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--glow); } 50% { opacity: .4; box-shadow: 0 0 18px var(--glow); } }
+      h1 { font-size: clamp(38px, 6vw, 68px); line-height: 1.02; margin: 22px 0 16px; letter-spacing: -2px; font-weight: 800; }
+      h1 .grad { background: linear-gradient(96deg, #cfe0ff, #5cf2a9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .sub { font-size: clamp(16px, 2.2vw, 20px); color: var(--muted); max-width: 690px; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 30px 0 14px; align-items: center; }
+      .proof { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 26px; color: var(--muted); font-family: var(--mono); font-size: 12.5px; }
+      .proof span { display: inline-flex; align-items: center; gap: 7px; }
+      .proof span::before { content: "+"; color: var(--accent); font-weight: 700; }
+      .proof b { color: var(--fg); font-weight: 700; }
 
       /* copy command box */
-      .cmd { display: inline-flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 15px; background: #0a1330; border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; color: #d7e2ff; }
+      .cmd { display: inline-flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 14px; background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 11px 14px; color: #cfe0ff; }
       .cmd .dollar { color: var(--accent); }
-      .copy { cursor: pointer; border: 0; background: #1a2752; color: var(--muted); border-radius: 7px; padding: 5px 9px; font-size: 12px; font-family: var(--sans); }
-      .copy:hover { color: var(--fg); }
+      .copy { cursor: pointer; border: 1px solid var(--line2); background: transparent; color: var(--muted); border-radius: 6px; padding: 5px 9px; font-size: 11px; font-family: var(--mono); letter-spacing: .3px; transition: color .15s, border-color .15s; }
+      .copy:hover { color: var(--accent); border-color: var(--accent); }
 
-      section { padding: 46px 0; border-top: 1px solid rgba(36,48,86,.5); }
-      .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; }
-      h2 { font-size: clamp(24px, 3.6vw, 34px); margin: 8px 0 6px; letter-spacing: -.5px; }
-      .lead { color: var(--muted); max-width: 720px; margin-bottom: 26px; }
+      section { padding: 64px 0; border-top: 1px solid var(--line); position: relative; }
+      /* blueprint node where each section line meets the left rule */
+      section::before { content: "+"; position: absolute; top: -9px; left: -1px; color: var(--line2); font-family: var(--mono); font-size: 15px; line-height: 1; }
+      .eyebrow { color: var(--accent); font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; }
+      h2 { font-size: clamp(24px, 3.6vw, 36px); margin: 12px 0 6px; letter-spacing: -1px; font-weight: 800; }
+      .lead { color: var(--muted); max-width: 720px; margin-bottom: 28px; }
 
       .grid { display: grid; gap: 16px; }
       .g3 { grid-template-columns: repeat(3, 1fr); }
       .g4 { grid-template-columns: repeat(4, 1fr); }
       @media (max-width: 820px) { .g3, .g4 { grid-template-columns: 1fr; } }
-      .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-      .card h3 { margin: 4px 0 8px; font-size: 18px; }
+      .card { background: linear-gradient(180deg, var(--panel), var(--bg2)); border: 1px solid var(--line); border-radius: 10px; padding: 22px; position: relative; transition: border-color .2s, transform .2s, box-shadow .2s; }
+      .card:hover { border-color: var(--line2); transform: translateY(-2px); box-shadow: 0 14px 40px -24px rgba(0,0,0,.9); }
+      /* plus-mark in the top-right corner — technical-blueprint detail */
+      .card::after { content: "+"; position: absolute; top: 9px; right: 12px; color: var(--line2); font-family: var(--mono); font-size: 13px; line-height: 1; }
+      .card h3 { margin: 4px 0 8px; font-size: 17px; letter-spacing: -.3px; }
       .card p { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
-      .num { width: 26px; height: 26px; border-radius: 8px; background: #16224a; color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+      .num { width: 28px; height: 28px; border-radius: 7px; background: rgba(92,242,169,.08); border: 1px solid rgba(92,242,169,.25); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; font-family: var(--mono); }
 
-      pre { margin: 0; background: #0a1330; border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: auto; }
-      code { font-family: var(--mono); font-size: 13.5px; color: #d7e2ff; }
-      .tok-k { color: #7c9cff; } .tok-s { color: #58e6a8; } .tok-c { color: #6b7aa6; }
+      pre { margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow: auto; }
+      code { font-family: var(--mono); font-size: 13.5px; color: #cfe0ff; }
+      .tok-k { color: #7c9cff; } .tok-s { color: #5cf2a9; } .tok-c { color: #5b6478; }
 
       /* ecosystem */
       .rail { display: flex; align-items: center; gap: 12px; }
-      .rail .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px #58e6a8; }
-      .rail .dot.soon { background: var(--warn); box-shadow: 0 0 10px #ffcf6b; }
-      .badge { font-size: 11px; font-weight: 700; letter-spacing: .6px; padding: 3px 8px; border-radius: 999px; }
-      .badge.live { color: #58e6a8; background: #0e2018; border: 1px solid #1d3a32; }
-      .badge.soon { color: #ffcf6b; background: #241d0c; border: 1px solid #3a311d; }
+      .rail .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--glow); }
+      .rail .dot.soon { background: var(--warn); box-shadow: 0 0 10px rgba(255,207,107,.5); }
+      .badge { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; }
+      .badge.live { color: #5cf2a9; background: rgba(92,242,169,.08); border: 1px solid rgba(92,242,169,.3); }
+      .badge.soon { color: #ffcf6b; background: rgba(255,207,107,.07); border: 1px solid rgba(255,207,107,.28); }
       .kv { font-size: 13px; color: var(--muted); }
+      .sub-eyebrow { color: var(--brand); font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
 
       /* flywheel */
       .fly { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
       @media (max-width: 820px) { .fly { grid-template-columns: 1fr; } }
-      .flystep { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; position: relative; }
-      .flystep .k { color: var(--accent); font-weight: 700; font-size: 12px; letter-spacing: .8px; text-transform: uppercase; }
+      .flystep { background: linear-gradient(180deg, var(--panel), var(--bg2)); border: 1px solid var(--line); border-radius: 10px; padding: 16px; position: relative; }
+      .flystep .k { color: var(--accent); font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: .8px; text-transform: uppercase; }
       .flystep p { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
-      .flyarrow { color: var(--brand); text-align: center; align-self: center; font-size: 20px; }
+      .flyarrow { color: var(--brand); text-align: center; align-self: center; font-size: 20px; font-family: var(--mono); }
       @media (max-width: 820px) { .flyarrow { transform: rotate(90deg); } }
 
       /* powered-by badge + copy snippets */
       .pbrow { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 4px 0 18px; }
-      .pb-badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans); font-weight: 700; font-size: 13px; color: var(--accent); background: #0e2018; border: 1px solid #1d3a32; padding: 7px 13px; border-radius: 999px; }
+      .pb-badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-weight: 700; font-size: 12.5px; color: var(--accent); background: rgba(92,242,169,.07); border: 1px solid rgba(92,242,169,.3); padding: 7px 13px; border-radius: 7px; }
       .pb-badge svg { width: 15px; height: 15px; }
-      .snip { display: flex; align-items: flex-start; gap: 10px; background: #0a1330; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+      .snip { display: flex; align-items: flex-start; gap: 10px; background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
       .snip code { white-space: pre-wrap; word-break: break-word; flex: 1; line-height: 1.5; }
       .snip .copy { flex: 0 0 auto; }
-      .snip-label { font-size: 12px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+      .snip-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 1px; }
 
       /* generic, non-fabricated social proof */
       .proofcard p { font-style: italic; color: var(--fg); font-size: 14.5px; margin: 0 0 10px; }
-      .proofcard .who { font-style: normal; color: var(--muted); font-size: 12.5px; margin: 0; }
+      .proofcard .who { font-style: normal; color: var(--muted); font-family: var(--mono); font-size: 12px; margin: 0; }
 
-      footer { border-top: 1px solid var(--line); padding: 34px 0 60px; color: var(--muted); font-size: 14px; }
+      footer { border-top: 1px solid var(--line); padding: 40px 0 64px; color: var(--muted); font-size: 14px; position: relative; z-index: 1; }
       .frow { display: flex; flex-wrap: wrap; gap: 26px; align-items: center; }
+      .frow a:not(.brand) { font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+      .frow a:not(.brand):hover { color: var(--accent); }
       .frow .spacer { flex: 1; }
-      .note { font-size: 12.5px; color: #6b7aa6; margin-top: 14px; }
-      .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: #06241a; font-weight: 700; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: all .25s; pointer-events: none; }
+      .note { font-size: 12.5px; color: var(--faint); margin-top: 16px; }
+      .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: #04130c; font-weight: 700; font-family: var(--mono); padding: 10px 16px; border-radius: 8px; opacity: 0; transition: all .25s; pointer-events: none; z-index: 40; box-shadow: 0 0 30px -6px var(--glow); }
       .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      @media (prefers-reduced-motion: reduce) {
+        .blip { animation: none; }
+        html { scroll-behavior: auto; }
+      }
     </style>
   </head>
   <body>
@@ -113,7 +153,7 @@
       <div class="wrap">
         <nav>
           <a class="brand" href="/">
-            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Countersign
           </a>
           <span class="spacer"></span>
@@ -129,7 +169,7 @@
 
     <main class="wrap">
       <section class="hero" style="border-top:0">
-        <span class="pill">● Four rails frozen in ~432ms — proven on testnet</span>
+        <span class="pill"><span class="blip"></span> Four rails frozen in ~432ms — proven on testnet</span>
         <h1>The kill switch for <span class="grad">AI agents that spend money.</span></h1>
         <p class="sub">Countersign is a neutral, cross-vendor control plane: one policy, one freeze, and one
           tamper-evident audit ledger — <b>across every agent-wallet backend at once</b>. The one thing no single
@@ -219,7 +259,7 @@
 
         <div class="pbrow">
           <span class="pb-badge">
-            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Spending governed by Countersign
           </span>
           <span class="muted" style="font-size:13px">← live preview of the badge</span>
@@ -271,7 +311,7 @@
         <h2>Rails + toolkit.</h2>
         <p class="lead">Countersign governs the wallets &amp; cards you already use — the <b>rails</b> — and ships the <b>toolkit</b> your agents build with.</p>
 
-        <div class="eyebrow" style="color:var(--brand);margin-bottom:14px">Rails — what Countersign governs</div>
+        <div class="sub-eyebrow" style="margin-bottom:14px">Rails — what Countersign governs</div>
         <div class="grid g4">
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Coinbase</h3></div><p class="kv" style="margin-top:10px">MPC wallets · native per-tx cap pushed into CDP policy.</p><span class="badge live">LIVE</span></div>
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Turnkey</h3></div><p class="kv" style="margin-top:10px">In-enclave CEL policy · native human-approval consensus.</p><span class="badge live">LIVE</span></div>
@@ -279,7 +319,7 @@
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Lithic</h3></div><p class="kv" style="margin-top:10px">Virtual <b>Visa</b> card · real-time ASA approve/decline.</p><span class="badge live">LIVE</span></div>
         </div>
 
-        <div class="eyebrow" style="color:var(--brand);margin:34px 0 14px">Toolkit — what you build with</div>
+        <div class="sub-eyebrow" style="margin:34px 0 14px">Toolkit — what you build with</div>
         <div class="grid g4">
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">MCP server</h3></div><p class="kv" style="margin-top:10px"><code>npx @countersign/mcp</code> — kill switch + spend guard inside any MCP client.</p><span class="badge live">PUBLISHED</span></div>
           <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">SDK</h3></div><p class="kv" style="margin-top:10px"><code>@countersign/sdk</code> · <code>@countersign/api-contract</code> — typed client + live ledger.</p><span class="badge live">PUBLISHED</span></div>
@@ -302,7 +342,7 @@
     <footer>
       <div class="wrap">
         <div class="frow">
-          <a class="brand" href="/"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+          <a class="brand" href="/"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
           <span class="spacer"></span>
           <a href="https://github.com/countersign-network/countersign">GitHub</a>
           <a href="https://www.npmjs.com/package/@countersign/sdk">npm</a>
