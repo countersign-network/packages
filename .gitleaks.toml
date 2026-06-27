@@ -4,9 +4,15 @@ title = "Countersign secret scan"
 useDefault = true
 
 [allowlist]
-description = "Reference docs use placeholder/example values, not real secrets"
+description = "Reference docs use placeholder/example values; one TS type-annotation line trips the generic-api-key heuristic"
+regexTarget = "line"
 paths = [
   '''docs/sdk-research/.*\.md''',
   '''docs/setup-coinbase\.md''',
   '''\.env\.example''',
+]
+regexes = [
+  # ledger/hash-chain.ts: `const privateKey: KeyObject = privateKeyB64` — Node crypto type + a param
+  # name, NOT a secret. Scoped to this exact pattern so a genuine secret in the file still trips.
+  '''KeyObject = privateKeyB64''',
 ]
