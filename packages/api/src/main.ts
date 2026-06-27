@@ -89,7 +89,10 @@ if (hasVendorCreds && Object.keys(apiKeys).length === 0 && env !== "development"
   );
 }
 
-const server = createCountersignServer(core, { apiKeys });
+// Trust X-Forwarded-For only behind a known proxy that overwrites it (Render sets RENDER=true), or
+// when TRUST_PROXY=1 is set explicitly — so the rate-limit key can't be spoofed in a direct deploy.
+const trustProxy = process.env["TRUST_PROXY"] === "1" || process.env["RENDER"] === "true";
+const server = createCountersignServer(core, { apiKeys, trustProxy });
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));
 console.log(`\n  Countersign dashboard:  http://localhost:${port}`);
 console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);

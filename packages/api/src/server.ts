@@ -5,6 +5,7 @@
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -83,8 +84,17 @@ export interface CountersignServerOptions {
    * operator (+ policy/freeze/approve/evaluate), admin. The tenant is the multi-tenancy seam (THREAT-MODEL.md).
    */
   apiKeys?: Record<string, ApiKeyInfo>;
-  /** Fixed-window rate limit on mutating routes, per API key (or per client IP when open). max<=0 disables. */
-  rateLimit?: { windowMs?: number; max?: number };
+  /**
+   * Fixed-window rate limit, per API key (or per client IP when open). `max` bounds mutating routes,
+   * `maxReads` bounds gated reads (incl. the full-ledger pull). max/maxReads <= 0 disables that bucket.
+   */
+  rateLimit?: { windowMs?: number; max?: number; maxReads?: number };
+  /**
+   * Trust `X-Forwarded-For` for the client IP (rate-limit key). OFF by default because XFF is
+   * client-spoofable — turn it on ONLY when the Core sits behind a proxy that overwrites inbound XFF
+   * (e.g. Render). When off, the socket peer address is authoritative and XFF is ignored.
+   */
+  trustProxy?: boolean;
 }
 
 function apiKeyFrom(req: IncomingMessage): string {
@@ -106,12 +116,15 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
     console.warn("[countersign] no API keys configured — the API is OPEN. Set COUNTERSIGN_API_KEYS to lock it down.");
   }
 
-  // Fixed-window rate limiter for mutating routes — a basic DoS / runaway-agent guard.
+  // Fixed-window rate limiter — a basic DoS / runaway-agent guard. Separate buckets so a flood of
+  // reads (e.g. the full-ledger pull) can't crowd out writes and vice-versa.
   const windowMs = opts.rateLimit?.windowMs ?? 60_000;
   const maxWrites = opts.rateLimit?.max ?? 120;
+  const maxReads = opts.rateLimit?.maxReads ?? 600;
   const hits = new Map<string, { count: number; reset: number }>();
-  const allowWrite = (key: string): boolean => {
-    if (maxWrites <= 0) return true;
+  const allow = (bucket: string, id: string, max: number): boolean => {
+    if (max <= 0) return true;
+    const key = `${bucket}:${id}`;
     const now = Date.now();
     const e = hits.get(key);
     if (!e || now >= e.reset) {
@@ -119,7 +132,38 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
       return true;
     }
     e.count += 1;
-    return e.count <= maxWrites;
+    return e.count <= max;
+  };
+
+  // Client IP for the rate-limit key. XFF is client-spoofable, so it's read ONLY behind a trusted
+  // proxy (see opts.trustProxy); otherwise the socket peer is authoritative.
+  const trustProxy = opts.trustProxy ?? false;
+  const clientIp = (req: IncomingMessage): string => {
+    if (trustProxy) {
+      const xff = req.headers["x-forwarded-for"];
+      const first = (Array.isArray(xff) ? xff[0] : xff)?.split(",")[0]?.trim();
+      if (first) return first;
+    }
+    return req.socket.remoteAddress ?? "anon";
+  };
+
+  // Short-lived, single-use tickets for the ws handshake. A WebSocket can't carry an Authorization
+  // header from a browser, and a long-lived key in the ws URL leaks into access logs / proxies /
+  // history. So an authenticated client POSTs /ws-ticket (Bearer key) and connects with ?ticket=<t>.
+  const WS_TICKET_TTL_MS = 30_000;
+  const wsTickets = new Map<string, { tenant: string; expires: number }>();
+  const issueWsTicket = (tenant: string): { ticket: string; expiresInMs: number } => {
+    const now = Date.now();
+    if (wsTickets.size > 1024) for (const [t, e] of wsTickets) if (now >= e.expires) wsTickets.delete(t);
+    const ticket = randomBytes(32).toString("base64url");
+    wsTickets.set(ticket, { tenant, expires: now + WS_TICKET_TTL_MS });
+    return { ticket, expiresInMs: WS_TICKET_TTL_MS };
+  };
+  const redeemWsTicket = (ticket: string): string | undefined => {
+    const e = wsTickets.get(ticket);
+    if (!e) return undefined;
+    wsTickets.delete(ticket); // single-use
+    return Date.now() >= e.expires ? undefined : e.tenant;
   };
 
   const http = createServer((req, res) => {
@@ -139,16 +183,19 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
       }
       tenantId = info.tenant;
     }
-    if (WRITE_ROUTES.has(route)) {
-      const rlKey = apiKeyFrom(req) || `${req.socket.remoteAddress ?? "anon"}:${tenantId}`;
-      if (!allowWrite(rlKey)) {
+    if (!isOpen) {
+      // Rate-limit every gated route. Writes and reads have separate budgets keyed by API key
+      // (or client IP in open mode) so neither can starve the other.
+      const rlId = apiKeyFrom(req) || `${clientIp(req)}:${tenantId}`;
+      const ok = WRITE_ROUTES.has(route) ? allow("w", rlId, maxWrites) : allow("r", rlId, maxReads);
+      if (!ok) {
         res.setHeader("retry-after", String(Math.ceil(windowMs / 1000)));
         return send(res, 429, { error: "rate limit exceeded — slow down" });
       }
     }
     res.setHeader("x-countersign-tenant", tenantId);
     Promise.resolve(resolveCore(tenantId))
-      .then((core) => handle(core, req, res, tenantId))
+      .then((core) => handle(core, req, res, tenantId, issueWsTicket))
       .catch((err) => {
         // Malformed/oversized input is the client's fault → 400 with a safe message.
         if (err instanceof BadRequestError) return send(res, 400, { error: err.message });
@@ -163,13 +210,15 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
   wss.on("connection", async (socket, req) => {
     let tenantId = "default";
     if (authEnabled) {
-      // Browsers can't set ws headers, so the event stream takes the key as ?key=<key> when auth is on.
-      const info = apiKeys[new URL(req.url ?? "/", "http://localhost").searchParams.get("key") ?? ""];
-      if (!info) {
+      // The stream authenticates with a single-use ?ticket=<t> from POST /ws-ticket — never the raw
+      // API key (which would leak into ws-URL access logs). Tickets are short-lived and one-shot.
+      const ticket = new URL(req.url ?? "/", "http://localhost").searchParams.get("ticket") ?? "";
+      const tenant = redeemWsTicket(ticket);
+      if (!tenant) {
         socket.close(1008, "unauthorized");
         return;
       }
-      tenantId = info.tenant;
+      tenantId = tenant;
     }
     const core = await resolveCore(tenantId); // stream this tenant's ledger only
     const tx = (m: WsServerMessage) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(m));
@@ -196,11 +245,22 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
   };
 }
 
-async function handle(core: CountersignCore, req: IncomingMessage, res: ServerResponse, tenantId: string): Promise<void> {
+async function handle(
+  core: CountersignCore,
+  req: IncomingMessage,
+  res: ServerResponse,
+  tenantId: string,
+  issueWsTicket: (tenant: string) => { ticket: string; expiresInMs: number },
+): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = `${req.method} ${url.pathname}`;
 
   switch (route) {
+    case "POST /ws-ticket": {
+      // Exchange a valid API key (any role — the stream is read-only) for a single-use ws ticket so
+      // the key never travels in the ws URL. Gated as a read route by the auth/rate-limit layer.
+      return send(res, 200, issueWsTicket(tenantId));
+    }
     case "GET /": {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return void res.end(DASHBOARD_HTML);
