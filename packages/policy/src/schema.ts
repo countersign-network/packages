@@ -18,7 +18,7 @@ const address = z
  * and backend-neutral — every field must mean the same thing on every rail.
  */
 export const UnifiedPolicySchema = z
-  .object({
+  .strictObject({
     schemaVersion: z.literal(1),
     /** Asset the caps apply to, e.g. "USDC". */
     asset: z.string().min(1),
@@ -39,8 +39,7 @@ export const UnifiedPolicySchema = z
     frozen: z.boolean().optional(),
     /** Allowed venues/chains by name (see ./venues.ts). Absent = any venue. */
     venues: z.array(z.string()).optional(),
-  })
-  .strict();
+  });
 
 export type UnifiedPolicy = z.infer<typeof UnifiedPolicySchema>;
 
