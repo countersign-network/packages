@@ -43,7 +43,7 @@ if (ambient) {
       asset: "USDC",
       perTxCap: "100000000", // 100 USDC
       dailyCap: "100000000000", // 100,000 USDC (generous for a long-running demo)
-      allowlist: ["0xTREASURY"],
+      allowlist: ["0x000000000000000000000000000000000000dEaD"],
       approvalThreshold: "60000000", // > 60 USDC needs human approval
     }),
   );
@@ -82,9 +82,9 @@ console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);
 // --- live agent activity so the dashboard has something to show ---
 const pick = <T>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)]!;
 const spendKinds: ((m: DemoFleetMember) => SpendAttempt)[] = [
-  (m) => ({ amount: "50000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }), // allowed
-  (m) => ({ amount: "150000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }), // blocked: per-tx cap
-  (m) => ({ amount: "30000000", asset: "USDC", counterparty: "0xSTRANGER", venue: m.venue }), // blocked: allowlist
+  (m) => ({ amount: "50000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: m.venue }), // allowed
+  (m) => ({ amount: "150000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: m.venue }), // blocked: per-tx cap
+  (m) => ({ amount: "30000000", asset: "USDC", counterparty: "0x0000000000000000000000000000000000005a7a", venue: m.venue }), // blocked: allowlist
 ];
 
 // Synthetic activity (ambient demo only) so the deployed dashboard streams on its own. The connect
@@ -98,6 +98,6 @@ if (ambient) {
   // Occasionally request a spend in the approval band so the dashboard's approvals queue fills.
   setInterval(() => {
     const m = pick(fleet);
-    void core.evaluateSpend(m.agentId, { amount: "75000000", asset: "USDC", counterparty: "0xTREASURY", venue: m.venue }).catch(() => {});
+    void core.evaluateSpend(m.agentId, { amount: "75000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: m.venue }).catch(() => {});
   }, 4000);
 }

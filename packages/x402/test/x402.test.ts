@@ -23,14 +23,14 @@ describe("@countersign/x402 — govern the machine-payment rail", () => {
   });
 
   it("parses a 402 challenge to a normalized charge (cheapest option, USDC base units)", () => {
-    const charge = parseX402(challenge("50000000", "0xTREASURY"))!;
-    expect(charge).toEqual({ amount: "50000000", asset: "USDC", payTo: "0xTREASURY", venue: "base-sepolia", network: "eip155:84532" });
+    const charge = parseX402(challenge("50000000", "0x000000000000000000000000000000000000dEaD"))!;
+    expect(charge).toEqual({ amount: "50000000", asset: "USDC", payTo: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia", network: "eip155:84532" });
   });
 
   it("allows an in-policy x402 payment, blocks over-cap and off-allowlist", async () => {
-    expect((await guardX402(api, "payments-bot", parseX402(challenge("50000000", "0xTREASURY"))!)).outcome).toBe("allow");
-    expect((await guardX402(api, "payments-bot", parseX402(challenge("150000000", "0xTREASURY"))!)).outcome).toBe("deny");
-    expect((await guardX402(api, "payments-bot", parseX402(challenge("1", "0xSTRANGER"))!)).outcome).toBe("deny");
+    expect((await guardX402(api, "payments-bot", parseX402(challenge("50000000", "0x000000000000000000000000000000000000dEaD"))!)).outcome).toBe("allow");
+    expect((await guardX402(api, "payments-bot", parseX402(challenge("150000000", "0x000000000000000000000000000000000000dEaD"))!)).outcome).toBe("deny");
+    expect((await guardX402(api, "payments-bot", parseX402(challenge("1", "0x0000000000000000000000000000000000005a7a"))!)).outcome).toBe("deny");
   });
 
   it("withX402Guard only pays when allowed (a rogue/over-budget agent never pays)", async () => {
@@ -40,10 +40,10 @@ describe("@countersign/x402 — govern the machine-payment rail", () => {
       return "paid";
     };
 
-    await expect(withX402Guard(api, "payments-bot", parseX402(challenge("50000000", "0xTREASURY"))!, pay)).resolves.toBe("paid");
+    await expect(withX402Guard(api, "payments-bot", parseX402(challenge("50000000", "0x000000000000000000000000000000000000dEaD"))!, pay)).resolves.toBe("paid");
     expect(paid).toBe(1);
 
-    await expect(withX402Guard(api, "payments-bot", parseX402(challenge("999000000", "0xTREASURY"))!, pay)).rejects.toBeInstanceOf(X402Denied);
+    await expect(withX402Guard(api, "payments-bot", parseX402(challenge("999000000", "0x000000000000000000000000000000000000dEaD"))!, pay)).rejects.toBeInstanceOf(X402Denied);
     expect(paid).toBe(1); // unchanged — the payment was never executed
   });
 });

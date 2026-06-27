@@ -36,7 +36,7 @@ describe("@countersign/sdk — typed client over the Core API", () => {
   });
 
   it("applyPolicy() -> agents() -> freeze() -> ledger() round-trips", async () => {
-    const applied = await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100", allowlist: ["0xTREASURY"] }) });
+    const applied = await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100", allowlist: ["0x000000000000000000000000000000000000dEaD"] }) });
     expect(applied.applied).toHaveLength(3);
     expect((await client.agents()).agents).toHaveLength(3);
 
@@ -73,8 +73,8 @@ describe("@countersign/sdk — typed client over the Core API", () => {
 
   it("approval workflow round-trips over HTTP (evaluate -> approvals -> approve)", async () => {
     await client.unfreeze(); // earlier tests left the shared Core frozen
-    await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0xTREASURY"], approvalThreshold: "60000000" }) });
-    const d = await client.evaluate({ agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0xTREASURY", venue: "base-sepolia" });
+    await client.applyPolicy({ policy: definePolicy({ asset: "USDC", perTxCap: "100000000", allowlist: ["0x000000000000000000000000000000000000dEaD"], approvalThreshold: "60000000" }) });
+    const d = await client.evaluate({ agentId: "coinbase-agent", amount: "80000000", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(d.outcome).toBe("needs_approval");
     expect((await client.approvals()).approvals.length).toBeGreaterThan(0);
     const r = await client.approve({ approvalToken: d.approvalToken! });

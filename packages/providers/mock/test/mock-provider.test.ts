@@ -14,7 +14,7 @@ const AGENT = asAgentId("agent-1");
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({
   amount: "50",
   asset: "USDC",
-  counterparty: "0xTREASURY",
+  counterparty: "0x000000000000000000000000000000000000dEaD",
   venue: "base-sepolia",
   ...over,
 });
@@ -31,7 +31,7 @@ const POLICY = definePolicy({
   asset: "USDC",
   perTxCap: "100",
   dailyCap: "120",
-  allowlist: ["0xTREASURY"],
+  allowlist: ["0x000000000000000000000000000000000000dEaD"],
 });
 
 describe("MockProvider — enforcement + fail-closed scenarios", () => {
@@ -44,7 +44,7 @@ describe("MockProvider — enforcement + fail-closed scenarios", () => {
       await p.applyPolicy(AGENT, POLICY);
       expect((await p.attemptSpend(AGENT, spend({ amount: "100" }))).outcome).toBe("allowed");
       expect((await p.attemptSpend(AGENT, spend({ amount: "101" }))).outcome).toBe("blocked");
-      expect((await p.attemptSpend(AGENT, spend({ counterparty: "0xSTRANGER", amount: "1" }))).outcome).toBe("blocked");
+      expect((await p.attemptSpend(AGENT, spend({ counterparty: "0x0000000000000000000000000000000000005a7a", amount: "1" }))).outcome).toBe("blocked");
     });
   }
 

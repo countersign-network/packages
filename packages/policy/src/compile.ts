@@ -117,7 +117,7 @@ function compileTurnkey(policy: UnifiedPolicy): TurnkeyPolicyDoc {
     policies.push({
       policyName: "denylist",
       effect: "EFFECT_DENY",
-      condition: `eth.tx.to in [${policy.denylist.map(q).join(", ")}]`,
+      condition: `eth.tx.to in [${policy.denylist.map(qAddr).join(", ")}]`,
       consensus: null,
       notes: "blocked counterparties",
     });
@@ -149,7 +149,7 @@ function compileTurnkey(policy: UnifiedPolicy): TurnkeyPolicyDoc {
     const conds: string[] = [];
     if (policy.perTxCap) conds.push(`eth.tx.value <= ${policy.perTxCap}`);
     if (policy.allowlist && policy.allowlist.length > 0) {
-      conds.push(`eth.tx.to in [${policy.allowlist.map(q).join(", ")}]`);
+      conds.push(`eth.tx.to in [${policy.allowlist.map(qAddr).join(", ")}]`);
     }
     if (policy.venues && policy.venues.length > 0) {
       const ids = policy.venues.map(chainIdFor).filter((x): x is number => x !== undefined);
@@ -235,4 +235,16 @@ function compileOpenfort(policy: UnifiedPolicy): OpenfortOnchainPolicy {
 /** Quote a string for embedding in a CEL condition. */
 function q(s: string): string {
   return `'${s.replace(/'/g, "\\'")}'`;
+}
+
+/**
+ * Quote an EVM ADDRESS for embedding in a CEL condition — asserts it is strictly 0x+40-hex FIRST, so
+ * no quote/bracket/operator/whitespace can reach the condition string (CEL-injection defense in depth,
+ * independent of the schema). Refuses to compile rather than escape a suspicious value.
+ */
+function qAddr(s: string): string {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(s)) {
+    throw new Error(`policy compile: refusing to embed a non-hex address in a policy condition: ${JSON.stringify(s).slice(0, 24)}…`);
+  }
+  return `'${s}'`;
 }

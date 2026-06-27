@@ -4,26 +4,26 @@ import { definePolicy, evaluatePolicy, type SpendAttempt } from "@countersign/po
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({
   amount: "50",
   asset: "USDC",
-  counterparty: "0xTREASURY",
+  counterparty: "0x000000000000000000000000000000000000dEaD",
   venue: "base-sepolia",
   ...over,
 });
 
 describe("evaluatePolicy — the executable policy semantics", () => {
   it("frozen denies everything", () => {
-    const p = definePolicy({ asset: "USDC", frozen: true, allowlist: ["0xTREASURY"] });
+    const p = definePolicy({ asset: "USDC", frozen: true, allowlist: ["0x000000000000000000000000000000000000dEaD"] });
     expect(evaluatePolicy(p, spend()).outcome).toBe("deny");
   });
 
   it("denylist wins over allowlist", () => {
-    const p = definePolicy({ asset: "USDC", allowlist: ["0xBAD"], denylist: ["0xBAD"] });
-    expect(evaluatePolicy(p, spend({ counterparty: "0xBAD" })).outcome).toBe("deny");
+    const p = definePolicy({ asset: "USDC", allowlist: ["0x000000000000000000000000000000000000bad0"], denylist: ["0x000000000000000000000000000000000000bad0"] });
+    expect(evaluatePolicy(p, spend({ counterparty: "0x000000000000000000000000000000000000bad0" })).outcome).toBe("deny");
   });
 
   it("absent allowlist allows any counterparty; empty allowlist denies all", () => {
-    expect(evaluatePolicy(definePolicy({ asset: "USDC" }), spend({ counterparty: "0xANY" })).outcome).toBe("allow");
+    expect(evaluatePolicy(definePolicy({ asset: "USDC" }), spend({ counterparty: "0x000000000000000000000000000000000000a11a" })).outcome).toBe("allow");
     const denyAll = definePolicy({ asset: "USDC", allowlist: [] });
-    expect(evaluatePolicy(denyAll, spend({ counterparty: "0xANY" })).outcome).toBe("deny");
+    expect(evaluatePolicy(denyAll, spend({ counterparty: "0x000000000000000000000000000000000000a11a" })).outcome).toBe("deny");
   });
 
   it("per-tx cap: allows at the cap, denies one above", () => {

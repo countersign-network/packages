@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { asAgentId } from "@countersign/core";
+import { parsePolicy } from "@countersign/policy";
 import {
   WS_PATH,
   type AgentsResponse,
@@ -203,7 +204,15 @@ async function handle(core: CountersignCore, req: IncomingMessage, res: ServerRe
     }
     case "POST /policy": {
       const reqBody = await readJson<ApplyPolicyRequest>(req);
-      const result = await core.applyPolicy(reqBody.policy, reqBody.agentId ? asAgentId(reqBody.agentId) : undefined);
+      // Validate at the boundary — the client is untrusted. parsePolicy enforces the full schema
+      // incl. the strict hex-address rule (closes the CEL-injection vector before it reaches compile).
+      let policy;
+      try {
+        policy = parsePolicy(reqBody.policy);
+      } catch (err) {
+        return send(res, 400, { error: "invalid policy", detail: err instanceof Error ? err.message : String(err) });
+      }
+      const result = await core.applyPolicy(policy, reqBody.agentId ? asAgentId(reqBody.agentId) : undefined);
       return send(res, 200, result);
     }
     case "POST /freeze": {
@@ -233,6 +242,16 @@ async function handle(core: CountersignCore, req: IncomingMessage, res: ServerRe
     }
     case "POST /evaluate": {
       const b = await readJson<EvaluateRequest>(req);
+      // Validate before any BigInt(amount) / policy eval — a bad amount must be a 400, not a 500.
+      if (
+        typeof b.agentId !== "string" || !b.agentId ||
+        typeof b.asset !== "string" || !b.asset ||
+        typeof b.venue !== "string" || !b.venue ||
+        typeof b.amount !== "string" || !/^\d+$/.test(b.amount) ||
+        (b.counterparty !== undefined && typeof b.counterparty !== "string")
+      ) {
+        return send(res, 400, { error: "invalid evaluate request: need non-empty agentId/asset/venue and an integer base-unit amount" });
+      }
       const decision = await core.evaluateSpend(asAgentId(b.agentId), {
         amount: b.amount,
         asset: b.asset,

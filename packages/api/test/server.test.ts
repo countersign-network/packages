@@ -47,7 +47,7 @@ describe("Countersign Core server (REST + ws)", () => {
     const res = await fetch(`${base}/policy`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ policy: definePolicy({ asset: "USDC", perTxCap: "100", allowlist: ["0xTREASURY"] }) }),
+      body: JSON.stringify({ policy: definePolicy({ asset: "USDC", perTxCap: "100", allowlist: ["0x000000000000000000000000000000000000dEaD"] }) }),
     });
     const body = (await res.json()) as { applied: unknown[]; failed: unknown[] };
     expect(body.applied).toHaveLength(3);

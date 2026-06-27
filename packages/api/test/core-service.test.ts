@@ -5,11 +5,11 @@ import { MockProvider, type MockScenario } from "@countersign/provider-mock";
 import { OnChainAnchor } from "@countersign/ledger";
 import { CountersignCore } from "@countersign/api";
 
-const POLICY = definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "1000", allowlist: ["0xTREASURY"] });
+const POLICY = definePolicy({ asset: "USDC", perTxCap: "100", dailyCap: "1000", allowlist: ["0x000000000000000000000000000000000000dEaD"] });
 const spend = (over: Partial<SpendAttempt> = {}): SpendAttempt => ({
   amount: "50",
   asset: "USDC",
-  counterparty: "0xTREASURY",
+  counterparty: "0x000000000000000000000000000000000000dEaD",
   venue: "base-sepolia",
   ...over,
 });
@@ -55,7 +55,7 @@ describe("CountersignCore — the headline: 3 agents / 3 backends / 3 venues", (
     // Each agent spends within policy, then trips a guard.
     expect((await providers.coinbase!.attemptSpend(agents.coinbase!, spend({ amount: "50" }))).outcome).toBe("allowed");
     expect((await providers.turnkey!.attemptSpend(agents.turnkey!, spend({ amount: "500" }))).outcome).toBe("blocked"); // over per-tx cap
-    expect((await providers.openfort!.attemptSpend(agents.openfort!, spend({ counterparty: "0xSTRANGER", amount: "1" }))).outcome).toBe("blocked"); // off allowlist
+    expect((await providers.openfort!.attemptSpend(agents.openfort!, spend({ counterparty: "0x0000000000000000000000000000000000005a7a", amount: "1" }))).outcome).toBe("blocked"); // off allowlist
 
     const t0 = Date.now();
     const report = await core.freezeAll("kill switch");
