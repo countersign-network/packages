@@ -10,7 +10,7 @@ pnpm demo           # the scripted headline
 pnpm --filter @countersign/api start   # Core + dashboard at http://localhost:8080
 ```
 
-## The non-negotiables (see `CLAUDE.md`)
+## The non-negotiables
 
 Every change must respect the prime directives:
 

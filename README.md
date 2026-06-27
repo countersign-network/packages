@@ -59,7 +59,7 @@ in CI (gitleaks).
 The three `EnforcementMode`s map one-to-one onto the chosen backends:
 `native-session-caps` → Coinbase + Lithic (card) · `pre-sign-policy` → Turnkey · `onchain-policy` → Openfort.
 
-## Prime directives (invariants — see `CLAUDE.md`)
+## Prime directives (invariants)
 
 1. Don't build cryptography — integrate vendor MPC/TEE; session keys, never master keys.
 2. Build the layer **above** the wallets; aggregation is the product.

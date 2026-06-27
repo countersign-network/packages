@@ -14,3 +14,7 @@ client/.flutter-plugins
 client/.flutter-plugins-dependencies
 .dts/
 *.tgz
+
+# internal-only (never public)
+_private/
+CLAUDE.md
