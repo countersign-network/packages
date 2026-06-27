@@ -8,19 +8,44 @@ The build = **roadmap Tier 0** against faithful mocks, tested and committed to l
 
 | Roadmap Tier 0 item | State |
 |---|---|
-| #1 Coinbase / #2 Turnkey / #3 Openfort (enforcement backends) | adapter **skeletons** (real signatures + capabilities; live calls throw) — mock fleet proves the loop |
-| #4 Countersign SDK / front door | **`@countersign/sdk` DONE** (typed client + live ledger subscribe) ✅ |
-| Freeze + policy compiler + hash-chained ledger | **DONE & tested** (66 tests) ✅ |
+| #1 Coinbase / #2 Turnkey / #3 Openfort (+ #3b Lithic card) | **ALL LIVE on testnet** ✅ — each with `smoke.ts` + `spike.ts` proving real enforcement (in-policy allowed, over-cap/frozen declined) |
+| #4 Countersign SDK / front door | **`@countersign/sdk` DONE + auth-capable** (typed client, Bearer + ws-ticket, live ledger subscribe) ✅ |
+| Freeze + policy compiler + hash-chained ledger | **DONE & tested** (120 tests; signed + DB append-only + on-chain anchor) ✅ |
 | Web dashboard (first-demo surface) | **DONE** — `pnpm --filter @countersign/api start` → http://localhost:8080 ✅ |
 
-The falsifiable claim ("freeze 3 vendors at once in <1s, fully audited") is **proven against mocks**. The only thing between here and proving it *for real* is vendor credentials.
+The falsifiable claim ("freeze N vendors at once in <1s, fully audited") is **proven FOR REAL** — a four-rail
+live freeze (3 crypto wallets + a Visa card) in ~432ms via `packages/agent-harness/live-freeze.ts`, on top of
+the credential-free mock suite. Next is enforcement-parity hardening and a third-party audit before mainnet.
 
-### Done while you slept (this session)
+### Security hardening completed (this session)
+A 4-perspective hygiene/security audit + full remediation (P0→P2, then Low), all committed to local `main`:
+- **P0:** fail-closed Coinbase freeze (confirm native, don't hard-code `true`); policy hex-address
+  injection defense (compiler refuses non-hex); input validation + fail-closed boot guard.
+- **P1:** no silent venue drop in the Turnkey compiler; honest auditable status when native enforcement
+  isn't confirmed (Coinbase/Openfort emit a ledger `error` rather than implying a native guarantee).
+- **P2:** error sanitization + 64KB body cap; **ws single-use tickets** (key no longer in the ws URL);
+  trusted-proxy-aware + read-route rate limiting; SDK auth (Bearer + ticket); **Coinbase daily-cap TOCTOU**
+  closed (reserve-before-send); **PgLedger appends serialized**; Turnkey session key held non-enumerable.
+- **Low:** the live-proof scripts now typecheck; dead exports/deps trimmed.
+- **License:** the front-door packages (`core`, `api-contract`, `sdk`, `mcp`) are now a real Apache-2.0
+  grant (LICENSE shipped in-tarball + root carve-out); `api-contract`/`sdk` republished as **0.1.1**.
+
+**Open security follow-ups (your call / need infra):**
+- **npm provenance** — wire a GitHub Actions release workflow (`id-token: write`, `npm publish
+  --provenance`) and store the npm automation token as a repo secret, so future publishes are provenanced.
+  Currently publishing is manual from your machine, which can't attach provenance.
+- The superseded **0.1.0** packages remain on npm (now `latest = 0.1.1`); no need to deprecate since we're
+  honoring the Apache grant, but you may `npm deprecate ...@0.1.0 "use 0.1.1 (ships LICENSE)"` if you want.
+- **Native-enforcement parity** (not yet confirmed end-to-end): Openfort on-chain KeysManager guard,
+  Turnkey consensus gate, Lithic ASA — until then those rails are Countersign-layer-enforced (audited as such).
+- **Third-party security audit** before any mainnet/real-custody use (still testnet-only, directive #6).
+
+### Done in an earlier session
 - Folded the moat/integration roadmap into `docs/moat-and-integration-roadmap.md`.
 - Built **roadmap Tier 0 #4 in full** — `@countersign/sdk` (typed client) **and** `@countersign/mcp` (Countersign as
   MCP tools: the kill switch + spend guard inside any MCP client). Verified end-to-end over stdio.
 - Shipped the **agent pre-flight spend guard** (`POST /evaluate`): an agent asks Countersign "may I spend?"
-  before touching the wallet — the call made on every transaction (the flywheel). 70 tests, green.
+  before touching the wallet — the call made on every transaction (the flywheel).
 
 ## ① Decisions only you can make (≈15 min, do first — they unblock everything)
 
@@ -87,7 +112,7 @@ Land **usage-based** (governed agent-wallets + decisions evaluated, free testnet
 ## Verify anytime
 
 ```
-pnpm install && pnpm typecheck && pnpm test    # 66 tests
+pnpm install && pnpm typecheck && pnpm test    # 120 tests
 pnpm demo                                       # scripted headline
 pnpm --filter @countersign/api start                 # dashboard at http://localhost:8080
 ```
