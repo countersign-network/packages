@@ -117,6 +117,9 @@ importers:
       '@countersign/provider-turnkey':
         specifier: workspace:*
         version: link:../providers/turnkey
+      pg:
+        specifier: ^8.13.1
+        version: 8.22.0
       ws:
         specifier: '>=8.21.0'
         version: 8.21.0
@@ -124,6 +127,9 @@ importers:
       '@countersign/provider-lithic':
         specifier: workspace:*
         version: link:../providers/lithic
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.20.0
 
   packages/core:
     devDependencies:

@@ -21,9 +21,11 @@
     "@countersign/provider-mock": "workspace:*",
     "@countersign/provider-openfort": "workspace:*",
     "@countersign/provider-turnkey": "workspace:*",
+    "pg": "^8.13.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@countersign/provider-lithic": "workspace:*"
+    "@countersign/provider-lithic": "workspace:*",
+    "@types/pg": "^8.11.10"
   }
 }

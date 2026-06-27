@@ -18,7 +18,8 @@ import {
   type GcpKmsClient,
   type LedgerSigner,
 } from "@countersign/ledger";
-import { AnomalyMonitor, CountersignCore, createCountersignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
+import { AnomalyMonitor, CountersignCore, TenantRegistry, createCountersignServer, createDemoCore, type ApiKeyInfo, type DemoFleetMember, type Role } from "./index";
+import { InMemoryKeyStore, PostgresKeyStore } from "./keystore";
 
 // Sign the ledger so it's tamper-evident even against the DB owner.
 //  - PRODUCTION: set GCP_KMS_KEY_VERSION → the key lives in Cloud KMS and never enters this process.
@@ -135,7 +136,27 @@ if (hasVendorCreds && Object.keys(apiKeys).length === 0 && env !== "development"
 // Trust X-Forwarded-For only behind a known proxy that overwrites it (Render sets RENDER=true), or
 // when TRUST_PROXY=1 is set explicitly — so the rate-limit key can't be spoofed in a direct deploy.
 const trustProxy = process.env["TRUST_PROXY"] === "1" || process.env["RENDER"] === "true";
-const server = createCountersignServer(core, { apiKeys, trustProxy });
+
+// Self-serve onboarding: a DB-backed key store (keys stored only as SHA-256 hashes) + one ISOLATED
+// Core per tenant. Static admin keys map to the "default" demo Core; each self-serve key gets its own
+// mock-fleet sandbox. POST /signup mints a key (per-IP throttled + globally capped); GET /start is the
+// get-key page. Disable with COUNTERSIGN_SIGNUP=off.
+const signupCap = Number(process.env["COUNTERSIGN_SIGNUP_CAP"] ?? 200); // bounds tenant/Core growth on the box
+const keyStore = databaseUrl ? await PostgresKeyStore.create(databaseUrl, signupCap) : new InMemoryKeyStore(signupCap);
+const tenants = new TenantRegistry(async () => (await createDemoCore()).core);
+const resolveCore = (tenantId: string): CountersignCore | Promise<CountersignCore> =>
+  tenantId === "default" ? core : tenants.coreFor(tenantId);
+const signupEnabled = process.env["COUNTERSIGN_SIGNUP"] !== "off";
+const publicUrl = process.env["COUNTERSIGN_PUBLIC_URL"] ?? "https://app.countersign.network";
+if (signupEnabled) console.log(`  signup: self-serve keys ON → POST /signup, get-key page /start (public URL ${publicUrl})`);
+
+const server = createCountersignServer(resolveCore, {
+  apiKeys,
+  keyStore,
+  trustProxy,
+  publicUrl,
+  signup: { enabled: signupEnabled },
+});
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));
 console.log(`\n  Countersign dashboard:  http://localhost:${port}`);
 console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);

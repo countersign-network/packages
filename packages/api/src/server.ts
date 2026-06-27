@@ -28,6 +28,7 @@ import {
 import { CountersignCore } from "./core-service";
 import { backendsView, connectBackend, metricsOf } from "./connect";
 import type { CoreResolver } from "./tenants";
+import type { IssuedKey, KeyStore } from "./keystore";
 
 export interface CountersignServer {
   http: Server;
@@ -37,6 +38,46 @@ export interface CountersignServer {
 
 // The first-demo web dashboard (handoff: "a plain web dashboard is fine for the very first demo").
 const DASHBOARD_HTML = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "dashboard.html"), "utf8");
+
+// Self-serve "get your key" page (GET /start). One click → POST /signup → a key + the MCP config.
+const START_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Get your Countersign key</title>
+<style>
+ :root{--bg:#0b1020;--card:#131c3a;--line:#243056;--fg:#eaf0ff;--muted:#9fb0d6;--brand:#7c9cff;--accent:#58e6a8}
+ *{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 70% -10%,#16224a,#0b1020 55%);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;line-height:1.55}
+ .wrap{max-width:720px;margin:0 auto;padding:64px 22px}h1{font-size:34px;margin:0 0 8px;letter-spacing:-.5px}p{color:var(--muted)}
+ .btn{display:inline-flex;gap:8px;align-items:center;border:0;border-radius:10px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#7c9cff,#5f82ff);color:#08102a;margin-top:14px}
+ pre{background:#0a1330;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;font-size:13px;color:#d7e2ff}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:18px}
+ code{color:var(--accent)}.copy{cursor:pointer;border:0;background:#1a2752;color:var(--muted);border-radius:7px;padding:5px 9px;font-size:12px;margin-left:8px}
+ a{color:var(--brand)}.hide{display:none}.note{font-size:12.5px;color:#6b7aa6;margin-top:10px}
+</style></head><body><div class="wrap">
+ <h1>Get your Countersign key</h1>
+ <p>One click gives you an API key + a ready-to-paste MCP config — the cross-vendor kill switch and spend guard inside Claude, Cursor, or any MCP client. Testnet sandbox; no funds, no signup form.</p>
+ <button class="btn" id="go">Generate my key →</button>
+ <div id="out" class="hide">
+  <div class="card"><b>Your API key</b> <button class="copy" data-t="key">Copy</button><pre id="key"></pre>
+   <div class="note">Store it now — it isn't shown again.</div></div>
+  <div class="card"><b>MCP config</b> (Claude / Cursor) <button class="copy" data-t="mcp">Copy</button><pre id="mcp"></pre>
+   <div class="note">Or just run: <code>npx @countersign/mcp</code> with those env vars. Docs: <a href="https://github.com/countersign-network/countersign/tree/main/packages/mcp">@countersign/mcp</a></div></div>
+ </div>
+ <p id="err" class="hide" style="color:#ff8a8a"></p>
+</div><script>
+ const $=id=>document.getElementById(id);
+ $("go").addEventListener("click",async()=>{
+  $("go").disabled=true;$("go").textContent="Generating…";$("err").className="hide";
+  try{
+   const r=await fetch("/signup",{method:"POST"});
+   if(!r.ok){throw new Error((await r.json()).error||("HTTP "+r.status));}
+   const d=await r.json();
+   $("key").textContent=d.apiKey;
+   $("mcp").textContent=JSON.stringify(d.mcp,null,2);
+   $("out").className="";$("go").className="hide";
+  }catch(e){$("err").textContent="Couldn't generate a key: "+e.message;$("err").className="";$("go").disabled=false;$("go").textContent="Generate my key →";}
+ });
+ document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>navigator.clipboard&&navigator.clipboard.writeText($(b.dataset.t).textContent)));
+</script></body></html>`;
 
 function send(res: ServerResponse, status: number, body: unknown): void {
   const json = JSON.stringify(body);
@@ -95,6 +136,15 @@ export interface CountersignServerOptions {
    * (e.g. Render). When off, the socket peer address is authoritative and XFF is ignored.
    */
   trustProxy?: boolean;
+  /**
+   * Optional dynamic key store (DB-backed). Presented keys are resolved against `apiKeys` first, then
+   * the store (so static admin keys + self-serve keys coexist). Enables the open `POST /signup` path.
+   */
+  keyStore?: KeyStore;
+  /** Self-serve signup (mints a key for a fresh tenant). Off unless `enabled` and a keyStore is set. */
+  signup?: { enabled?: boolean; maxPerWindow?: number };
+  /** Public base URL of this Core, echoed into the signup response's MCP config (e.g. https://app.countersign.network). */
+  publicUrl?: string;
 }
 
 function apiKeyFrom(req: IncomingMessage): string {
@@ -111,7 +161,11 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
   // A single Core => single-tenant (the demo). A resolver => one isolated Core per tenant.
   const resolveCore: CoreResolver = typeof coreOrResolver === "function" ? coreOrResolver : () => coreOrResolver;
   const apiKeys = opts.apiKeys ?? {};
-  const authEnabled = Object.keys(apiKeys).length > 0;
+  const keyStore = opts.keyStore;
+  const authEnabled = Object.keys(apiKeys).length > 0 || keyStore !== undefined;
+  const signupEnabled = (opts.signup?.enabled ?? false) && keyStore !== undefined;
+  const signupMax = opts.signup?.maxPerWindow ?? 3;
+  const publicUrl = opts.publicUrl;
   if (!authEnabled && process.env["NODE_ENV"] !== "test") {
     console.warn("[countersign] no API keys configured — the API is OPEN. Set COUNTERSIGN_API_KEYS to lock it down.");
   }
@@ -166,20 +220,44 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
     return Date.now() >= e.expires ? undefined : e.tenant;
   };
 
+  // Open onboarding + liveness surface (no auth). Everything else is gated.
+  const OPEN_ROUTES = new Set(["GET /", "GET /health", "GET /start"]);
+
   const http = createServer((req, res) => {
+    void handleRequest(req, res).catch((err) => {
+      if (err instanceof BadRequestError) {
+        if (!res.headersSent) send(res, 400, { error: err.message });
+        return;
+      }
+      // Log the detail server-side; never leak raw vendor/internal error strings to the caller.
+      console.error("[countersign] request error:", err);
+      if (!res.headersSent) send(res, 500, { error: "internal error" });
+    });
+  });
+
+  async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? "/", "http://localhost");
     const route = `${req.method} ${url.pathname}`;
-    // GET / (dashboard) and GET /health stay open: liveness probes + the demo UI. Everything else gated.
-    const isOpen = req.method === "GET" && (url.pathname === "/" || url.pathname === "/health");
+
+    // Self-serve onboarding (open): the get-key page + the rate-limited signup endpoint.
+    if (route === "GET /start") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      return void res.end(START_HTML);
+    }
+    if (route === "POST /signup") return void (await handleSignup(req, res));
+
+    const isOpen = OPEN_ROUTES.has(route);
     let tenantId = "default";
     if (authEnabled && !isOpen) {
-      const info = apiKeys[apiKeyFrom(req)];
+      // Resolve the key: static admin map first, then the dynamic (DB) store. Both coexist.
+      const key = apiKeyFrom(req);
+      const info = apiKeys[key] ?? (key && keyStore ? await keyStore.lookup(key) : undefined);
       if (!info) {
-        return send(res, 401, { error: "unauthorized: provide a valid API key via 'Authorization: Bearer <key>'" });
+        return void send(res, 401, { error: "unauthorized: provide a valid API key via 'Authorization: Bearer <key>'" });
       }
       const need: Role = WRITE_ROUTES.has(route) ? "operator" : "viewer";
       if (ROLE_RANK[info.role] < ROLE_RANK[need]) {
-        return send(res, 403, { error: `forbidden: '${need}' role required (this key is '${info.role}')` });
+        return void send(res, 403, { error: `forbidden: '${need}' role required (this key is '${info.role}')` });
       }
       tenantId = info.tenant;
     }
@@ -190,21 +268,45 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
       const ok = WRITE_ROUTES.has(route) ? allow("w", rlId, maxWrites) : allow("r", rlId, maxReads);
       if (!ok) {
         res.setHeader("retry-after", String(Math.ceil(windowMs / 1000)));
-        return send(res, 429, { error: "rate limit exceeded — slow down" });
+        return void send(res, 429, { error: "rate limit exceeded — slow down" });
       }
     }
     res.setHeader("x-countersign-tenant", tenantId);
-    Promise.resolve(resolveCore(tenantId))
-      .then((core) => handle(core, req, res, tenantId, issueWsTicket))
-      .catch((err) => {
-        // Malformed/oversized input is the client's fault → 400 with a safe message.
-        if (err instanceof BadRequestError) return send(res, 400, { error: err.message });
-        // Everything else: log the detail server-side, return a generic message. Never leak raw
-        // vendor/internal error strings (backend identity, library internals) to the caller.
-        console.error("[countersign] request error:", err);
-        send(res, 500, { error: "internal error" });
-      });
-  });
+    const core = await resolveCore(tenantId);
+    await handle(core, req, res, tenantId, issueWsTicket);
+  }
+
+  // Mint a key for a fresh isolated tenant. Open, but per-IP throttled AND globally capped (keyStore),
+  // and every key is stored only as a hash. Testnet sandboxes — no funds, no PII collected.
+  async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (!signupEnabled || !keyStore) return void send(res, 404, { error: "signup is not enabled" });
+    if (!allow("signup", clientIp(req), signupMax)) {
+      res.setHeader("retry-after", String(Math.ceil(windowMs / 1000)));
+      return void send(res, 429, { error: "too many signups from this address — try again shortly" });
+    }
+    let issued: IssuedKey;
+    try {
+      issued = await keyStore.issue({ role: "operator", label: "self-serve" });
+    } catch {
+      return void send(res, 503, { error: "signup temporarily unavailable (capacity reached)" });
+    }
+    const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
+    const u = publicUrl ?? `${proto}://${req.headers["host"] ?? "app.countersign.network"}`;
+    return void send(res, 200, {
+      apiKey: issued.apiKey,
+      tenant: issued.tenant,
+      url: u,
+      mcp: {
+        mcpServers: {
+          countersign: {
+            command: "npx",
+            args: ["-y", "@countersign/mcp"],
+            env: { COUNTERSIGN_URL: u, COUNTERSIGN_API_KEY: issued.apiKey },
+          },
+        },
+      },
+    });
+  }
 
   const wss = new WebSocketServer({ server: http, path: WS_PATH });
   wss.on("connection", async (socket, req) => {
