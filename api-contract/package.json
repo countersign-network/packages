@@ -26,16 +26,19 @@
     }
   },
   "scripts": {
-    "build": "tsup",
-    "prepublishOnly": "tsup"
+    "build": "tsc -p ../tsconfig.dts.json && tsup && rollup -c rollup.dts.config.mjs",
+    "prepublishOnly": "pnpm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/simoncrean/countersign.git",
+    "url": "git+https://github.com/countersign-network/countersign.git",
     "directory": "api-contract"
   },
   "homepage": "https://countersign.network",
   "keywords": ["countersign", "ai-agents", "agent-payments", "openapi", "policy", "freeze"],
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
   "devDependencies": {
     "@countersign/core": "workspace:*",
     "@countersign/policy": "workspace:*",

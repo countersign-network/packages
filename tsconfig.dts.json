@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "composite": false,
+    "rootDir": ".",
+    "outDir": ".dts",
+    "skipLibCheck": true
+  },
+  "include": [
+    "packages/core/src/**/*.ts",
+    "packages/policy/src/**/*.ts",
+    "api-contract/index.ts",
+    "packages/sdk/src/**/*.ts"
+  ]
+}
