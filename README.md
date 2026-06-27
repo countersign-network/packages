@@ -5,15 +5,16 @@
 once* — the one thing no single wallet vendor can do, because each only governs its own rail. That
 aggregation is the moat.
 
-> The one falsifiable test that defines v1: **can Countersign freeze agents across three vendors at once,
+> The one falsifiable test that defines v1: **can Countersign freeze agents across many backends at once,
 > in under a second, with a unified tamper-evident ledger of every attempt?** This repo answers yes —
-> runnable and tested today against faithful mocks, with real adapter skeletons ready for credentials.
+> proven LIVE across **four rails** (Coinbase, Turnkey, Openfort, and a Lithic Visa **card**) in ~432ms
+> on testnet, on top of a fully runnable, credential-free mock suite.
 
 ```
 pnpm install
 pnpm demo        # 3 agents / 3 backends / 3 venues — one freeze < 1s, fully audited
 pnpm typecheck   # strict TS across the workspace
-pnpm test        # 100 tests: compiler, signed hash-chain, fail-closed matrix, <1s SLO, auth/RBAC, multi-tenancy, MCP, x402, anomaly
+pnpm test        # 115 tests: compiler + injection-defense, signed hash-chain + append-only, fail-closed matrix, <1s SLO, auth/RBAC, multi-tenancy, MCP, x402, anomaly
 ```
 
 ## What `pnpm demo` shows
@@ -45,7 +46,8 @@ in CI (gitleaks).
 | `packages/policy` | unified policy (zod) + the **compiler** to each backend's native controls — *core IP* |
 | `packages/ledger` | append-only, **hash-chained** store (`LedgerPort` + in-memory + pglite adapters) |
 | `packages/providers/mock` | faithful, credential-free backend simulating all 3 enforcement modes |
-| `packages/providers/{coinbase,turnkey,openfort}` | real adapter **skeletons** (see *Status*) |
+| `packages/providers/{coinbase,turnkey,openfort}` | **LIVE** crypto-rail adapters (testnet) |
+| `packages/providers/lithic` | **LIVE** non-crypto rail — a virtual Visa **card** (testnet sandbox) |
 | `packages/api` | the Core service: REST + ws (`packages/api/src/main.ts` runs it) |
 | `packages/agent-harness` | reference agents + the headline demo (`pnpm demo`) |
 | `packages/sdk` | `@countersign/sdk` — typed client + live ledger subscribe (the front door; roadmap Tier 0 #4) |
@@ -55,7 +57,7 @@ in CI (gitleaks).
 | `client/` | Flutter app (scaffold; Phase 3) |
 
 The three `EnforcementMode`s map one-to-one onto the chosen backends:
-`native-session-caps` → Coinbase · `pre-sign-policy` → Turnkey · `onchain-policy` → Openfort.
+`native-session-caps` → Coinbase + Lithic (card) · `pre-sign-policy` → Turnkey · `onchain-policy` → Openfort.
 
 ## Prime directives (invariants — see `CLAUDE.md`)
 
@@ -68,22 +70,22 @@ The three `EnforcementMode`s map one-to-one onto the chosen backends:
 
 ## Status (v1 / 90-day proof)
 
-- **Done, credential-free & tested (100 tests):** core + freeze controller, policy compiler,
-  hash-chained ledger, MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend
-  guard** (`POST /evaluate`) + **human-in-the-loop approval workflow** (fail-closed: a freeze
-  overrides a pending approval), typed **SDK** + **MCP server** (zero-config embedded mode — one
-  command, no creds), **x402 governance**, **anomaly-freeze v0** (heuristic circuit breakers →
-  auto-freeze), agent harness, demo.
-- **Coinbase: LIVE + HARDENED on Base Sepolia** — real CDP wallet + on-chain sends. Phase-0 proven
-  (`spike.ts`): apply policy → in-policy spend lands → freeze → next spend blocked. **Native
-  enforcement proven** (`harden-spike.ts`): the per-tx cap is pushed into Coinbase's MPC (a CDP
-  account Policy), so a direct over-cap send that **bypasses Countersign is rejected by Coinbase itself**
-  — even a compromised agent can't exceed the cap. (Needs the API key's Non-custodial Manage scope;
-  `smoke.ts` verifies creds — see `docs/setup-coinbase.md`.)
-- **Skeletons (need vendor creds):** `packages/providers/{turnkey,openfort}` — accurate signatures
-  + real `capabilities()`; live calls throw `NotImplementedError`. Finish per `docs/sdk-research/<vendor>.md`.
-- **Deferred:** Flutter client beyond scaffold, FCM/APNs push, anomaly detection, Postgres via
-  testcontainers (pglite stands in for tests).
+- **Done, credential-free & tested (115 tests):** core + freeze controller, policy compiler
+  (+ injection-defense), hash-chained + Ed25519-signed ledger (DB append-only trigger + on-chain
+  anchor), MockProvider, REST+ws API + web dashboard, the agent pre-flight **spend guard**
+  (`POST /evaluate`) + **human-in-the-loop approval workflow** (fail-closed), typed **SDK** +
+  **MCP server** (zero-config embedded mode), **x402 governance**, **anomaly-freeze v0**, agent
+  harness, demo.
+- **ALL FOUR RAILS LIVE on testnet:** Coinbase (Base Sepolia, native MPC caps), Turnkey
+  (in-enclave CEL), Openfort (backend wallet), and **Lithic** — a virtual Visa **card** (the first
+  non-crypto rail). Each has `smoke.ts` + `spike.ts` proving real enforcement (in-policy allowed,
+  over-cap / frozen declined). 🏁 **Four-rail freeze proven** in ~432ms via
+  `packages/agent-harness/live-freeze.ts` — one action, crypto wallets **and** a card; signed ledger verified.
+- **Hardening done:** DB-level append-only trigger, on-chain external anchor (every freeze
+  countersigns the ledger), input validation + hex-address policy-injection defense, fail-closed
+  Coinbase freeze + fail-closed boot. Next: native-enforcement parity (Openfort on-chain guard,
+  Turnkey consensus, Lithic ASA), webhook event streams, third-party audit before mainnet.
+- **Deferred:** Flutter client beyond scaffold, FCM/APNs push.
 
 ## Roadmap & next steps
 
