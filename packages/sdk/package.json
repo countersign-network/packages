@@ -1,21 +1,47 @@
 {
   "name": "@countersign/sdk",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Countersign SDK — the typed client agents and operators use to wire in the cross-vendor freeze, spend-guard, and live audit ledger. Browser + Node.",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.dts.json && tsup && rollup -c rollup.dts.config.mjs",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/countersign-network/countersign.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://countersign.network",
+  "keywords": ["countersign", "ai-agents", "agent-payments", "sdk", "kill-switch", "x402"],
   "dependencies": {
-    "@countersign/api-contract": "workspace:*"
+    "@countersign/api-contract": "workspace:^"
   },
   "devDependencies": {
     "@countersign/api": "workspace:*",
     "@countersign/core": "workspace:*",
     "@countersign/policy": "workspace:*",
-    "@countersign/provider-mock": "workspace:*"
-  },
-  "comment": "Tier 0 #4 (front door): the typed client agents/operators use to wire Countersign in. Browser + Node (global fetch/WebSocket). The Dart client generates from api-contract; this is its TS twin."
+    "@countersign/provider-mock": "workspace:*",
+    "tsup": "^8.5.1"
+  }
 }

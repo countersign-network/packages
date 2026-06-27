@@ -279,7 +279,7 @@ importers:
   packages/sdk:
     dependencies:
       '@countersign/api-contract':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../api-contract
     devDependencies:
       '@countersign/api':
@@ -294,6 +294,9 @@ importers:
       '@countersign/provider-mock':
         specifier: workspace:*
         version: link:../providers/mock
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
 
   packages/x402:
     dependencies:
