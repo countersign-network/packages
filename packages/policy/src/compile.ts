@@ -154,6 +154,15 @@ function compileTurnkey(policy: UnifiedPolicy): TurnkeyPolicyDoc {
     if (policy.venues && policy.venues.length > 0) {
       const ids = policy.venues.map(chainIdFor).filter((x): x is number => x !== undefined);
       if (ids.length > 0) conds.push(`eth.tx.chain_id in [${ids.join(", ")}]`);
+      // Any venue with no known chain id can't be expressed in CEL. Flag it — silently omitting the
+      // chain_id restriction would make the compiled policy LOOSER than intended (invariant #5).
+      if (ids.length < policy.venues.length) {
+        unsupported.push({
+          field: "venues",
+          reason: "one or more venues have no known chain id; that chain_id restriction can't be expressed in Turnkey CEL",
+          compensation: "countersign-enforced",
+        });
+      }
     }
     policies.push({
       policyName: "agent-spend-allow",
