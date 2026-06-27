@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Countersign — the kill switch for AI agents that spend money</title>
+    <meta name="description" content="A neutral, cross-vendor control plane for AI agents that spend money. One policy, one freeze, one tamper-evident ledger — across every agent-wallet backend at once." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1020'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%2358e6a8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <meta property="og:title" content="Countersign — control plane for AI agents that spend" />
+    <meta property="og:description" content="One policy, one freeze, one audit ledger across every agent-wallet backend. Proven across four rails in ~432ms." />
+    <meta property="og:type" content="website" />
+    <style>
+      :root {
+        --bg: #0b1020; --bg2: #0e1530; --card: #131c3a; --line: #243056;
+        --fg: #eaf0ff; --muted: #9fb0d6; --brand: #7c9cff; --accent: #58e6a8; --warn: #ffcf6b;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #16224a 0%, var(--bg) 55%); color: var(--fg); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+      a { color: var(--brand); text-decoration: none; }
+      a:hover { color: #a9c0ff; }
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
+      .muted { color: var(--muted); }
+
+      header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px); background: rgba(11,16,32,.72); border-bottom: 1px solid var(--line); }
+      nav { display: flex; align-items: center; gap: 18px; height: 62px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; color: var(--fg); }
+      .brand svg { width: 26px; height: 26px; }
+      nav .spacer { flex: 1; }
+      nav a.navlink { color: var(--muted); font-size: 14px; }
+      nav a.navlink:hover { color: var(--fg); }
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid var(--line); color: var(--fg); background: #16224a; cursor: pointer; }
+      .btn:hover { border-color: var(--brand); }
+      .btn.primary { background: linear-gradient(180deg, #7c9cff, #5f82ff); color: #08102a; border: 0; }
+      .btn.primary:hover { filter: brightness(1.06); color: #08102a; }
+
+      .hero { padding: 78px 0 38px; }
+      .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent); border: 1px solid #1d3a32; background: #0e2018; padding: 5px 12px; border-radius: 999px; }
+      h1 { font-size: clamp(34px, 5.4vw, 58px); line-height: 1.04; margin: 18px 0 14px; letter-spacing: -1px; }
+      h1 .grad { background: linear-gradient(90deg, #9fb6ff, #58e6a8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .sub { font-size: clamp(17px, 2.4vw, 21px); color: var(--muted); max-width: 720px; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 14px; align-items: center; }
+      .proof { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 22px; color: var(--muted); font-size: 14px; }
+      .proof b { color: var(--fg); }
+
+      /* copy command box */
+      .cmd { display: inline-flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 15px; background: #0a1330; border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; color: #d7e2ff; }
+      .cmd .dollar { color: var(--accent); }
+      .copy { cursor: pointer; border: 0; background: #1a2752; color: var(--muted); border-radius: 7px; padding: 5px 9px; font-size: 12px; font-family: var(--sans); }
+      .copy:hover { color: var(--fg); }
+
+      section { padding: 46px 0; border-top: 1px solid rgba(36,48,86,.5); }
+      .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; }
+      h2 { font-size: clamp(24px, 3.6vw, 34px); margin: 8px 0 6px; letter-spacing: -.5px; }
+      .lead { color: var(--muted); max-width: 720px; margin-bottom: 26px; }
+
+      .grid { display: grid; gap: 16px; }
+      .g3 { grid-template-columns: repeat(3, 1fr); }
+      .g4 { grid-template-columns: repeat(4, 1fr); }
+      @media (max-width: 820px) { .g3, .g4 { grid-template-columns: 1fr; } }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+      .card h3 { margin: 4px 0 8px; font-size: 18px; }
+      .card p { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+      .num { width: 26px; height: 26px; border-radius: 8px; background: #16224a; color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+
+      pre { margin: 0; background: #0a1330; border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: auto; }
+      code { font-family: var(--mono); font-size: 13.5px; color: #d7e2ff; }
+      .tok-k { color: #7c9cff; } .tok-s { color: #58e6a8; } .tok-c { color: #6b7aa6; }
+
+      /* ecosystem */
+      .rail { display: flex; align-items: center; gap: 12px; }
+      .rail .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px #58e6a8; }
+      .rail .dot.soon { background: var(--warn); box-shadow: 0 0 10px #ffcf6b; }
+      .badge { font-size: 11px; font-weight: 700; letter-spacing: .6px; padding: 3px 8px; border-radius: 999px; }
+      .badge.live { color: #58e6a8; background: #0e2018; border: 1px solid #1d3a32; }
+      .badge.soon { color: #ffcf6b; background: #241d0c; border: 1px solid #3a311d; }
+      .kv { font-size: 13px; color: var(--muted); }
+
+      footer { border-top: 1px solid var(--line); padding: 34px 0 60px; color: var(--muted); font-size: 14px; }
+      .frow { display: flex; flex-wrap: wrap; gap: 26px; align-items: center; }
+      .frow .spacer { flex: 1; }
+      .note { font-size: 12.5px; color: #6b7aa6; margin-top: 14px; }
+      .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: #06241a; font-weight: 700; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: all .25s; pointer-events: none; }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <nav>
+          <a class="brand" href="/">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Countersign
+          </a>
+          <span class="spacer"></span>
+          <a class="navlink" href="#start">Get started</a>
+          <a class="navlink" href="#ecosystem">Ecosystem</a>
+          <a class="navlink" href="https://github.com/countersign-network/countersign">GitHub</a>
+          <a class="navlink" href="https://www.npmjs.com/package/@countersign/sdk">npm</a>
+          <a class="btn primary" href="#start">Get started →</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero" style="border-top:0">
+        <span class="pill">● Four rails frozen in ~432ms — proven on testnet</span>
+        <h1>The kill switch for <span class="grad">AI agents that spend money.</span></h1>
+        <p class="sub">Countersign is a neutral, cross-vendor control plane: one policy, one freeze, and one
+          tamper-evident audit ledger — <b>across every agent-wallet backend at once</b>. The one thing no single
+          wallet vendor can do, because each only governs its own rail.</p>
+        <div class="cta">
+          <span class="cmd"><span><span class="dollar">$</span> npm i @countersign/sdk</span>
+            <button class="copy" data-copy="npm i @countersign/sdk">Copy</button></span>
+          <a class="btn" href="https://github.com/countersign-network/countersign">★ Star on GitHub</a>
+        </div>
+        <div class="proof">
+          <span><b>4</b> rails live — Coinbase · Turnkey · Openfort · Visa card</span>
+          <span><b>&lt;1s</b> cross-vendor freeze</span>
+          <span><b>Apache-2.0</b> open core</span>
+          <span><b>Ed25519-signed</b> append-only ledger</span>
+        </div>
+      </section>
+
+      <section id="start">
+        <div class="eyebrow">Get started</div>
+        <h2>From install to a working kill switch in minutes.</h2>
+        <p class="lead">Pick your entry point — each is one copy-paste away from value. Free, testnet, no account required.</p>
+        <div class="grid g3">
+          <div class="card">
+            <span class="num">1</span>
+            <h3>Install the SDK</h3>
+            <p>The typed client agents and operators use to wire in the cross-vendor freeze, spend guard, and live ledger. Browser + Node.</p>
+            <span class="cmd" style="font-size:13px"><span><span class="dollar">$</span> npm i @countersign/sdk</span>
+              <button class="copy" data-copy="npm i @countersign/sdk">Copy</button></span>
+          </div>
+          <div class="card">
+            <span class="num">2</span>
+            <h3>Guard &amp; freeze</h3>
+            <p>One policy compiles to every backend's native controls. Ask before a spend; freeze everything in one call.</p>
+            <pre><code><span class="tok-k">import</span> { CountersignClient } <span class="tok-k">from</span> <span class="tok-s">"@countersign/sdk"</span>;
+<span class="tok-k">const</span> cs = <span class="tok-k">new</span> CountersignClient({ baseUrl, apiKey });
+
+<span class="tok-c">// may this spend happen?</span>
+<span class="tok-k">await</span> cs.evaluate({ agentId, amount, asset, venue });
+<span class="tok-c">// kill switch — every wallet, &lt; 1s</span>
+<span class="tok-k">await</span> cs.freeze();</code></pre>
+          </div>
+          <div class="card">
+            <span class="num">3</span>
+            <h3>Run the live demo</h3>
+            <p>3 agents · 3 backends · 3 venues · one freeze under a second, with a re-verified hash-chained ledger.</p>
+            <span class="cmd" style="font-size:12.5px"><span>pnpm install &amp;&amp; pnpm demo</span>
+              <button class="copy" data-copy="git clone https://github.com/countersign-network/countersign && cd countersign && pnpm install && pnpm demo">Copy</button></span>
+            <p class="kv" style="margin-top:12px">Also: ship it as <b>MCP tools</b> inside Claude / Cursor, or govern <b>x402</b> machine-payments.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">How it works</div>
+        <h2>Build the layer above the wallets.</h2>
+        <div class="grid g3">
+          <div class="card"><h3>① One unified policy</h3><p>Per-tx caps, rolling daily caps, allow/deny lists, human-approval thresholds, freeze. Written once.</p></div>
+          <div class="card"><h3>② Compiled to each rail</h3><p>The compiler lowers it to every backend's <i>native</i> controls — so a compromised agent can't exceed the cap, not just a polite request.</p></div>
+          <div class="card"><h3>③ One freeze, fully audited</h3><p>A single action stops every backend concurrently in &lt;1s, fail-closed — and every attempt lands in a signed, append-only ledger.</p></div>
+        </div>
+      </section>
+
+      <section id="ecosystem">
+        <div class="eyebrow">Ecosystem</div>
+        <h2>Connected today.</h2>
+        <p class="lead">Countersign governs the wallets &amp; rails you already use — crypto and cards alike — and plugs into the agent-payment standards.</p>
+        <div class="grid g4">
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Coinbase</h3></div><p class="kv" style="margin-top:10px">MPC wallets · native per-tx cap pushed into CDP policy.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Turnkey</h3></div><p class="kv" style="margin-top:10px">In-enclave CEL policy · native human-approval consensus.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Openfort</h3></div><p class="kv" style="margin-top:10px">Backend smart accounts · custody-level hard freeze.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Lithic</h3></div><p class="kv" style="margin-top:10px">Virtual <b>Visa</b> card · real-time ASA approve/decline.</p><span class="badge live">LIVE</span></div>
+        </div>
+        <div class="grid g4" style="margin-top:16px">
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">x402</h3></div><p class="kv" style="margin-top:10px">Govern the HTTP-402 machine-payment rail before it pays.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">MCP</h3></div><p class="kv" style="margin-top:10px">Kill switch + spend guard as tools inside any MCP client.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">npm</h3></div><p class="kv" style="margin-top:10px"><code>@countersign/sdk</code> · <code>@countersign/api-contract</code></p><span class="badge live">PUBLISHED</span></div>
+          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Open core</h3></div><p class="kv" style="margin-top:10px">Front-door packages under Apache-2.0. Audit it yourself.</p><span class="badge live">APACHE-2.0</span></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Roadmap</div>
+        <h2>Coming soon.</h2>
+        <div class="grid g3">
+          <div class="card"><div class="rail"><span class="dot soon"></span><h3 style="margin:0">Native-enforcement parity</h3></div><p class="kv" style="margin-top:10px">On-chain KeysManager guards + per-rail native caps everywhere — bypass-proof on every backend.</p><span class="badge soon">SOON</span></div>
+          <div class="card"><div class="rail"><span class="dot soon"></span><h3 style="margin:0">Hosted control plane</h3></div><p class="kv" style="margin-top:10px">Managed dashboard, alerting &amp; team RBAC at <b>app.countersign.network</b> — private beta.</p><span class="badge soon">BETA</span></div>
+          <div class="card"><div class="rail"><span class="dot soon"></span><h3 style="margin:0">Mainnet &amp; more rails</h3></div><p class="kv" style="margin-top:10px">Real-value operation after a third-party audit, plus more wallet &amp; card networks.</p><span class="badge soon">SOON</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="frow">
+          <a class="brand" href="/"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+          <span class="spacer"></span>
+          <a href="https://github.com/countersign-network/countersign">GitHub</a>
+          <a href="https://www.npmjs.com/package/@countersign/sdk">npm</a>
+          <a href="https://github.com/countersign-network/countersign/blob/main/docs/architecture.md">Docs</a>
+          <a href="https://github.com/countersign-network/countersign/blob/main/SECURITY.md">Security</a>
+        </div>
+        <p class="note">Countersign holds policy, freeze, and a tamper-evident ledger — it never takes custody of funds.
+          Currently testnet-only; mainnet follows a third-party security audit. © 2026 Countersign. Apache-2.0 open core.</p>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast">Copied ✓</div>
+    <script>
+      const toast = document.getElementById("toast");
+      document.querySelectorAll(".copy").forEach((b) => {
+        b.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(b.getAttribute("data-copy"));
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 1400);
+          } catch (e) { /* clipboard blocked — no-op */ }
+        });
+      });
+    </script>
+  </body>
+</html>
