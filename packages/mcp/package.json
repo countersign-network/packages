@@ -36,16 +36,13 @@
     "zod": "^4.4.0"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*",
     "@countersign/api-contract": "workspace:*",
     "@countersign/core": "workspace:*",
-    "@countersign/policy": "workspace:*",
-    "@countersign/provider-mock": "workspace:*",
     "tsup": "^8.5.1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/countersign-network/countersign.git",
+    "url": "git+https://github.com/countersign-network/packages.git",
     "directory": "packages/mcp"
   },
   "homepage": "https://countersign.network",

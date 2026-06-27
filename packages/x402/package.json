@@ -35,12 +35,11 @@
     "@countersign/api-contract": "workspace:^"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*",
     "tsup": "^8.5.1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/countersign-network/countersign.git",
+    "url": "git+https://github.com/countersign-network/packages.git",
     "directory": "packages/x402"
   },
   "homepage": "https://countersign.network",

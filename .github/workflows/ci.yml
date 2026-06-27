@@ -27,7 +27,7 @@ jobs:
       - name: Typecheck (strict TS across the workspace)
         run: pnpm typecheck
 
-      - name: Test (policy compiler, hash-chain, fail-closed matrix, <1s freeze SLO, REST+ws, MCP, x402, anomaly)
+      - name: Test (front-door packages — core interface, freeze controller, money/id primitives)
         run: pnpm test
 
       - name: Audit production dependencies (fail on high+)

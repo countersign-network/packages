@@ -32,7 +32,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/countersign-network/countersign.git",
+    "url": "git+https://github.com/countersign-network/packages.git",
     "directory": "packages/sdk"
   },
   "homepage": "https://countersign.network",
@@ -48,10 +48,7 @@
     "@countersign/api-contract": "workspace:^"
   },
   "devDependencies": {
-    "@countersign/api": "workspace:*",
     "@countersign/core": "workspace:*",
-    "@countersign/policy": "workspace:*",
-    "@countersign/provider-mock": "workspace:*",
     "tsup": "^8.5.1"
   }
 }

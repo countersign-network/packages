@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo": "tsx packages/agent-harness/src/demo.ts",
     "check": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {
