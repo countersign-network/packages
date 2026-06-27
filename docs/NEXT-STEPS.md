@@ -61,7 +61,7 @@ Countersign stays the control plane (governs the customer's own Lithic program),
 ~~F. One-command / embedded MCP~~ **DONE** ✅ (`@countersign/mcp` runs an in-process Core, no creds, no setup).
 ~~E. Anomaly-freeze v0~~ **DONE** ✅ (`AnomalyMonitor` — velocity / blocked-burst / new-counterparty / cumulative → alert or auto-freeze; wired into the demo + live dashboard).
 ~~H. Approval workflow~~ **DONE** ✅ (`/approvals` `/approve` `/deny` — list + resolve `needs_approval`; fail-closed: a freeze overrides a pending approval; wired into the dashboard + MCP tools).
-~~G. Hosted Core + durable Postgres~~ **DONE** ✅ — live at https://countersign-b7ru.onrender.com (Render
+~~G. Hosted Core + durable Postgres~~ **DONE** ✅ — live at https://app.countersign.network (Render
 Docker), now backed by a **signed Postgres ledger** (managed PG `dpg-d8uevjgk1i2s73esmeu0-a`, free plan
 → upgrade to basic-256mb for >30-day retention; `DATABASE_URL` wired). `/ledger` verifies + exposes the
 public key. ⬜ Optional: publish `@countersign/mcp` to npm for a true one-line install; off-Free always-on.
@@ -70,7 +70,7 @@ public key. ⬜ Optional: publish `@countersign/mcp` to npm for a true one-line 
 ~~Coinbase native hardening~~ **DONE** ✅ — per-tx cap pushed into Coinbase's MPC (CDP account
 Policy); `harden-spike.ts` proves a direct over-cap send bypassing Countersign is rejected by Coinbase
 itself. (API key needs the Non-custodial Manage / `policies#manage` scope.)
-~~Deploy~~ **DONE** ✅ — live demo Core at https://countersign-b7ru.onrender.com (Render Docker, Free plan).
+~~Deploy~~ **DONE** ✅ — live demo Core at https://app.countersign.network (Render Docker, Free plan).
 
 > Remaining: (B) Turnkey + Openfort real adapters (need their sandbox creds); (G) hosted free tier
 > (needs a deploy target); and the Coinbase hardening (native Spend Permissions, multi-backend <1s

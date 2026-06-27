@@ -1,4 +1,4 @@
-# Cosign — Non-Meeting GTM + the `countersign.network` Rename
+# Countersign — Non-Meeting GTM + the Rename (record)
 
 *Companion to `pricing-and-gtm.md`, `moat-and-integration-roadmap.md`, and `NEXT-STEPS.md`. Written 2026-06-26.*
 
@@ -10,7 +10,7 @@ The product is already shaped for a sales-meeting-free motion: open-core, MCP-di
 
 ### Pillar 1 — Be where agent builders already are (distribution, not outreach)
 
-The single biggest unlock is the one item still open in `NEXT-STEPS`: **publish `@cosign/mcp`, `@cosign/sdk`, and `@cosign/x402` to npm** so install is one line. Once that exists, the front door propagates itself:
+The single biggest unlock is the one item still open in `NEXT-STEPS`: **publish `@countersign/mcp`, `@countersign/sdk`, and `@countersign/x402` to npm** so install is one line. Once that exists, the front door propagates itself:
 
 - List the MCP server in every registry and directory — Anthropic's MCP registry, Smithery, mcp.so, Glama, PulseMCP, the Cursor directory, `awesome-mcp-servers`. Each listing is an evergreen, passive install surface that costs nothing to maintain.
 - Get into the ecosystems your three backends already feed: Coinbase CDP / AgentKit examples, `awesome-x402`, Turnkey and Openfort community showcases. You govern their rails, so you belong on their integration pages.
@@ -21,7 +21,7 @@ The single biggest unlock is the one item still open in `NEXT-STEPS`: **publish 
 You already have the asset most startups lack: a falsifiable claim that runs in under a second (`live-freeze.ts`, ~697ms, signed ledger). Package it so nobody needs a meeting to see it.
 
 - A 60-second screen capture (GIF + video) of three vendors frozen at once, plus an always-on public dashboard anyone can hit.
-- Lead with the falsifiable test — *"don't take our word for it; run `npx @cosign/mcp` and freeze three vendors yourself in under a second."* Inviting people to falsify the claim is more persuasive than a guided demo, and it scales infinitely.
+- Lead with the falsifiable test — *"don't take our word for it; run `npx @countersign/mcp` and freeze three vendors yourself in under a second."* Inviting people to falsify the claim is more persuasive than a guided demo, and it scales infinitely.
 - The public, independently-verifiable ledger (public key already exposed at `/ledger`) is a trust artifact you paste into a thread, not something you walk someone through.
 
 ### Pillar 3 — Content and category SEO (asynchronous teaching)
@@ -29,7 +29,7 @@ You already have the asset most startups lack: a falsifiable claim that runs in 
 Own the language of the category so search and word-of-mouth route to you:
 
 - Write the canonical explainer ("a kill switch for AI agents that spend money," "cross-vendor agent-spend governance") and one integration guide per rail — Coinbase, Turnkey, Openfort, x402. These do double duty as both SEO capture and the docs an installing developer needs next.
-- This content layer also routes *around* the naming problem in Part 2: today "cosign" search traffic is owned by Sigstore, so category-phrase SEO (not brand-name SEO) is the only viable organic channel until/unless you rename.
+- This content layer also routes *around* the legacy naming problem (Part 2): the original name's search traffic was owned by Sigstore's signing tool, so category-phrase SEO (not brand-name SEO) was the viable organic channel — the Countersign rename reopens brand-name SEO.
 
 ### Pillar 4 — Launch spikes (one-to-many events, still no meetings)
 
@@ -68,20 +68,20 @@ The four loops in `pricing-and-gtm.md` already run without sales contact — dis
 
 ## Part 2 — Review: the rename to `countersign.network`
 
-**Verdict: the rename is well-justified and I'd proceed — chiefly to escape the Sigstore `cosign` collision — conditional on a trademark clearance check and securing the domain. Do the refactor *before* you publish to npm and launch publicly, because that is when it is cheapest.** Note there are no `countersign` references in the repo yet; this is still a proposal.
+**Verdict (executed): the rename was well-justified — chiefly to escape the Sigstore container-signing-tool collision — and has been carried out across the repo and the GitHub org. Trademark clearance vs. the existing e-sign marks is still open. The refactor landed *before* any npm publish or public launch, which is the cheapest moment.**
 
-### Why moving off "cosign" is the right call
+### Why moving off the original name was the right call
 
-The name "cosign" collides head-on with **Sigstore `cosign`**, the de-facto tool for signing containers and software artifacts — and it collides in *exactly* your audience (developers + software security) and your semantic field (signing, trust, provenance). That's the worst kind of collision:
+The original name collided head-on with **Sigstore's container-signing tool**, the de-facto standard for signing containers and software artifacts — in *exactly* your audience (developers + software security) and your semantic field (signing, trust, provenance). That's the worst kind of collision:
 
-- **SEO is unwinnable.** Organic search for "cosign" returns Sigstore. A product whose whole thesis is "discoverable, forkable, the de-facto neutral standard" cannot share a name with an existing de-facto standard.
-- **Namespace + recall confusion.** `@cosign/*` on npm and "cosign" on GitHub sit next to a widely-installed tool that does a different kind of signing. Developers will conflate the two.
+- **SEO was unwinnable.** Organic search for the original name returned Sigstore. A product whose whole thesis is "discoverable, forkable, the de-facto neutral standard" cannot share a name with an existing de-facto standard.
+- **Namespace + recall confusion.** The original npm scope and GitHub repo sat next to a widely-installed tool that does a different kind of signing — developers would conflate the two.
 
 For a pre-launch project, carrying that collision into npm and a public launch is a real, compounding liability. Renaming now is the cheap moment.
 
 ### Why "countersign" is a strong choice specifically
 
-- **It's semantically *more* accurate than "cosign."** To *countersign* is to add a second, approving signature to something already initiated — which is precisely what the product is: the second signer / approval gate on an agent's transaction (the pre-flight `/evaluate` guard, the human-in-the-loop approval, the freeze). "Co-sign" implies signing jointly; "countersign" implies approving after the fact. The product is the latter.
+- **It's semantically *more* accurate than the original.** To *countersign* is to add a second, approving signature to something already initiated — which is precisely what the product is: the second signer / approval gate on an agent's transaction (the pre-flight `/evaluate` guard, the human-in-the-loop approval, the freeze). "Co-sign" implies signing jointly; "countersign" implies approving after the fact. The product is the latter.
 - **`.network` does brand work.** It reinforces the actual positioning — neutral, cross-vendor, "governance propagates along the spend graph," the agent-passport registry. You are a network, not a wallet, and the TLD says so.
 - **The crypto/fintech field is clear.** No company or product named "Countersign" turned up in agent payments, wallets, or crypto security — so within your competitive space the name is open.
 
@@ -90,22 +90,22 @@ For a pre-launch project, carrying that collision into npm and a public launch i
 - **Existing "Countersign" marks in the adjacent signing space.** `countersign.com` is an e-signature SaaS, and link22 ships a "Countersign" digital-signature-verification product (defense/security). Neither competes with you, but both sit close enough in the "signing/security software" field to create confusion and to complicate a trademark claim. **Action: a trademark clearance search in the software/SaaS classes (Nice 9/42) before you commit.**
 - **`.com` is taken, so you're on `.network`.** Two downsides: (1) typo-leak — people default to `.com` and land on a *competitor's e-sign site*, which is actively harmful; (2) `.network` carries slightly lower default trust/recall. **Action: secure `countersign.network` plus defensive variants you can actually get (e.g. `countersign.dev`, `getcountersign.com`, `trycountersign.com`, `countersign.sh`).** The brand name and the TLD are separable decisions — if `.network` typo-leak feels unacceptable, keep "Countersign" and pick a cleaner primary domain.
 - **Verify the domain is actually available.** I could not check registration from this environment (no DNS/registrar access here). **Action: confirm `countersign.network` is unregistered/available at a registrar before planning around it.**
-- **Slightly longer as a CLI/package name.** `npx @countersign/mcp` is a mouthful next to `@cosign/mcp`. Minor, and worth it.
+- **Slightly longer as a CLI/package name.** `npx @countersign/mcp` is a mouthful next to `@countersign/mcp`. Minor, and worth it.
 
 ### Migration cost — and why timing is everything
 
-The rename touches **~98 files and ~323 references** (the `@cosign/*` package namespace, the `COSIGN_API_KEYS` / `COSIGN_URL` / `COSIGN_DEMO_TRAFFIC` env vars, the repo name, the hosted Render URL, and the demo scripts). It's mechanical but real.
+The rename touches **~98 files and ~323 references** (the `@countersign/*` package namespace, the `COUNTERSIGN_API_KEYS` / `COUNTERSIGN_URL` / `COUNTERSIGN_DEMO_TRAFFIC` env vars, the repo name, the hosted Render URL, and the demo scripts). It's mechanical but real.
 
 The decisive point: **it is dramatically cheaper now than later.** The packages are *not yet published to npm* (still an open to-do), there are no external users, and it's testnet-only. Renaming after npm publish + public launch + first design partners means deprecated packages, install redirects, broken links, and brand confusion. So the recommendation isn't just "rename" — it's **rename before the npm publish and the public push, or not at all.**
 
 ### Recommendation in one line
 
-Proceed with **Countersign**, pending (1) trademark clearance vs. the existing e-sign marks and (2) securing `countersign.network` + defensive domains — and execute the refactor *before* publishing to npm. If clearance comes back messy, the Sigstore collision still means "cosign" should go; fall back to another coined one-word name rather than staying put.
+Proceed with **Countersign**, pending (1) trademark clearance vs. the existing e-sign marks and (2) securing `countersign.network` + defensive domains — and execute the refactor *before* publishing to npm. If clearance comes back messy, the Sigstore collision still means the original name should go; fall back to another coined one-word name rather than staying put.
 
 ---
 
 ### Sources
 
-- Sigstore `cosign`: <https://github.com/sigstore/cosign> · <https://docs.sigstore.dev/cosign/signing/signing_with_containers/>
+- Sigstore's container-signing tool (the naming collision moved off): <https://docs.sigstore.dev/>
 - Existing "Countersign" e-signature SaaS: <https://countersign.com/>
 - link22 "Countersign" signature-verification product: <https://link22.eu/product/countersign/>

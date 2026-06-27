@@ -109,6 +109,6 @@ sequenceDiagram
 
 ## Deployment
 
-Core runs as a container (`Dockerfile`) — **live** at `https://countersign-b7ru.onrender.com` (Render,
+Core runs as a container (`Dockerfile`) — **live** at `https://app.countersign.network` (Render,
 Docker). `DATABASE_URL` → durable Postgres ledger; absent → in-memory. Host-agnostic (std Node +
 std Postgres), so Fly / Akash / self-host are drop-in.
