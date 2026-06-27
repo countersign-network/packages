@@ -55,6 +55,16 @@ importers:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
 
+  packages/ap2:
+    dependencies:
+      '@countersign/api-contract':
+        specifier: workspace:^
+        version: link:../../api-contract
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
+
   packages/core:
     dependencies:
       zod:
@@ -63,6 +73,9 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@countersign/ap2':
+        specifier: workspace:^
+        version: link:../ap2
       '@countersign/sdk':
         specifier: workspace:^
         version: link:../sdk

@@ -15,6 +15,7 @@
 import { z, type ZodRawShape } from "zod";
 import type { CountersignApi } from "@countersign/api-contract";
 import { parseX402, guardX402, type X402PaymentRequired } from "@countersign/x402";
+import { parseAp2, guardAp2, type Ap2Mandate } from "@countersign/ap2";
 
 export interface CountersignTool {
   name: string;
@@ -142,6 +143,24 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
         if (!charge) return "No acceptable x402 payment option in the challenge.";
         const d = await guardX402(client, String(args["agentId"]), charge);
         const line = `${d.outcome.toUpperCase()}${d.reason ? `: ${d.reason}` : ""} — pay ${charge.amount} ${charge.asset} to ${charge.payTo} on ${charge.venue}${d.approvalToken ? ` (approvalToken ${d.approvalToken})` : ""}`;
+        return d.outcome === "deny" ? line + PROPAGATE : line;
+      },
+    },
+    {
+      name: "countersign_guard_ap2",
+      description:
+        "Govern an AP2 (Agent Payments Protocol) payment BEFORE the agent signs the PaymentMandate. Pass the agentId + the merchant-signed AP2 mandate (a Cart/Checkout Mandate or a PaymentMandate); Countersign reads the committed amount/currency/payee, evaluates it against policy, and returns allow / deny / needs_approval. Only sign/send the mandate if it returns allow — a rogue or over-budget agent never pays.",
+      schema: {
+        agentId: z.string(),
+        mandate: z
+          .record(z.string(), z.unknown())
+          .describe("the AP2 mandate object — a merchant-signed Cart/Checkout Mandate or a PaymentMandate (committed total + payee)"),
+      },
+      handler: async (args) => {
+        const charge = parseAp2(args["mandate"] as Ap2Mandate);
+        if (!charge) return "No committed total could be read from the AP2 mandate.";
+        const d = await guardAp2(client, String(args["agentId"]), charge);
+        const line = `${d.outcome.toUpperCase()}${d.reason ? `: ${d.reason}` : ""} — pay ${charge.amount} ${charge.asset} (minor units) to ${charge.payee || "?"} via ${charge.paymentMethod}${d.approvalToken ? ` (approvalToken ${d.approvalToken})` : ""}`;
         return d.outcome === "deny" ? line + PROPAGATE : line;
       },
     },

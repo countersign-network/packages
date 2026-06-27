@@ -1,0 +1,55 @@
+{
+  "name": "@countersign/ap2",
+  "version": "0.1.0",
+  "description": "Govern AP2 (the Agent Payments Protocol) with Countersign — guard an agent's mandate against policy before it signs the PaymentMandate.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@countersign/api-contract": "workspace:^"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/countersign-network/packages.git",
+    "directory": "packages/ap2"
+  },
+  "homepage": "https://countersign.network",
+  "keywords": [
+    "countersign",
+    "ap2",
+    "agent-payments-protocol",
+    "ai-agents",
+    "agent-payments",
+    "mandate",
+    "spend-guard"
+  ]
+}
