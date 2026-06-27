@@ -40,11 +40,18 @@ export interface LedgerRecord<T = LedgerEvent> {
  */
 export interface LedgerSigner {
   readonly publicKey: string; // base64 SPKI DER — safe to publish
-  sign(message: string): string;
-  verify(message: string, signature: string): boolean;
+  // ASYNC so a production signer can sign in a KMS/HSM (a network round-trip) without the private key
+  // ever entering this process. The local Ed25519 signer just resolves immediately.
+  sign(message: string): Promise<string>;
+  verify(message: string, signature: string): Promise<boolean>;
 }
 
-/** Ed25519 signer. Pass a base64 PKCS8 private key to reuse a stable identity; omit to generate one. */
+/**
+ * Ed25519 signer with the private key IN-PROCESS. Pass a base64 PKCS8 private key to reuse a stable
+ * identity; omit to generate one. Fine for dev/test, but in production the key sits in an env var and
+ * is exfiltratable — prefer createExternalSigner backed by a KMS/HSM so the ledger stays tamper-
+ * evident even against a host compromise (see PRODUCTION-READINESS.md).
+ */
 export function createEd25519Signer(privateKeyB64?: string): LedgerSigner & { privateKeyB64: string } {
   const privateKey: KeyObject = privateKeyB64
     ? createPrivateKey({ key: Buffer.from(privateKeyB64, "base64"), format: "der", type: "pkcs8" })
@@ -53,14 +60,41 @@ export function createEd25519Signer(privateKeyB64?: string): LedgerSigner & { pr
   return {
     publicKey: publicKeyObj.export({ format: "der", type: "spki" }).toString("base64"),
     privateKeyB64: privateKey.export({ format: "der", type: "pkcs8" }).toString("base64"),
-    sign: (message) => cryptoSign(null, Buffer.from(message, "utf8"), privateKey).toString("hex"),
-    verify: (message, signature) => {
+    sign: async (message) => cryptoSign(null, Buffer.from(message, "utf8"), privateKey).toString("hex"),
+    verify: async (message, signature) => {
       try {
         return cryptoVerify(null, Buffer.from(message, "utf8"), publicKeyObj, Buffer.from(signature, "hex"));
       } catch {
         return false;
       }
     },
+  };
+}
+
+/**
+ * Wrap an EXTERNAL signer (AWS KMS / GCP KMS / an HSM) as a LedgerSigner — the production posture. The
+ * private key NEVER enters this process: you supply an async `sign` that calls the KMS, plus the SPKI
+ * public key (base64). `verify` defaults to a LOCAL check against `publicKey`, so verification needs no
+ * KMS round-trip. This is the seam that makes the ledger forgery-resistant even if the host is popped.
+ */
+export function createExternalSigner(opts: {
+  publicKey: string;
+  sign: (message: string) => Promise<string>;
+  verify?: (message: string, signature: string) => Promise<boolean>;
+}): LedgerSigner {
+  const publicKeyObj = createPublicKey({ key: Buffer.from(opts.publicKey, "base64"), format: "der", type: "spki" });
+  return {
+    publicKey: opts.publicKey,
+    sign: opts.sign,
+    verify:
+      opts.verify ??
+      (async (message, signature) => {
+        try {
+          return cryptoVerify(null, Buffer.from(message, "utf8"), publicKeyObj, Buffer.from(signature, "hex"));
+        } catch {
+          return false;
+        }
+      }),
   };
 }
 
@@ -91,11 +125,11 @@ export function canonicalize(value: unknown): string {
 export const payloadHash = (payload: unknown): string => sha256hex(canonicalize(payload));
 export const computeRowHash = (prevHash: string, pHash: string): string => sha256hex(prevHash + pHash);
 
-export function makeRecord<T>(index: number, prevHash: string, payload: T, signer?: LedgerSigner): LedgerRecord<T> {
+export async function makeRecord<T>(index: number, prevHash: string, payload: T, signer?: LedgerSigner): Promise<LedgerRecord<T>> {
   const pHash = payloadHash(payload);
   const rowHash = computeRowHash(prevHash, pHash);
   const record: LedgerRecord<T> = { index, prevHash, payloadHash: pHash, rowHash, payload };
-  if (signer) record.signature = signer.sign(rowHash);
+  if (signer) record.signature = await signer.sign(rowHash);
   return record;
 }
 
@@ -105,7 +139,7 @@ export interface VerifyResult {
   brokenAt?: number;
 }
 
-export function verifyChain<T>(rows: readonly LedgerRecord<T>[], signer?: LedgerSigner): VerifyResult {
+export async function verifyChain<T>(rows: readonly LedgerRecord<T>[], signer?: LedgerSigner): Promise<VerifyResult> {
   let prev = GENESIS_HASH;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i]!;
@@ -116,7 +150,7 @@ export function verifyChain<T>(rows: readonly LedgerRecord<T>[], signer?: Ledger
     if (r.rowHash !== computeRowHash(r.prevHash, pHash)) return { ok: false, brokenAt: i };
     // With a signer, the row must also carry a valid signature — so a recomputed (but unsigned)
     // chain produced by a DB-level attacker is still detected.
-    if (signer && (!r.signature || !signer.verify(r.rowHash, r.signature))) return { ok: false, brokenAt: i };
+    if (signer && (!r.signature || !(await signer.verify(r.rowHash, r.signature)))) return { ok: false, brokenAt: i };
     prev = r.rowHash;
   }
   return { ok: true };

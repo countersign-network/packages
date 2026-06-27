@@ -11,6 +11,7 @@ import {
   PgLedger,
   anchorHead,
   createEd25519Signer,
+  createExternalSigner,
   decodeAnchorCalldata,
   encodeAnchorCalldata,
   makeRecord,
@@ -142,29 +143,45 @@ describe("ledger signing (tamper-evident even against the DB owner)", () => {
     expect(await l.verify()).toEqual({ ok: true });
   });
 
-  it("signatures defeat a RECOMPUTED-chain attack that fools hash-only verification", () => {
+  it("signatures defeat a RECOMPUTED-chain attack that fools hash-only verification", async () => {
     const signer = createEd25519Signer();
-    const r0 = makeRecord(0, GENESIS_HASH, freezeReq(0), signer);
-    const r1 = makeRecord(1, r0.rowHash, freezeReq(1), signer);
-    const r2 = makeRecord(2, r1.rowHash, freezeReq(2), signer);
-    expect(verifyChain([r0, r1, r2], signer)).toEqual({ ok: true });
+    const r0 = await makeRecord(0, GENESIS_HASH, freezeReq(0), signer);
+    const r1 = await makeRecord(1, r0.rowHash, freezeReq(1), signer);
+    const r2 = await makeRecord(2, r1.rowHash, freezeReq(2), signer);
+    expect(await verifyChain([r0, r1, r2], signer)).toEqual({ ok: true });
 
     // Attacker with full DB access tampers row 1 and RECOMPUTES the hashes forward — but has no key.
-    const t1 = makeRecord(1, r0.rowHash, { ...freezeReq(1), reason: "TAMPERED" }); // valid hashes, NO signature
-    const t2 = makeRecord(2, t1.rowHash, freezeReq(2)); // re-chained
+    const t1 = await makeRecord(1, r0.rowHash, { ...freezeReq(1), reason: "TAMPERED" }); // valid hashes, NO signature
+    const t2 = await makeRecord(2, t1.rowHash, freezeReq(2)); // re-chained
 
     // Hash-only verification is fooled (the recomputed chain is internally consistent):
-    expect(verifyChain([r0, t1, t2])).toEqual({ ok: true });
+    expect(await verifyChain([r0, t1, t2])).toEqual({ ok: true });
     // But signature verification catches it at the first forged row:
-    expect(verifyChain([r0, t1, t2], signer)).toEqual({ ok: false, brokenAt: 1 });
+    expect(await verifyChain([r0, t1, t2], signer)).toEqual({ ok: false, brokenAt: 1 });
   });
 
-  it("a different key cannot verify another signer's ledger", () => {
+  it("a different key cannot verify another signer's ledger", async () => {
     const a = createEd25519Signer();
     const b = createEd25519Signer();
-    const r0 = makeRecord(0, GENESIS_HASH, freezeReq(0), a);
-    expect(verifyChain([r0], a)).toEqual({ ok: true });
-    expect(verifyChain([r0], b).ok).toBe(false);
+    const r0 = await makeRecord(0, GENESIS_HASH, freezeReq(0), a);
+    expect(await verifyChain([r0], a)).toEqual({ ok: true });
+    expect((await verifyChain([r0], b)).ok).toBe(false);
+  });
+
+  it("createExternalSigner (KMS seam): signs via an async external function, verifies locally", async () => {
+    const ed = createEd25519Signer();
+    let kmsCalls = 0;
+    // Simulate a KMS: the private key lives 'elsewhere'; we expose only an async sign + the public key.
+    const kms = createExternalSigner({
+      publicKey: ed.publicKey,
+      sign: async (m) => { kmsCalls++; return ed.sign(m); },
+    });
+    const l = new InMemoryLedger<LedgerEvent>(kms);
+    const a = await l.append(freezeReq(0));
+    await l.append(freezeReq(1));
+    expect(a.signature).toBeTruthy();
+    expect(kmsCalls).toBe(2); // each append signed via the external signer
+    expect(await l.verify()).toEqual({ ok: true }); // verify used the LOCAL default — no KMS round-trip
   });
 });
 

@@ -8,15 +8,24 @@ import type { LedgerPort } from "./port";
  */
 export class InMemoryLedger<T = LedgerEvent> implements LedgerPort<T> {
   private readonly rows: LedgerRecord<T>[] = [];
+  private tail: Promise<unknown> = Promise.resolve();
   readonly publicKey: string | undefined;
 
   constructor(private readonly signer?: LedgerSigner) {
     this.publicKey = signer?.publicKey;
   }
 
-  async append(payload: T): Promise<LedgerRecord<T>> {
+  append(payload: T): Promise<LedgerRecord<T>> {
+    // Serialize: makeRecord is now async (a KMS signer awaits), so without a mutex two concurrent
+    // appends could read the same length before either pushes and fork the chain. Chain off `tail`.
+    const next = this.tail.then(() => this.appendNow(payload));
+    this.tail = next.catch(() => undefined);
+    return next;
+  }
+
+  private async appendNow(payload: T): Promise<LedgerRecord<T>> {
     const prev = this.rows.length > 0 ? this.rows[this.rows.length - 1]!.rowHash : GENESIS_HASH;
-    const rec = makeRecord<T>(this.rows.length, prev, payload, this.signer);
+    const rec = await makeRecord<T>(this.rows.length, prev, payload, this.signer);
     this.rows.push(rec);
     return rec;
   }
