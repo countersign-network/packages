@@ -16,8 +16,11 @@
     "check": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {
+    "@rollup/plugin-alias": "^6.0.0",
     "@types/node": "^22.10.0",
     "@types/ws": "^8.5.13",
+    "rollup": "^4.62.2",
+    "rollup-plugin-dts": "^6.4.1",
     "tsup": "^8.5.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

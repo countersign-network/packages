@@ -5,7 +5,7 @@ at). Uses `render.yaml` (Blueprint / IaC).
 
 ## Deploy
 
-1. Push is already on GitHub. In Render: **New → Blueprint → connect `simoncrean/countersign`**.
+1. Push is already on GitHub. In Render: **New → Blueprint → connect `countersign-network/countersign`**.
 2. Render reads `render.yaml` and provisions:
    - **`countersign-core`** — an always-on web service (`pnpm --filter @countersign/api start`), health-checked
      at `/health`, auto-deploying on push to `main`. TLS + a `*.onrender.com` URL are automatic.
