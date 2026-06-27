@@ -74,7 +74,22 @@ function parseApiKeys(): Record<string, ApiKeyInfo> {
   return map;
 }
 
-const server = createCountersignServer(core, { apiKeys: parseApiKeys() });
+const apiKeys = parseApiKeys();
+
+// FAIL-CLOSED BOOT: a Core wired to real vendor credentials must never run OPEN (no API auth) — a
+// control plane that can move funds can't be left unauthenticated. The mock connect/ambient demo
+// (no vendor creds) may stay open. Bypass only in dev/test.
+const hasVendorCreds = ["CDP_API_KEY_ID", "TURNKEY_API_PRIVATE_KEY", "OPENFORT_SECRET_KEY", "LITHIC_API_KEY"].some(
+  (k) => (process.env[k] ?? "").trim() !== "",
+);
+const env = process.env["NODE_ENV"];
+if (hasVendorCreds && Object.keys(apiKeys).length === 0 && env !== "development" && env !== "test") {
+  throw new Error(
+    "refusing to boot: real vendor credentials are present but the API has no auth (set COUNTERSIGN_API_KEYS). A credential-backed Core must not run OPEN.",
+  );
+}
+
+const server = createCountersignServer(core, { apiKeys });
 const port = await server.listen(Number(process.env["PORT"] ?? 8080));
 console.log(`\n  Countersign dashboard:  http://localhost:${port}`);
 console.log(`  REST + ws:         http://localhost:${port}  (ws /events)\n`);

@@ -28,6 +28,16 @@ services:
       # (start empty, operator connects backends). The moat-validation demo runs in connect mode.
       - key: COUNTERSIGN_DEMO_TRAFFIC
         value: "off"
+      # API auth. The mock demo can run open, but ANY credential-backed deploy MUST set this — main.ts
+      # refuses to boot a Core that has vendor creds with no auth. Format: "key:tenant:role,…".
+      # Set as a Render SECRET (sync:false), never commit the value.
+      - key: COUNTERSIGN_API_KEYS
+        sync: false
+      # Stable Ed25519 ledger signing key (base64 PKCS8). Without it the signer is EPHEMERAL — the
+      # public key changes every boot and prior rows can't be verified against a stable identity. Set
+      # a stable secret for any real (or persistent-demo) deploy so /ledger's published key is durable.
+      - key: COUNTERSIGN_LEDGER_KEY
+        sync: false
 
 databases:
   - name: countersign-ledger
