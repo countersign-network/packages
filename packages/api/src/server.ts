@@ -65,10 +65,14 @@ const START_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
  <p id="err" class="hide" style="color:#ff8a8a"></p>
 </div><script>
  const $=id=>document.getElementById(id);
+ // Organic-referral attribution (optional, privacy-safe): if someone arrives via ...?ref=<token>,
+ // forward a sanitized short token in the signup body so referrals are *measurable*. No cookies,
+ // no PII, no third-party calls — the server may record it or ignore it.
+ const ref=(new URLSearchParams(location.search).get("ref")||"").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,40);
  $("go").addEventListener("click",async()=>{
   $("go").disabled=true;$("go").textContent="Generating…";$("err").className="hide";
   try{
-   const r=await fetch("/signup",{method:"POST"});
+   const r=await fetch("/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(ref?{ref}:{})});
    if(!r.ok){throw new Error((await r.json()).error||("HTTP "+r.status));}
    const d=await r.json();
    $("key").textContent=d.apiKey;
@@ -284,9 +288,18 @@ export function createCountersignServer(coreOrResolver: CountersignCore | CoreRe
       res.setHeader("retry-after", String(Math.ceil(windowMs / 1000)));
       return void send(res, 429, { error: "too many signups from this address — try again shortly" });
     }
+    // Optional organic-referral attribution: record a sanitized ?ref token (from /start) as the key's
+    // label so referrals are MEASURABLE. Sanitized + length-capped, no PII; a bad/oversized body is ignored.
+    let ref = "";
+    try {
+      const body = await readJson<{ ref?: unknown }>(req);
+      if (typeof body.ref === "string") ref = body.ref.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+    } catch {
+      /* ignore malformed/oversized body — ref is optional */
+    }
     let issued: IssuedKey;
     try {
-      issued = await keyStore.issue({ role: "operator", label: "self-serve" });
+      issued = await keyStore.issue({ role: "operator", label: ref ? `ref:${ref}` : "self-serve" });
     } catch {
       return void send(res, 503, { error: "signup temporarily unavailable (capacity reached)" });
     }

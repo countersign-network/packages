@@ -1,5 +1,10 @@
 # @countersign/mcp
 
+[![npm version](https://img.shields.io/npm/v/@countersign/mcp?color=58e6a8&labelColor=0b1020)](https://www.npmjs.com/package/@countersign/mcp)
+[![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-7c9cff?labelColor=0b1020)](https://modelcontextprotocol.io)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-58e6a8?labelColor=0b1020)](./LICENSE)
+[![Spending governed by Countersign](https://img.shields.io/badge/spending%20governed%20by-Countersign-58e6a8?labelColor=0b1020)](https://countersign.network)
+
 **The cross-vendor kill switch + spend guard for AI agents — as MCP tools, inside any MCP client.**
 
 [Countersign](https://countersign.network) is a neutral control plane that holds one policy, one
@@ -48,4 +53,47 @@ Add to your MCP config (`claude_desktop_config.json`, or `claude mcp add`, or Cu
 
 That's it — your agent now has the spend guard and the kill switch.
 
-Apache-2.0. Countersign holds policy/freeze/ledger; it never takes custody of funds.
+## Show it (the "powered by" badge)
+
+If Countersign guards your agent, say so — it tells users (and other agents) that spending is governed,
+and points the next operator at the same kill switch. Drop this in your README:
+
+```markdown
+[![Spending governed by Countersign](https://img.shields.io/badge/spending%20governed%20by-Countersign-58e6a8?labelColor=0b1020)](https://countersign.network)
+```
+
+## Listing in MCP registries (distribution)
+
+Countersign spreads by being easy to discover wherever agent builders look for tools. The metadata below
+is ready to submit to the common registries — copy it as-is.
+
+- **Official MCP registry** (`registry.modelcontextprotocol.io` / the `mcp-registry` repo) — entry:
+  ```json
+  {
+    "name": "io.github.countersign-network/countersign",
+    "description": "Cross-vendor kill switch + spend guard for AI agents that spend money — one policy, one freeze, one tamper-evident ledger across every wallet/card backend.",
+    "homepage": "https://countersign.network",
+    "repository": "https://github.com/countersign-network/countersign",
+    "packages": [
+      { "registry": "npm", "name": "@countersign/mcp", "runtime": "npx" }
+    ],
+    "license": "Apache-2.0"
+  }
+  ```
+- **[mcp.so](https://mcp.so)** — submit `@countersign/mcp`; category *Finance / Security / Agents*.
+- **[Smithery](https://smithery.ai)** — `npx`-launched server; env `COUNTERSIGN_URL` (default `https://app.countersign.network`) + optional `COUNTERSIGN_API_KEY`.
+- **awesome-mcp-servers** lists — one-liner:
+  > **[Countersign](https://github.com/countersign-network/countersign)** — cross-vendor spend guard + sub-second kill switch + tamper-evident ledger for AI agents that move money (Coinbase, Turnkey, Openfort, Visa card). Testnet.
+
+Standard listing fields:
+
+| Field | Value |
+|---|---|
+| Server id | `countersign` |
+| Launch | `npx -y @countersign/mcp` |
+| Tools | `countersign_request_spend`, `countersign_freeze`, `countersign_apply_policy`, `countersign_list_agents`, `countersign_health`, `countersign_list_approvals`, `countersign_approve`, `countersign_deny`, `countersign_ledger`, `countersign_unfreeze` |
+| Tags | `payments` · `security` · `kill-switch` · `spend-guard` · `agent-payments` · `wallet` |
+
+> Nothing here is auto-submitted — listings are made deliberately by a maintainer.
+
+Apache-2.0. Countersign holds policy/freeze/ledger; it never takes custody of funds. Testnet only.

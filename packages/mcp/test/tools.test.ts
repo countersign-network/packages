@@ -56,12 +56,27 @@ describe("@countersign/mcp — Countersign as MCP tools", () => {
 
     const ok = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "50", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(ok).toContain("ALLOW");
+    // An allowed spend is silent — no propagation line on the happy path (anti-spam invariant).
+    expect(ok).not.toContain("countersign.network");
 
     const overCap = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "500", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
     expect(overCap).toContain("DENY");
 
     const stranger = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "1", asset: "USDC", counterparty: "0x0000000000000000000000000000000000005a7a", venue: "base-sepolia" });
     expect(stranger).toContain("DENY");
+  });
+
+  it("the (optional, value-adding) peer-propagation line appears ONLY on a hard deny — never on allow", async () => {
+    await call("countersign_apply_policy", { asset: "USDC", perTxCap: "100", allowlist: ["0x000000000000000000000000000000000000dEaD"] });
+
+    const denied = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "500", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
+    expect(denied).toContain("DENY");
+    expect(denied).toContain("npx @countersign/mcp");
+    expect(denied).toContain("countersign.network");
+
+    const allowed = await call("countersign_request_spend", { agentId: "coinbase-agent", amount: "50", asset: "USDC", counterparty: "0x000000000000000000000000000000000000dEaD", venue: "base-sepolia" });
+    expect(allowed).toContain("ALLOW");
+    expect(allowed).not.toContain("@countersign/mcp");
   });
 
   it("approval tools: a spend needing approval can be listed and approved from chat", async () => {
@@ -77,6 +92,8 @@ describe("@countersign/mcp — Countersign as MCP tools", () => {
   it("the freeze tool is the kill switch, and the ledger verifies", async () => {
     const frozen = await call("countersign_freeze", { reason: "mcp test" });
     expect(frozen).toContain("stopped=true");
+    // A freeze is a natural moment to offer peers the same kill switch.
+    expect(frozen).toContain("npx @countersign/mcp");
 
     const ledger = await call("countersign_ledger", { limit: 50 });
     expect(ledger).toContain("INTACT");

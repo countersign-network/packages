@@ -78,6 +78,28 @@
       .badge.soon { color: #ffcf6b; background: #241d0c; border: 1px solid #3a311d; }
       .kv { font-size: 13px; color: var(--muted); }
 
+      /* flywheel */
+      .fly { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+      @media (max-width: 820px) { .fly { grid-template-columns: 1fr; } }
+      .flystep { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; position: relative; }
+      .flystep .k { color: var(--accent); font-weight: 700; font-size: 12px; letter-spacing: .8px; text-transform: uppercase; }
+      .flystep p { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+      .flyarrow { color: var(--brand); text-align: center; align-self: center; font-size: 20px; }
+      @media (max-width: 820px) { .flyarrow { transform: rotate(90deg); } }
+
+      /* powered-by badge + copy snippets */
+      .pbrow { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 4px 0 18px; }
+      .pb-badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans); font-weight: 700; font-size: 13px; color: var(--accent); background: #0e2018; border: 1px solid #1d3a32; padding: 7px 13px; border-radius: 999px; }
+      .pb-badge svg { width: 15px; height: 15px; }
+      .snip { display: flex; align-items: flex-start; gap: 10px; background: #0a1330; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+      .snip code { white-space: pre-wrap; word-break: break-word; flex: 1; line-height: 1.5; }
+      .snip .copy { flex: 0 0 auto; }
+      .snip-label { font-size: 12px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+
+      /* generic, non-fabricated social proof */
+      .proofcard p { font-style: italic; color: var(--fg); font-size: 14.5px; margin: 0 0 10px; }
+      .proofcard .who { font-style: normal; color: var(--muted); font-size: 12.5px; margin: 0; }
+
       footer { border-top: 1px solid var(--line); padding: 34px 0 60px; color: var(--muted); font-size: 14px; }
       .frow { display: flex; flex-wrap: wrap; gap: 26px; align-items: center; }
       .frow .spacer { flex: 1; }
@@ -96,6 +118,7 @@
           </a>
           <span class="spacer"></span>
           <a class="navlink" href="#start">Get started</a>
+          <a class="navlink" href="#flywheel">Network effect</a>
           <a class="navlink" href="#ecosystem">Ecosystem</a>
           <a class="navlink" href="https://github.com/countersign-network/countersign">GitHub</a>
           <a class="navlink" href="https://www.npmjs.com/package/@countersign/sdk">npm</a>
@@ -170,6 +193,79 @@
         </div>
       </section>
 
+      <section id="flywheel">
+        <div class="eyebrow">The network effect</div>
+        <h2>Every guarded spend makes the network safer.</h2>
+        <p class="lead">Countersign is distributed primarily over <b>MCP</b> — so any agent in Claude, Cursor, or your own
+          stack picks up a spend guard and a kill switch. Each spend that flows through it strengthens a cross-rail safety
+          layer no single wallet vendor can match — because each vendor only governs its own rail. That's the flywheel.</p>
+        <div class="fly">
+          <div class="flystep"><div class="k">1 · Guard</div><p>An agent asks <code>countersign_request_spend</code> before it moves money. Allowed, denied, or held for a human — fail-closed.</p></div>
+          <div class="flyarrow">→</div>
+          <div class="flystep"><div class="k">2 · Adopt</div><p>Operators add the one-line MCP server to their other agents and their team. The kill switch now spans every rail at once.</p></div>
+          <div class="flyarrow">→</div>
+          <div class="flystep"><div class="k">3 · Strengthen</div><p>More agents under one policy + one freeze = a cross-vendor safety net that grows more valuable the more of the agent economy joins it.</p></div>
+        </div>
+        <p class="note">Truthful by design: propagation is always a value-adding, opt-in surface. Countersign never makes an
+          agent post, DM, or recruit on its own — a denied spend or a freeze simply offers peers the same protection, which a
+          human or agent can choose to share.</p>
+      </section>
+
+      <section id="spread">
+        <div class="eyebrow">Spread the safety net</div>
+        <h2>Add the badge. Bring your other agents and your team.</h2>
+        <p class="lead">If Countersign guards your agent, say so — it signals to users (and other agents) that spending is
+          governed, and it points the next operator to the same kill switch. Drop the badge in your README or app footer.</p>
+
+        <div class="pbrow">
+          <span class="pb-badge">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0e1530"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#58e6a8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Spending governed by Countersign
+          </span>
+          <span class="muted" style="font-size:13px">← live preview of the badge</span>
+        </div>
+
+        <div class="grid g3">
+          <div class="card">
+            <h3>Markdown badge</h3>
+            <p class="snip-label">For your README</p>
+            <div class="snip">
+              <code>[![Spending governed by Countersign](https://img.shields.io/badge/spending%20governed%20by-Countersign-58e6a8?labelColor=0b1020)](https://countersign.network)</code>
+              <button class="copy" data-copy="[![Spending governed by Countersign](https://img.shields.io/badge/spending%20governed%20by-Countersign-58e6a8?labelColor=0b1020)](https://countersign.network)">Copy</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>HTML badge</h3>
+            <p class="snip-label">For your app or site footer</p>
+            <div class="snip">
+              <code>&lt;a href="https://countersign.network"&gt;🛡️ Spending governed by Countersign&lt;/a&gt;</code>
+              <button class="copy" data-copy='<a href="https://countersign.network">🛡️ Spending governed by Countersign</a>'>Copy</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Bring your other agents</h3>
+            <p class="snip-label">One line — any MCP client</p>
+            <div class="snip">
+              <code>npx @countersign/mcp</code>
+              <button class="copy" data-copy="npx @countersign/mcp">Copy</button>
+            </div>
+            <p class="kv" style="margin-top:4px">Same policy, same freeze, across your whole fleet. Onboarding a teammate?
+              Send them <a href="https://app.countersign.network/start">app.countersign.network/start</a> for an instant key.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="trust">
+        <div class="eyebrow">Why operators reach for it</div>
+        <h2>The questions a team asks before agents touch money.</h2>
+        <p class="lead">These are the recurring asks Countersign is built to answer — not customer quotes. It's testnet-only today; mainnet follows a third-party audit.</p>
+        <div class="grid g3">
+          <div class="card proofcard"><p>“If an agent goes rogue at 2am, can I stop <em>all</em> of them — not just the ones on one wallet?”</p><p class="who">— the cross-vendor freeze, proven across four rails in ~432ms</p></div>
+          <div class="card proofcard"><p>“Can I prove, after the fact, exactly what every agent tried to spend?”</p><p class="who">— the append-only, hash-chained, tamper-evident ledger</p></div>
+          <div class="card proofcard"><p>“Can I write one spending policy instead of N vendor consoles?”</p><p class="who">— one unified policy compiled to each backend's native controls</p></div>
+        </div>
+      </section>
+
       <section id="ecosystem">
         <div class="eyebrow">Ecosystem</div>
         <h2>Rails + toolkit.</h2>
@@ -230,6 +326,17 @@
           } catch (e) { /* clipboard blocked — no-op */ }
         });
       });
+
+      // Organic-referral pass-through (privacy-safe): if you arrived via ...?ref=<token>, carry a
+      // sanitized short token onto the /start links so referrals are measurable. No cookies, no PII.
+      const ref = (new URLSearchParams(location.search).get("ref") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+      if (ref) {
+        document.querySelectorAll('a[href*="app.countersign.network/start"]').forEach((a) => {
+          const u = new URL(a.href);
+          u.searchParams.set("ref", ref);
+          a.href = u.toString();
+        });
+      }
     </script>
   </body>
 </html>
