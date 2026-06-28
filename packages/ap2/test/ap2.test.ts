@@ -101,3 +101,46 @@ describe("toEvaluateRequest", () => {
     expect(req).not.toHaveProperty("counterparty");
   });
 });
+
+/**
+ * Fail-closed parsing regressions. parseAp2's contract is "return null if no committed total can be
+ * read" — it must NOT emit a bogus charge ("NaN"/"Infinity") and lean on the Core regex, and it must
+ * not crash on a missing currency. Plus the currency-decimal table must cover all ISO-4217 0-dec codes.
+ */
+describe("parseAp2 — fail-closed on malformed amounts/currency", () => {
+  it("Gen-2 NaN / Infinity / negative amount → null (not a 'NaN'/'Infinity' charge)", () => {
+    expect(parseAp2({ payment_amount: { amount: NaN, currency: "USD" } } as unknown as Ap2PaymentMandate)).toBeNull();
+    expect(parseAp2({ payment_amount: { amount: Infinity, currency: "USD" } } as unknown as Ap2PaymentMandate)).toBeNull();
+    expect(parseAp2({ payment_amount: { amount: -100, currency: "USD" } } as unknown as Ap2PaymentMandate)).toBeNull();
+  });
+  it("Gen-2 missing/empty currency → null", () => {
+    expect(parseAp2({ payment_amount: { amount: 500 } } as unknown as Ap2PaymentMandate)).toBeNull();
+    expect(parseAp2({ payment_amount: { amount: 500, currency: "" } } as unknown as Ap2PaymentMandate)).toBeNull();
+  });
+  it("Gen-1 NaN / Infinity / negative value → null", () => {
+    const m = (value: number): Ap2CartMandate => ({ contents: { payment_request: { details: { total: { amount: { value, currency: "USD" } } } } } } as unknown as Ap2CartMandate);
+    expect(parseAp2(m(NaN))).toBeNull();
+    expect(parseAp2(m(Infinity))).toBeNull();
+    expect(parseAp2(m(-5))).toBeNull();
+  });
+  it("Gen-1 missing currency → null (does not throw in decimalsFor)", () => {
+    const m = { contents: { payment_request: { details: { total: { amount: { value: 5 } } } } } } as unknown as Ap2CartMandate;
+    expect(parseAp2(m)).toBeNull();
+  });
+});
+
+describe("parseAp2 — currency-decimal coverage (Gen-1 major→minor)", () => {
+  const cart = (value: number, currency: string): Ap2CartMandate =>
+    ({ contents: { merchant_name: "M", payment_request: { details: { total: { amount: { value, currency } } } } } } as unknown as Ap2CartMandate);
+  it("the remaining ISO-4217 zero-decimal currencies convert 1:1 (no phantom ×100)", () => {
+    for (const cur of ["BIF", "DJF", "GNF", "KMF", "UYI", "JPY", "KRW"]) {
+      expect(parseAp2(cart(500, cur))?.amount).toBe("500"); // 0-decimal: 500 major == 500 minor
+    }
+  });
+  it("3-decimal currency (KWD) scales by 1000", () => {
+    expect(parseAp2(cart(5, "KWD"))?.amount).toBe("5000");
+  });
+  it("default 2-decimal currency (USD) scales by 100", () => {
+    expect(parseAp2(cart(5, "USD"))?.amount).toBe("500");
+  });
+});

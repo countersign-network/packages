@@ -25,7 +25,11 @@ export interface CountersignTool {
 }
 
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : v === undefined ? undefined : String(v));
-const strArr = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.map((x) => String(x)) : undefined);
+// A lone string coerces to a one-element list rather than being DROPPED. Dropping a single-string
+// allowlist/denylist silently WIDENS the policy (allow nobody → allow anyone / remove a block) — a
+// fail-open if an MCP client sends `allowlist: "0x…"` instead of `["0x…"]`.
+const strArr = (v: unknown): string[] | undefined =>
+  Array.isArray(v) ? v.map((x) => String(x)) : typeof v === "string" ? [v] : undefined;
 
 /**
  * A single, tasteful "powered by Countersign" line appended ONLY to the two outputs where it is
@@ -85,7 +89,9 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
           ...(strArr(args["allowlist"]) !== undefined ? { allowlist: strArr(args["allowlist"])! } : {}),
           ...(strArr(args["denylist"]) !== undefined ? { denylist: strArr(args["denylist"])! } : {}),
           ...(str(args["approvalThreshold"]) !== undefined ? { approvalThreshold: str(args["approvalThreshold"])! } : {}),
-          ...(typeof args["frozen"] === "boolean" ? { frozen: args["frozen"] } : {}),
+          // Coerce a stringy boolean too — some MCP clients stringify booleans, and silently dropping
+          // `frozen: "true"` would leave the kill-switch policy NOT frozen with no error (fail-open).
+          ...(args["frozen"] !== undefined ? { frozen: args["frozen"] === true || args["frozen"] === "true" } : {}),
           ...(strArr(args["venues"]) !== undefined ? { venues: strArr(args["venues"])! } : {}),
         };
         const agentId = str(args["agentId"]);

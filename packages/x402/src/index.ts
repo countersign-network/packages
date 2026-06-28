@@ -59,7 +59,12 @@ export function networkToVenue(network: string): string {
  * cheapest acceptable option (agents should pay the least). Returns null if there are no options.
  */
 export function parseX402(body: X402PaymentRequired): X402Charge | null {
-  const options = body.accepts ?? [];
+  // Only consider options whose amount is a clean non-negative integer. `BigInt` is lenient —
+  // BigInt("-5")=-5n, BigInt("0x01")=1n, BigInt("")=0n — so a hostile/ malformed 402 body could
+  // otherwise have a negative/hex/empty amount selected as "cheapest" and the raw string smuggled
+  // downstream, or a non-numeric value ("1.5") throw mid-sort and discard the whole challenge.
+  // Filter to the policy's own amount rule (^\d+$) first; no valid option => null (the guard won't pay).
+  const options = (body.accepts ?? []).filter((o) => typeof o.maxAmountRequired === "string" && /^\d+$/.test(o.maxAmountRequired));
   if (options.length === 0) return null;
   const cheapest = [...options].sort((a, b) => (BigInt(a.maxAmountRequired) < BigInt(b.maxAmountRequired) ? -1 : 1))[0]!;
   return {

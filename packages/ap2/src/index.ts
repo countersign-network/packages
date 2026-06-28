@@ -91,6 +91,7 @@ export interface Ap2Charge {
 // the exceptions are the 0-decimal and 3-decimal currencies. (Gen-2 is already minor units — no conversion.)
 const CURRENCY_DECIMALS: Readonly<Record<string, number>> = {
   JPY: 0, KRW: 0, CLP: 0, ISK: 0, VND: 0, XOF: 0, XAF: 0, PYG: 0, RWF: 0, UGX: 0, VUV: 0, XPF: 0,
+  BIF: 0, DJF: 0, GNF: 0, KMF: 0, UYI: 0, // the remaining ISO-4217 zero-decimal currencies
   BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,
 };
 const decimalsFor = (currency: string): number => CURRENCY_DECIMALS[currency.toUpperCase()] ?? 2;
@@ -114,7 +115,11 @@ export function parseAp2(mandate: Ap2Mandate): Ap2Charge | null {
   // Gen-2 / v0.2 PaymentMandate — integer minor units.
   if (isPaymentMandate(mandate)) {
     const { payment_amount: amt, payee, payment_instrument: pi, exp } = mandate;
-    if (!amt || typeof amt.amount !== "number") return null;
+    // Reject anything that isn't a finite, non-negative amount with a usable currency. typeof NaN /
+    // Infinity is "number", so a bare typeof check would emit a bogus "NaN"/"Infinity" charge instead
+    // of null (the documented contract) and lean on the Core regex to deny. Fail-closed here: null.
+    if (!amt || typeof amt.amount !== "number" || !Number.isFinite(amt.amount) || amt.amount < 0) return null;
+    if (typeof amt.currency !== "string" || amt.currency === "") return null;
     const method = pi?.type ?? pi?.id ?? "ap2";
     return {
       amount: String(Math.trunc(Math.abs(amt.amount))),
@@ -131,7 +136,10 @@ export function parseAp2(mandate: Ap2Mandate): Ap2Charge | null {
     ? mandate.contents.payment_request
     : (mandate as { payment_request?: Ap2PaymentRequest }).payment_request;
   const total = pr?.details?.total?.amount;
-  if (!pr || !total || typeof total.value !== "number") return null;
+  // Same fail-closed contract as Gen-2: finite, non-negative value with a usable currency, else null.
+  // (Guards both NaN/Infinity and a missing currency, which would otherwise throw in decimalsFor.)
+  if (!pr || !total || typeof total.value !== "number" || !Number.isFinite(total.value) || total.value < 0) return null;
+  if (typeof total.currency !== "string" || total.currency === "") return null;
   const method = pr.method_data?.[0]?.supported_methods ?? "ap2";
   const payee = isCartMandate(mandate) ? mandate.contents.merchant_name ?? "" : "";
   const expiry = isCartMandate(mandate) ? mandate.contents.cart_expiry : undefined;
