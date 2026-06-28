@@ -17,6 +17,7 @@ import type {
   AgentRef,
   EnforcementMode,
   EnforcementProvider,
+  FreezeScope,
   ProviderCapabilities,
 } from "./enforcement-provider";
 import type { FreezeMechanism, FreezeOutcome, LedgerEvent, LedgerSink } from "./events";
@@ -74,6 +75,13 @@ export interface FreezeControllerOptions {
   freezeTimeoutMs?: number;
   /** Per-agent escalation (revokeSession) timeout. Default 800ms. */
   escalateTimeoutMs?: number;
+  /**
+   * Max concurrent vendor calls in the fan-out (provider freezes AND per-agent escalations). Bounds the
+   * thundering-herd vendor-API burst at fleet scale — an unbounded Promise.all over hundreds of agents
+   * trips vendor rate-limits → timeouts → mass escalation inside the <1s budget. Default 16. For small
+   * fleets (>= this many) it's a plain Promise.all, so the <1s SLO is unchanged. (A6.)
+   */
+  freezeConcurrency?: number;
   /** Injectable clock for deterministic tests. Default Date.now. */
   now?: () => number;
   /** Injectable id mint. Default a monotonic counter for reproducible runs. */
@@ -83,6 +91,23 @@ export interface FreezeControllerOptions {
 type Timed<T> =
   | { ok: true; value: T; ms: number }
   | { ok: false; reason: "timeout" | "error"; error?: unknown; ms: number };
+
+/**
+ * Run `fn` over `items` with at most `limit` in flight, preserving result order. Below the limit it's a
+ * plain Promise.all (zero overhead for small fleets); above it, a fixed worker pool drains the queue.
+ */
+async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  if (limit <= 0 || items.length <= limit) return Promise.all(items.map(fn));
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (let i = next++; i < items.length; i = next++) {
+      results[i] = await fn(items[i]!, i);
+    }
+  };
+  await Promise.all(Array.from({ length: limit }, () => worker()));
+  return results;
+}
 
 /**
  * Wrap a promise so it ALWAYS resolves (never rejects) within `ms`. This is the fail-closed
@@ -117,6 +142,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, now: () => number): Promise<T
 export class FreezeController {
   private readonly freezeTimeoutMs: number;
   private readonly escalateTimeoutMs: number;
+  private readonly freezeConcurrency: number;
   private readonly now: () => number;
   private readonly idFactory: () => string;
   private readonly sink: LedgerSink["append"];
@@ -130,24 +156,53 @@ export class FreezeController {
     this.alertSink = opts.alert;
     this.freezeTimeoutMs = opts.freezeTimeoutMs ?? 800;
     this.escalateTimeoutMs = opts.escalateTimeoutMs ?? 800;
+    this.freezeConcurrency = opts.freezeConcurrency ?? 16;
     this.now = opts.now ?? (() => Date.now());
     this.idFactory = opts.idFactory ?? (() => nextId("frz"));
   }
 
   /** Freeze EVERY agent on EVERY provider. The kill switch. Idempotent. */
   async freezeAll(reason = "manual freeze"): Promise<FreezeReport> {
+    // Each provider freezes its whole scope and escalates ALL of its agents.
+    const targets = this.registrations.map((reg) => ({ reg, scope: { kind: "provider-all" } as FreezeScope, escalationAgents: reg.agents }));
+    return this.runFreeze(targets, reason);
+  }
+
+  /**
+   * Freeze ONE agent across whatever provider(s) host it — without halting the rest of the fleet (A6).
+   * The point of an agent-scoped kill switch is to stop a single rogue agent at low collateral, so an
+   * operator isn't forced to choose between "halt everything" and "do nothing". Same fail-closed
+   * escalation as freezeAll, scoped to this agent. Returns an empty report if the agent isn't found.
+   */
+  async freezeAgent(agentId: AgentId, reason = "manual agent freeze"): Promise<FreezeReport> {
+    const targets = this.registrations
+      .filter((reg) => reg.agents.some((a) => a.agentId === agentId))
+      .map((reg) => ({
+        reg,
+        scope: { kind: "agent", agentId } as FreezeScope,
+        escalationAgents: reg.agents.filter((a) => a.agentId === agentId),
+      }));
+    return this.runFreeze(targets, reason);
+  }
+
+  /** Shared fan-out for fleet-wide and agent-scoped freezes. */
+  private async runFreeze(
+    targets: { reg: ProviderRegistration; scope: FreezeScope; escalationAgents: AgentRef[] }[],
+    reason: string,
+  ): Promise<FreezeReport> {
     const freezeId = this.idFactory();
     const t0 = this.now();
     await this.record({
       kind: "freeze_requested",
       freezeId,
-      targets: this.registrations.map((r) => r.provider.id),
+      targets: targets.map((t) => t.reg.provider.id),
       reason,
       ts: t0,
     });
 
-    // Concurrent fan-out — wall clock is the slowest single provider, not the sum.
-    const results = await Promise.all(this.registrations.map((reg) => this.freezeOne(reg, freezeId)));
+    // Concurrent fan-out — wall clock is the slowest single provider, not the sum — bounded by
+    // freezeConcurrency so a large fleet can't burst past vendor rate-limits (A6).
+    const results = await mapLimit(targets, this.freezeConcurrency, (t) => this.freezeOne(t.reg, freezeId, t.scope, t.escalationAgents));
 
     const dangerous = results.filter((r) => !r.stopped);
     const windowMs = this.now() - t0;
@@ -181,9 +236,9 @@ export class FreezeController {
     return { freezeId, requestedAt: t0, windowMs, allStopped: dangerous.length === 0, providers: results };
   }
 
-  private async freezeOne(reg: ProviderRegistration, freezeId: string): Promise<PerProviderFreeze> {
+  private async freezeOne(reg: ProviderRegistration, freezeId: string, scope: FreezeScope, escalationAgents: AgentRef[]): Promise<PerProviderFreeze> {
     const mode = reg.capabilities.enforcementMode;
-    const res = await withTimeout(reg.provider.freeze({ kind: "provider-all" }), this.freezeTimeoutMs, this.now);
+    const res = await withTimeout(reg.provider.freeze(scope), this.freezeTimeoutMs, this.now);
 
     let outcome: FreezeOutcome;
     let mechanism: FreezeMechanism | undefined;
@@ -217,16 +272,15 @@ export class FreezeController {
       return { providerId: reg.provider.id, mode, outcome, mechanism, stopped: true, dangerousAgents: [], latencyMs: res.ms };
     }
 
-    // FAIL-CLOSED ESCALATION: the freeze didn't confirm — try the harder kill per agent.
-    const dangerousAgents = await this.escalate(reg, freezeId);
-    const stopped = reg.agents.length > 0 && dangerousAgents.length === 0;
+    // FAIL-CLOSED ESCALATION: the freeze didn't confirm — try the harder kill per (scoped) agent.
+    const dangerousAgents = await this.escalate(reg, freezeId, escalationAgents);
+    const stopped = escalationAgents.length > 0 && dangerousAgents.length === 0;
     return { providerId: reg.provider.id, mode, outcome, mechanism, stopped, dangerousAgents, latencyMs: res.ms };
   }
 
   /** Returns the agents we could NOT confirm stopped. Empty array => escalation succeeded. */
-  private async escalate(reg: ProviderRegistration, freezeId: string): Promise<AgentId[]> {
-    const outcomes = await Promise.all(
-      reg.agents.map(async (a) => {
+  private async escalate(reg: ProviderRegistration, freezeId: string, agents: AgentRef[]): Promise<AgentId[]> {
+    const outcomes = await mapLimit(agents, this.freezeConcurrency, async (a) => {
         const r = await withTimeout(reg.provider.revokeSession(a.agentId), this.escalateTimeoutMs, this.now);
         await this.record({
           kind: "escalation_revoke_session",
@@ -238,8 +292,7 @@ export class FreezeController {
           ts: this.now(),
         });
         return { agentId: a.agentId, ok: r.ok };
-      }),
-    );
+    });
     return outcomes.filter((o) => !o.ok).map((o) => o.agentId);
   }
 

@@ -70,8 +70,9 @@ export type LedgerEvent =
     }
   | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number }
   // ---- operational provenance (a backend brought under the control plane) ----
-  // `source` distinguishes the seeded demo fleet from an operator's tap-to-connect (absent =
-  // operator-initiated). Kept in sync with the private Core, which appends this field.
+  // `source` distinguishes the seeded demo fleet from an operator's tap-to-connect, so the moat
+  // funnel (operator-initiated second-backend rate) stays measurable even when a tenant boots
+  // pre-seeded. Absent = operator-initiated (the original, pre-provenance behavior).
   | { kind: "backend_connected"; providerId: ProviderId; ts: number; source?: "seeded" | "operator" | undefined }
   // ---- the countersignature: the ledger head published to an external trust domain (e.g. on-chain) ----
   | { kind: "ledger_anchored"; index: number; rowHash: string; ref?: string | undefined; ts: number };

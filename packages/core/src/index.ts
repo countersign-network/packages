@@ -9,5 +9,6 @@ export * from "./money";
 export * from "./errors";
 export * from "./policy";
 export * from "./enforcement-provider";
+export * from "./card-rail";
 export * from "./events";
 export * from "./freeze-controller";

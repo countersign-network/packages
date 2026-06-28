@@ -48,7 +48,10 @@ export interface AgentRef {
 export type EnforcementMode =
   | "native-session-caps" // caps enforced in vendor MPC/TEE; freeze = revoke/zero session (e.g. Coinbase)
   | "pre-sign-policy"     // policy evaluated before each signature; can gate on approval (e.g. Turnkey)
-  | "onchain-policy";     // session-key scope enforced on-chain; freeze = revoke key / flip guard (e.g. Openfort)
+  | "onchain-policy"      // session-key scope enforced on-chain; freeze = revoke key / flip guard (e.g. Openfort)
+  | "realtime-auth-gate"; // a SYNCHRONOUS per-authorization decision in the network's window (e.g. a card's
+                          // Visa-auth ASA / issuing webhook): Countersign approves/declines each charge
+                          // inline, so caps + allow/deny + approvals bind natively (cards: Lithic/Stripe/Airwallex).
 
 export interface ProviderCapabilities {
   enforcementMode: EnforcementMode;
@@ -59,6 +62,9 @@ export interface ProviderCapabilities {
   supportsSessionRevocation: boolean;
   /** True if the backend pushes real-time events; false => adapter must poll. */
   realtimeEvents: boolean;
+  /** True if the backend streams each pending authorization for a SYNCHRONOUS approve/decline decision
+   *  (the card real-time-auth gate). When true, `evaluateAuthorization` is the most security-relevant path. */
+  supportsRealtimeAuth?: boolean;
   venues: Venue[];
 }
 
@@ -86,6 +92,29 @@ export type Decision =
 export type FreezeScope =
   | { kind: "agent"; agentId: AgentId }
   | { kind: "provider-all" }; // freeze EVERY agent on this provider
+
+/**
+ * A normalized real-time authorization (A7) — a single pending charge a `realtime-auth-gate` rail
+ * (a card) streams to Countersign for a synchronous approve/decline. Vendor-neutral: the adapter maps
+ * its webhook payload to this and maps the decision back, so the most security-relevant card path is
+ * modeled IN the interface rather than leaking adapter-specific decide* methods up to the HTTP layer.
+ */
+export interface AuthorizationRequest {
+  agentId: AgentId;
+  amount: string;        // base/minor units, as a string — never a JS number for money
+  asset: string;         // e.g. "USD"
+  counterparty?: string; // merchant id / descriptor
+  venue?: Venue;
+  authId?: string;       // vendor-native authorization id, for correlation / idempotency
+  ts: number;
+}
+
+export interface AuthorizationDecision {
+  approved: boolean;
+  reason?: string;
+  /** When the rail supports async approval, a not-yet-approved charge can surface a token. */
+  approvalToken?: string;
+}
 
 export interface FreezeResult {
   confirmed: boolean;        // false => controller must escalate; the stop is NOT guaranteed
@@ -145,6 +174,16 @@ export interface EnforcementProvider {
   evaluate?(action: ActionRequest): Promise<Decision>;
   approve?(approvalToken: string): Promise<void>;
   deny?(approvalToken: string, reason?: string): Promise<void>;
+
+  /**
+   * OPTIONAL — only when capabilities.supportsRealtimeAuth (the `realtime-auth-gate` rails: cards).
+   * The SYNCHRONOUS real-time authorization decision: given a normalized pending charge, return
+   * approve/decline inside the network's tight window. This is where caps + allow/deny + approvals BIND
+   * natively on a card. Modeling it here keeps the most security-relevant card path inside the interface;
+   * the adapter's webhook signature verification + vendor request/response mapping wrap this call.
+   * Fail-closed: anything that can't be positively allowed must be declined.
+   */
+  evaluateAuthorization?(req: AuthorizationRequest): Promise<AuthorizationDecision>;
 
   /**
    * Hard stop. Idempotent. Fail-closed: if the stop cannot be CONFIRMED, return
