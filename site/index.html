@@ -116,6 +116,8 @@
       .logo-row img { height: 27px; width: auto; opacity: .68; filter: saturate(0); transition: opacity .18s, filter .18s; }
       .logo-row img:hover { opacity: 1; filter: none; }
       @media (max-width: 820px) { .logo-row { gap: 22px 32px; } .logo-row img { height: 22px; } }
+      /* network wordmark inside a rail card */
+      .card-logo { height: 20px; width: auto; max-width: 100%; display: block; margin: 2px 0 14px; }
 
       /* flywheel */
       .fly { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
@@ -334,10 +336,10 @@
 
         <div class="sub-eyebrow" style="margin-bottom:14px">Rails — what Countersign governs</div>
         <div class="grid g4">
-          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Coinbase</h3></div><p class="kv" style="margin-top:10px">MPC wallets · native per-tx cap pushed into CDP policy.</p><span class="badge live">LIVE</span></div>
-          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Turnkey</h3></div><p class="kv" style="margin-top:10px">In-enclave CEL policy · native human-approval consensus.</p><span class="badge live">LIVE</span></div>
-          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Openfort</h3></div><p class="kv" style="margin-top:10px">Backend smart accounts · custody-level hard freeze.</p><span class="badge live">LIVE</span></div>
-          <div class="card"><div class="rail"><span class="dot"></span><h3 style="margin:0">Lithic</h3></div><p class="kv" style="margin-top:10px">Virtual <b>Visa</b> card · real-time ASA approve/decline.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><img class="card-logo" src="/logos/coinbase-white.svg" alt="Coinbase" width="1102" height="197" loading="lazy" /><p class="kv">MPC wallets · native per-tx cap pushed into CDP policy.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><img class="card-logo" src="/logos/turnkey-white.png" alt="Turnkey" width="360" height="96" loading="lazy" /><p class="kv">In-enclave CEL policy · native human-approval consensus.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><img class="card-logo" src="/logos/openfort-white.svg" alt="Openfort" width="59" height="8" loading="lazy" /><p class="kv">Backend smart accounts · custody-level hard freeze.</p><span class="badge live">LIVE</span></div>
+          <div class="card"><img class="card-logo" src="/logos/lithic-white.svg" alt="Lithic" width="798" height="128" loading="lazy" /><p class="kv">Virtual <b>Visa</b> card · real-time ASA approve/decline.</p><span class="badge live">LIVE</span></div>
         </div>
 
         <div class="sub-eyebrow" style="margin:34px 0 14px">Toolkit — what you build with</div>
