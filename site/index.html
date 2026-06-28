@@ -111,6 +111,12 @@
       .kv { font-size: 13px; color: var(--muted); }
       .sub-eyebrow { color: var(--brand); font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
 
+      /* integration logo strip — muted wordmarks on near-black, brighten on hover */
+      .logo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 30px 46px; padding: 6px 0; }
+      .logo-row img { height: 27px; width: auto; opacity: .68; filter: saturate(0); transition: opacity .18s, filter .18s; }
+      .logo-row img:hover { opacity: 1; filter: none; }
+      @media (max-width: 820px) { .logo-row { gap: 22px 32px; } .logo-row img { height: 22px; } }
+
       /* flywheel */
       .fly { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
       @media (max-width: 820px) { .fly { grid-template-columns: 1fr; } }
@@ -303,6 +309,16 @@
           <div class="card proofcard"><p>“If an agent goes rogue at 2am, can I stop <em>all</em> of them — not just the ones on one wallet?”</p><p class="who">— the cross-vendor freeze, proven across four rails in ~432ms</p></div>
           <div class="card proofcard"><p>“Can I prove, after the fact, exactly what every agent tried to spend?”</p><p class="who">— the append-only, hash-chained, tamper-evident ledger</p></div>
           <div class="card proofcard"><p>“Can I write one spending policy instead of N vendor consoles?”</p><p class="who">— one unified policy compiled to each backend's native controls</p></div>
+        </div>
+      </section>
+
+      <section id="integrations">
+        <div class="eyebrow">Integrations</div>
+        <h2>The networks your agents already use.</h2>
+        <p class="lead">Countersign governs them through one policy, one freeze, and one tamper-evident ledger —
+          across every rail at once. No single vendor can do that, because each only governs its own.</p>
+        <div class="logo-row">
+          <img src="/logos/stripe-white.svg" alt="Stripe" width="120" height="50" loading="lazy" />
         </div>
       </section>
 
