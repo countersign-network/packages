@@ -70,7 +70,9 @@ export type LedgerEvent =
     }
   | { kind: "error"; providerId?: ProviderId | undefined; agentId?: AgentId | undefined; message: string; ts: number }
   // ---- operational provenance (a backend brought under the control plane) ----
-  | { kind: "backend_connected"; providerId: ProviderId; ts: number }
+  // `source` distinguishes the seeded demo fleet from an operator's tap-to-connect (absent =
+  // operator-initiated). Kept in sync with the private Core, which appends this field.
+  | { kind: "backend_connected"; providerId: ProviderId; ts: number; source?: "seeded" | "operator" | undefined }
   // ---- the countersignature: the ledger head published to an external trust domain (e.g. on-chain) ----
   | { kind: "ledger_anchored"; index: number; rowHash: string; ref?: string | undefined; ts: number };
 
