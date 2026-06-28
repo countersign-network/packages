@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Countersign — White Paper</title>
+<meta name="description" content="Countersign: a neutral, cross-vendor control plane for AI agents that spend money. Architecture, the falsifiable cross-rail freeze, the security model, the moat, and the ecosystem roadmap." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307080b'/%3E%3Cpath d='M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z' fill='none' stroke='%237c9cff' stroke-width='2'/%3E%3Cpath d='M12.5 16.5 l2.5 2.5 l5 -6' fill='none' stroke='%235cf2a9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--cs-bg); color:var(--cs-fg); font-family:var(--cs-font-sans); line-height:1.68; -webkit-font-smoothing:antialiased; position:relative; }
+  body::before { content:""; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:var(--cs-blueprint); background-size:var(--cs-grid-cell) var(--cs-grid-cell); -webkit-mask-image:radial-gradient(1100px 760px at 80% -8%, #000 24%, transparent 78%); mask-image:radial-gradient(1100px 760px at 80% -8%, #000 24%, transparent 78%); }
+  a { color:var(--cs-link); text-decoration:none; } a:hover { color:var(--cs-link-hover); }
+
+  /* on-screen reading nav */
+  header { position:sticky; top:0; z-index:30; backdrop-filter:blur(12px); background:rgba(7,8,11,.78); border-bottom:1px solid var(--cs-border); }
+  nav { max-width:860px; margin:0 auto; padding:0 28px; display:flex; align-items:center; gap:18px; height:58px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--cs-fg); font-size:15px; }
+  .brand svg { width:24px; height:24px; }
+  .brand .tag { font-family:var(--cs-font-mono); font-size:10px; letter-spacing:1.4px; color:var(--cs-fg-muted); text-transform:uppercase; border-left:1px solid var(--cs-border-strong); padding-left:10px; }
+  nav .spacer { flex:1; }
+  nav a.dl { font-family:var(--cs-font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:1px; color:var(--cs-accent); border:1px solid rgba(92,242,169,.3); background:rgba(92,242,169,.06); padding:7px 12px; border-radius:6px; }
+  @media (max-width:680px){ .brand .tag{ display:none; } }
+
+  .doc { max-width:860px; margin:0 auto; padding:0 28px; position:relative; z-index:1; }
+
+  /* COVER */
+  .cover { min-height:88vh; display:flex; flex-direction:column; justify-content:center; padding:60px 0 40px; position:relative; }
+  .cover .mark { width:60px; height:60px; }
+  .cover .km { font-family:var(--cs-font-mono); font-size:11px; letter-spacing:2.4px; text-transform:uppercase; color:var(--cs-accent); margin:26px 0 16px; }
+  .cover h1 { font-size:clamp(40px,7vw,76px); line-height:1.0; letter-spacing:-2.5px; font-weight:800; margin:0 0 20px; }
+  .cover h1 .grad { background:linear-gradient(96deg,var(--cs-brand-strong),var(--cs-accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .cover .sub { font-size:clamp(17px,2.4vw,22px); color:var(--cs-fg-soft); max-width:660px; }
+  .cover .claim { margin-top:30px; border:1px solid var(--cs-border-strong); border-left:3px solid var(--cs-accent); border-radius:10px; background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); padding:18px 20px; max-width:680px; }
+  .cover .claim .q { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--cs-fg-muted); }
+  .cover .claim p { margin:8px 0 0; font-size:15.5px; color:var(--cs-fg); }
+  .cover .claim b { color:var(--cs-accent); }
+  .cover .meta { display:flex; flex-wrap:wrap; gap:8px 28px; margin-top:34px; font-family:var(--cs-font-mono); font-size:12px; color:var(--cs-fg-muted); }
+  .cover .meta b { color:var(--cs-fg); font-weight:600; }
+
+  /* abstract band */
+  .abstract { border-top:1px solid var(--cs-border); border-bottom:1px solid var(--cs-border); padding:34px 0; margin:10px 0 0; }
+  .abstract .lab { font-family:var(--cs-font-mono); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--cs-accent); margin-bottom:12px; }
+  .abstract p { font-size:16.5px; color:var(--cs-fg-soft); margin:0; }
+
+  /* contents */
+  .toc { padding:30px 0 6px; }
+  .toc .lab { font-family:var(--cs-font-mono); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--cs-fg-muted); margin-bottom:14px; }
+  .toc ol { list-style:none; counter-reset:s; margin:0; padding:0; columns:2; column-gap:40px; }
+  @media (max-width:620px){ .toc ol{ columns:1; } }
+  .toc li { counter-increment:s; padding:7px 0; border-bottom:1px dashed var(--cs-border); font-size:14px; break-inside:avoid; }
+  .toc li::before { content:counter(s,decimal-leading-zero); font-family:var(--cs-font-mono); color:var(--cs-accent); font-size:11px; margin-right:12px; }
+  .toc a { color:var(--cs-fg-soft); } .toc a:hover { color:var(--cs-accent); }
+
+  /* body */
+  h2.sec { font-size:26px; letter-spacing:-.6px; font-weight:800; margin:46px 0 6px; padding-top:20px; border-top:1px solid var(--cs-border); position:relative; }
+  h2.sec .n { font-family:var(--cs-font-mono); font-size:13px; color:var(--cs-accent); margin-right:12px; font-weight:700; }
+  h2.sec::before { content:"+"; position:absolute; top:-9px; left:-1px; color:var(--cs-border-loud); font-family:var(--cs-font-mono); font-size:15px; }
+  h3.sub { font-size:17px; font-weight:700; letter-spacing:-.2px; margin:26px 0 6px; color:var(--cs-fg); }
+  p { margin:12px 0; color:var(--cs-fg-soft); font-size:15.5px; }
+  p.lead { color:var(--cs-fg); font-size:16.5px; }
+  strong, b { color:var(--cs-fg); }
+  em { color:var(--cs-fg-soft); }
+  code { font-family:var(--cs-font-mono); font-size:13px; color:#cfe0ff; background:var(--cs-code-bg); border:1px solid var(--cs-border); border-radius:4px; padding:1px 6px; }
+  ul.clean { margin:12px 0; padding-left:0; list-style:none; }
+  ul.clean li { position:relative; padding:7px 0 7px 26px; color:var(--cs-fg-soft); font-size:15px; border-bottom:1px solid var(--cs-border); }
+  ul.clean li::before { content:"+"; position:absolute; left:4px; top:7px; color:var(--cs-accent); font-family:var(--cs-font-mono); font-weight:700; }
+  ul.clean li b { color:var(--cs-fg); }
+
+  blockquote { margin:20px 0; border-left:3px solid var(--cs-accent); background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); border-radius:0 10px 10px 0; padding:14px 20px; }
+  blockquote p { margin:0; color:var(--cs-fg); font-size:15.5px; }
+
+  .figure { margin:24px 0; border:1px solid var(--cs-border); border-radius:12px; background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); padding:20px; break-inside:avoid; }
+  .figure svg { display:block; width:100%; height:auto; }
+  .figure .cap { font-family:var(--cs-font-mono); font-size:11px; color:var(--cs-fg-muted); margin-top:12px; letter-spacing:.4px; }
+  .figure .cap b { color:var(--cs-accent); }
+
+  table { width:100%; border-collapse:collapse; margin:20px 0; font-size:13.5px; break-inside:avoid; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--cs-border); vertical-align:top; }
+  th { font-family:var(--cs-font-mono); font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--cs-fg-muted); border-bottom:1px solid var(--cs-border-strong); }
+  td { color:var(--cs-fg-soft); }
+  td b { color:var(--cs-fg); }
+  .t-live { color:var(--cs-accent); font-family:var(--cs-font-mono); font-size:11px; }
+
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:24px 0; break-inside:avoid; }
+  @media (max-width:620px){ .stat-row{ grid-template-columns:repeat(2,1fr); } }
+  .stat { border:1px solid var(--cs-border); border-radius:10px; padding:16px; background:linear-gradient(180deg,var(--cs-surface),var(--cs-bg-raised)); }
+  .stat .n { font-family:var(--cs-font-mono); font-size:30px; font-weight:800; letter-spacing:-1px; }
+  .stat .n .u { color:var(--cs-accent); }
+  .stat .l { font-family:var(--cs-font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--cs-fg-muted); margin-top:6px; }
+
+  .refs { margin-top:18px; }
+  .refs ol { padding-left:0; list-style:none; counter-reset:r; }
+  .refs li { counter-increment:r; position:relative; padding:8px 0 8px 34px; border-bottom:1px solid var(--cs-border); font-size:13px; color:var(--cs-fg-muted); }
+  .refs li::before { content:"["counter(r)"]"; position:absolute; left:0; top:8px; font-family:var(--cs-font-mono); color:var(--cs-accent); font-size:11px; }
+
+  footer { border-top:1px solid var(--cs-border); padding:34px 0 64px; color:var(--cs-fg-muted); font-size:13px; margin-top:40px; position:relative; z-index:1; }
+  .mono-note { font-family:var(--cs-font-mono); font-size:11.5px; color:var(--cs-fg-faint); }
+  .frow { display:flex; flex-wrap:wrap; gap:18px; align-items:center; }
+  .frow .spacer { flex:1; }
+  .frow a { font-family:var(--cs-font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.8px; color:var(--cs-fg-muted); }
+
+  /* ============ PRINT ============ */
+  @media print {
+    @page { size: A4; margin: 18mm 16mm; }
+    html, body { background:#07080b !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body::before { display:none; }
+    header { display:none; }
+    .doc { max-width:none; padding:0; }
+    a { color:var(--cs-accent); }
+    .cover { min-height:auto; height:auto; padding:6mm 0 10mm; break-after:page; justify-content:flex-start; }
+    .cover h1 { font-size:50px; }
+    /* gradient-clipped text can paint a fill box in print engines — force a clean solid */
+    .cover h1 .grad, h2.sec .n { -webkit-text-fill-color: var(--cs-accent) !important; color: var(--cs-accent) !important; background: none !important; }
+    .abstract { break-inside:avoid; }
+    .toc { break-inside:avoid; }
+    h2.sec { break-before:auto; break-after:avoid; padding-top:14px; }
+    h2.sec, h3.sub { break-after:avoid; }
+    .figure, table, .stat-row, blockquote, ul.clean li { break-inside:avoid; }
+    p, li { orphans:3; widows:3; }
+    footer { break-before:avoid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <nav>
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign <span class="tag">White Paper</span></a>
+    <span class="spacer"></span>
+    <a class="dl" href="countersign-whitepaper.pdf">↓ PDF</a>
+  </nav>
+</header>
+
+<div class="doc">
+
+  <!-- COVER -->
+  <section class="cover">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="km">Countersign · White Paper · v1.0 · June 2026</div>
+    <h1>The control plane for <span class="grad">AI agents that spend money.</span></h1>
+    <p class="sub">A neutral, cross-vendor layer that holds one policy, one freeze, and one tamper-evident ledger across every agent-wallet backend at once — the one thing no single wallet vendor can do.</p>
+    <div class="claim">
+      <div class="q">The one falsifiable test that defines v1</div>
+      <p>Can Countersign <b>freeze agents across many backends at once, in under a second, with a unified tamper-evident ledger of every attempt?</b> This paper, and the open repository behind it, answer yes — proven live across four rails in ~432&nbsp;ms on testnet.</p>
+    </div>
+    <div class="meta">
+      <span><b>Category</b> · cross-vendor agent-spend governance</span>
+      <span><b>Status</b> · testnet · open core (Apache-2.0)</span>
+      <span><b>countersign.network</b></span>
+    </div>
+  </section>
+
+  <!-- ABSTRACT -->
+  <section class="abstract" id="abstract">
+    <div class="lab">Abstract</div>
+    <p>Autonomous software agents are beginning to move money on their own — paying for APIs, data, compute, and one another — across a fast-growing set of mutually incompatible payment rails: MPC wallets, in-enclave signers, on-chain session keys, and issued cards. Each rail ships its own controls, but each can govern only its own ecosystem. No incumbent can sit above all of them, because the incumbents compete. Countersign occupies that empty, neutral seat. It compiles a single declarative spending policy down to each backend's native controls, evaluates every transaction before it executes, and — on one signal — freezes every connected rail concurrently and fail-closed, recording every attempt in an append-only, hash-chained, cryptographically signed ledger. The thesis is falsifiable and we state the test plainly: stop agents across many vendors at once, in under a second, with tamper-evident proof. This paper describes the architecture, reports a four-rail live freeze in ~432&nbsp;ms, sets out the security model and invariants, and explains why neutrality — not breadth of integrations — is the durable moat.</p>
+  </section>
+
+  <!-- CONTENTS -->
+  <nav class="toc" id="contents">
+    <div class="lab">Contents</div>
+    <ol>
+      <li><a href="#problem">The agent-spend gap</a></li>
+      <li><a href="#neutrality">Why neutrality, and why incumbents can't</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#freeze">The falsifiable test &amp; results</a></li>
+      <li><a href="#security">Security model &amp; invariants</a></li>
+      <li><a href="#moat">The moat</a></li>
+      <li><a href="#network">Adoption, network effects &amp; economics</a></li>
+      <li><a href="#roadmap">Ecosystem roadmap</a></li>
+      <li><a href="#status">Status &amp; limitations</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <h2 class="sec" id="problem"><span class="n">01</span>The agent-spend gap</h2>
+  <p class="lead">Until recently, the question "which software is allowed to spend money, and how much?" had a human-shaped answer: a person held the card, approved the invoice, or signed the transaction. Agents break that assumption. An LLM-driven agent can now hold a wallet, call a paid API a thousand times an hour, hire another agent, and settle in stablecoins — at machine speed, with no human in the loop by default.</p>
+  <p>That unlocks real value and introduces a new failure mode. A misconfigured, jailbroken, or simply over-eager agent can drain a treasury before anyone notices — and the blast radius grows with every wallet and card the operator connects. The controls that exist today are <em>per-rail</em>: Coinbase governs Coinbase wallets, Turnkey governs Turnkey signers, an issuer governs its own cards. An operator running agents across several of these has no single place to write a policy, no single button to stop everything, and no single trustworthy record of what every agent tried to do.</p>
+  <p>Three capabilities are missing at the layer above the rails:</p>
+  <ul class="clean">
+    <li><b>One policy.</b> The spending rules an operator cares about — per-transaction caps, rolling daily caps, allow/deny lists, human-approval thresholds — should be written once and enforced everywhere, not re-expressed by hand in N vendor consoles.</li>
+    <li><b>One freeze.</b> When something goes wrong, the operator needs a kill switch that stops <em>every</em> agent on <em>every</em> rail at once, quickly and verifiably — not a frantic tour of vendor dashboards while money leaves.</li>
+    <li><b>One ledger.</b> After the fact, the operator (and their auditor, and their counterparties) needs a single tamper-evident record of every attempt — allowed, denied, or held — across all rails.</li>
+  </ul>
+  <p>Countersign exists to provide exactly these three, and nothing the rails already do well. It is not a wallet and never takes custody of funds. It is the layer that decides, stops, and proves.</p>
+
+  <!-- 2 -->
+  <h2 class="sec" id="neutrality"><span class="n">02</span>Why neutrality, and why incumbents can't</h2>
+  <p class="lead">The structural insight behind Countersign is simple: the cross-rail control layer can only be built by someone who governs none of the rails.</p>
+  <p>Every wallet vendor and card issuer is, by definition, issuer-side. Their controls are excellent — within their own ecosystem. But they compete with each other, and an operator's whole point in running multiple backends is to avoid depending on any one of them. No issuer can credibly offer to hold the policy and the kill switch for a competitor's rail, and none would trust a rival to hold theirs. The seat above all rails is therefore empty by construction, and it stays empty for any participant who also sells a rail.</p>
+  <p>This is the same position Plaid took between banks, or a neutral observability vendor takes across clouds: not the deepest in any one silo, but the only party that can see and act across all of them. Neutrality here is not a marketing posture; it is a moat that issuers are <em>barred</em> from copying without abandoning their own business.</p>
+  <blockquote><p>The rails are the substrate, not the moat. Breadth of integrations is table stakes — it is what makes the defensible layer <em>possible</em>. The moat is the neutral seat, plus the data only that seat can see.</p></blockquote>
+
+  <!-- 3 -->
+  <h2 class="sec" id="architecture"><span class="n">03</span>Architecture</h2>
+  <p class="lead">Countersign is a thin, keyless client talking to a TypeScript Core that holds all cryptographic and vendor-SDK weight. The language boundary between them is the trust boundary: a compromised client still cannot move funds or weaken policy, because it can only call the API.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 720 360" role="img" aria-label="Countersign architecture overview">
+      <defs><marker id="wa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3a4566"/></marker></defs>
+      <!-- clients -->
+      <text x="20" y="24" fill="#5b6478" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.4">CLIENTS · NO KEYS</text>
+      <g font-family="ui-monospace,monospace" font-size="11" fill="#aeb7c9">
+        <rect x="20" y="32" width="150" height="40" rx="8" fill="#0b0e15" stroke="#262f42"/><text x="34" y="56" fill="#e9edf6">MCP · SDK</text>
+        <rect x="186" y="32" width="150" height="40" rx="8" fill="#0b0e15" stroke="#262f42"/><text x="200" y="56" fill="#e9edf6">Dashboard</text>
+        <rect x="352" y="32" width="150" height="40" rx="8" fill="#0b0e15" stroke="#262f42"/><text x="366" y="56" fill="#e9edf6">Flutter client</text>
+      </g>
+      <line x1="20" y1="86" x2="700" y2="86" stroke="#5cf2a9" stroke-dasharray="3 5" opacity=".5"/>
+      <text x="20" y="100" fill="#5cf2a9" font-family="ui-monospace,monospace" font-size="9" letter-spacing="1">TRUST BOUNDARY · REST + ws (OpenAPI)</text>
+      <!-- core -->
+      <rect x="20" y="110" width="482" height="118" rx="12" fill="#0c1220" stroke="#38435c"/>
+      <text x="34" y="130" fill="#aec2ff" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1.2">COUNTERSIGN CORE</text>
+      <g font-family="ui-monospace,monospace" font-size="10.5" fill="#e9edf6">
+        <rect x="34" y="140" width="106" height="34" rx="7" fill="#0b1018" stroke="#2b3550"/><text x="44" y="161">guard /evaluate</text>
+        <rect x="150" y="140" width="106" height="34" rx="7" fill="#0b1018" stroke="#2b3550"/><text x="160" y="161">compiler</text>
+        <rect x="266" y="140" width="106" height="34" rx="7" fill="#160a0d" stroke="#5a2730"/><text x="276" y="161" fill="#ff9d9d">freeze ctl</text>
+        <rect x="382" y="140" width="106" height="34" rx="7" fill="#0b1018" stroke="#2b3550"/><text x="392" y="161">anomaly</text>
+        <rect x="34" y="184" width="454" height="30" rx="7" fill="#0a0f1a" stroke="#2b3550"/><text x="44" y="203" fill="#aec2ff">hash-chained ledger · append-only · Ed25519-signed</text>
+      </g>
+      <!-- interface + rails -->
+      <rect x="520" y="110" width="180" height="118" rx="12" fill="#0b0e15" stroke="#262f42"/>
+      <text x="610" y="130" text-anchor="middle" fill="#aec2ff" font-family="ui-monospace,monospace" font-size="9.5">EnforcementProvider</text>
+      <g font-family="ui-monospace,monospace" font-size="10" fill="#e9edf6">
+        <rect x="534" y="140" width="152" height="18" rx="5" fill="#0b1018" stroke="#2b3550"/><text x="542" y="153">Coinbase · MPC</text>
+        <rect x="534" y="162" width="152" height="18" rx="5" fill="#0b1018" stroke="#2b3550"/><text x="542" y="175">Turnkey · enclave</text>
+        <rect x="534" y="184" width="152" height="18" rx="5" fill="#0b1018" stroke="#2b3550"/><text x="542" y="197">Openfort · on-chain</text>
+        <rect x="534" y="206" width="152" height="16" rx="5" fill="#0b1018" stroke="#2b3550"/><text x="542" y="218">Lithic · Visa card</text>
+      </g>
+      <line x1="502" y1="169" x2="520" y2="169" stroke="#2b3550" stroke-width="1.4" marker-end="url(#wa)"/>
+      <!-- client->core -->
+      <line x1="95" y1="72" x2="95" y2="110" stroke="#2b3550" stroke-width="1.4" marker-end="url(#wa)"/>
+      <line x1="261" y1="72" x2="261" y2="110" stroke="#2b3550" stroke-width="1.4" marker-end="url(#wa)"/>
+      <line x1="427" y1="72" x2="427" y2="110" stroke="#2b3550" stroke-width="1.4" marker-end="url(#wa)"/>
+      <!-- footer line -->
+      <text x="20" y="270" fill="#868fa3" font-family="ui-monospace,monospace" font-size="10">All crypto/SDK weight lives in Core. Clients hold no keys — the language boundary is the trust boundary.</text>
+      <text x="20" y="290" fill="#5b6478" font-family="ui-monospace,monospace" font-size="9.5">Venues (testnet): Base Sepolia · Ethereum Sepolia · Polygon Amoy · Visa sandbox</text>
+    </svg>
+    <div class="cap"><b>Figure 1.</b> System overview — keyless clients, the Core brain, one interface, four live rails.</div>
+  </div>
+
+  <h3 class="sub">The unified policy and the compiler</h3>
+  <p>An operator writes one declarative policy: per-transaction caps, rolling daily caps, allow/deny lists, human-approval thresholds, and the freeze state. The <b>compiler</b> — the core intellectual property — lowers that single policy to each backend's <em>native</em> controls, so that a compromised agent cannot exceed a cap by going around Countersign; the limit is enforced by the rail itself, not merely requested. Where a backend cannot natively express a field, Countersign enforces it at its own layer and records, honestly and auditably, which guarantee applies. The compiler refuses malformed input (for example, it rejects non-hex addresses) so policy injection cannot smuggle rules into a backend.</p>
+
+  <h3 class="sub">The pre-flight spend guard</h3>
+  <p>Before an agent moves money it calls <code>/evaluate</code>. The Core answers <b>allow</b>, <b>deny</b>, or <b>needs-approval</b>, fail-closed. This single call is the product's most important surface: it runs on every transaction, which means Countersign observes an agent's entire cross-rail spend — the raw material for anomaly detection and reputation that no single-rail vendor can assemble.</p>
+
+  <h3 class="sub">The freeze controller</h3>
+  <p>The kill switch fans out concurrently to every connected backend, bounded by a timeout. A confirmed freeze resolves in well under a second. A backend whose freeze will not confirm is <b>escalated</b> — Countersign revokes the session rather than reporting a dangerous wallet as safe. Default-deny is absolute: no decision and no backend response means the transaction does not execute.</p>
+
+  <h3 class="sub">The ledger</h3>
+  <p>Every request, decision, and freeze is appended to a hash-chained, Ed25519-signed, append-only ledger. Tampering breaks the chain; the public key is exposed so anyone can verify it independently. The ledger is simultaneously the audit trail, the compliance artifact, and — because it records exactly what was evaluated — the usage meter.</p>
+
+  <!-- 4 -->
+  <h2 class="sec" id="freeze"><span class="n">04</span>The falsifiable test &amp; results</h2>
+  <p class="lead">A security claim is only worth as much as the test that could disprove it. Countersign's claim is deliberately runnable: freeze agents across many backends at once, in under a second, with a tamper-evident ledger of every attempt.</p>
+  <div class="stat-row">
+    <div class="stat"><div class="n">~432<span class="u">ms</span></div><div class="l">Four-rail freeze</div></div>
+    <div class="stat"><div class="n">4</div><div class="l">Rails, two rail types</div></div>
+    <div class="stat"><div class="n">&lt;1<span class="u">s</span></div><div class="l">Cross-vendor SLO</div></div>
+    <div class="stat"><div class="n">115<span class="u">+</span></div><div class="l">Automated tests</div></div>
+  </div>
+  <p>The headline run — <code>packages/agent-harness/live-freeze.ts</code> — drives three reference agents across three crypto backends and a virtual Visa card, then issues a single freeze. All four confirm in roughly 432&nbsp;ms on testnet, and the signed hash chain re-verifies intact afterward. Because Lithic is a card rather than a crypto wallet, the run proves the thesis is rail-<em>type</em>-agnostic: the same policy, freeze, and ledger govern cards and wallets under one action.</p>
+
+  <table>
+    <thead><tr><th>Rail</th><th>Enforcement model</th><th>Freeze primitive</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td><b>Coinbase</b></td><td>native MPC session caps (Base Sepolia)</td><td>revoke session</td><td class="t-live">live</td></tr>
+      <tr><td><b>Turnkey</b></td><td>in-enclave CEL pre-sign policy</td><td>gate signature</td><td class="t-live">live</td></tr>
+      <tr><td><b>Openfort</b></td><td>on-chain session-key policy</td><td>flip on-chain guard</td><td class="t-live">live</td></tr>
+      <tr><td><b>Lithic</b></td><td>card session caps (spend_limit)</td><td>PAUSE / CLOSE</td><td class="t-live">live</td></tr>
+      <tr><td><b>Mock</b></td><td>faithful simulation, all 3 modes</td><td>all of the above</td><td class="t-live">tests + demo</td></tr>
+    </tbody>
+  </table>
+  <p>A fully runnable, credential-free mock suite reproduces all three enforcement modes and the fail-closed scenarios, so the claim can be exercised by anyone with the repository — no vendor accounts required — before they ever connect a real backend.</p>
+
+  <!-- 5 -->
+  <h2 class="sec" id="security"><span class="n">05</span>Security model &amp; invariants</h2>
+  <p class="lead">Countersign is a security product, so its design is expressed as invariants that must never be violated. They are the spine of the codebase and the contract with operators.</p>
+  <ul class="clean">
+    <li><b>Don't build cryptography.</b> Integrate vendor MPC/TEE. Agents use session keys, never master keys. Countersign adds the layer above, not another key-management implementation.</li>
+    <li><b>Build above the wallets.</b> The moat is cross-vendor aggregation, not the wallet. No vendor logic leaks past the <code>EnforcementProvider</code> interface.</li>
+    <li><b>Fail-closed.</b> No decision or no backend response means the transaction does not execute. Default deny, always.</li>
+    <li><b>Backend-agnostic core.</b> Policy, ledger, and API never learn vendor specifics; only adapters do.</li>
+    <li><b>The ledger is the source of truth.</b> Append-only and hash-chained, enforced at the database level as well as in application code.</li>
+    <li><b>Testnet only.</b> No mainnet, no real custody, no PII/KYC until after a third-party audit.</li>
+  </ul>
+  <p>The trust boundary is the language boundary. Clients are written in a different language from the Core and hold no keys; they can only call the API, so client compromise cannot move funds or weaken policy. Hardening already in place includes a database-level append-only trigger, an on-chain external anchor (every freeze countersigns the ledger), input validation with hex-address policy-injection defense, single-use websocket tickets so keys never sit in a URL, rate limiting, reserve-before-send accounting to close a daily-cap race, and a fail-closed boot guard. Secrets are scanned in CI. The remaining work before any real-value operation is native-enforcement parity on every rail and an independent security audit — and the paper says so rather than implying guarantees it has not yet earned.</p>
+
+  <!-- 6 -->
+  <h2 class="sec" id="moat"><span class="n">06</span>The moat</h2>
+  <p class="lead">Five moats, ranked by when each becomes real. The first is available on day one; the rest compound with usage and with the path toward custody.</p>
+  <table>
+    <thead><tr><th>#</th><th>Moat</th><th>Type</th><th>When it's real</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Neutrality</b></td><td>positional</td><td>day one — issuers are structurally barred from copying it</td></tr>
+      <tr><td>2</td><td><b>Cross-rail anomaly brain</b></td><td>data network effect</td><td>compounds with usage — only the cross-rail seat sees the whole pattern</td></tr>
+      <tr><td>3</td><td><b>Switching cost</b></td><td>lock-in</td><td>as Countersign becomes the system-of-record for a fleet</td></tr>
+      <tr><td>4</td><td><b>Regulatory barrier</b></td><td>structural</td><td>earned with custody — the wall that slows you keeps rivals out</td></tr>
+      <tr><td>5</td><td><b>Agent identity &amp; reputation</b></td><td>registry effect</td><td>the long game — the cross-rail "agent passport"</td></tr>
+    </tbody>
+  </table>
+  <p>Moat 2 deserves emphasis because it is the one that grows quietly. Since <code>/evaluate</code> is called on every transaction, Countersign accumulates a view of each agent's behavior <em>across all of its rails</em> — velocity, counterparties, blocked-attempt bursts, cumulative drift. A rail-specific player physically cannot see this pattern, so only Countersign can build genuine agent-spend anomaly detection and, in time, a shared reputation signal that makes the whole network safer the more of the agent economy joins it.</p>
+
+  <!-- 7 -->
+  <h2 class="sec" id="network"><span class="n">07</span>Adoption, network effects &amp; economics</h2>
+  <p class="lead">Countersign is shaped for a self-serve, meeting-free motion: open-core, distributed over MCP, installable in one command, with a public falsifiable demo and a ledger that is itself shareable proof.</p>
+  <h3 class="sub">Three loops</h3>
+  <ul class="clean">
+    <li><b>Distribution.</b> The MCP server drops Countersign inside Claude, Cursor, and similar clients where agent builders already work — the kill switch and spend guard, one line, embedded mode, no credentials. The open-source front door is discoverable and forkable.</li>
+    <li><b>Data flywheel.</b> The spend guard runs on every transaction, so usage directly improves the anomaly brain and reputation signals — which makes the product safer, which drives more adoption, which produces more data.</li>
+    <li><b>Trust &amp; agent-to-agent.</b> The hash-chained ledger is shareable compliance proof that pulls in the wider organization; and when agents hire agents, the payer wants the payee governed, so governance propagates along the spend graph.</li>
+  </ul>
+  <h3 class="sub">Economics</h3>
+  <p>Price against avoided loss, not cost of goods: a rogue agent can drain a treasury, and Countersign is cheap insurance against that. Adoption is free and the front door is never gated — a generous testnet tier fuels the flywheel. Revenue turns on with outcomes, not adoption: mainnet operation, the anomaly brain, the sub-second cross-vendor freeze SLA, signed compliance exports with retention, SSO/RBAC, and a self-host license for enterprise. The ledger doubles as an exact, tamper-evident usage meter — the meter is the audit log. The eventual endgame, once Countersign owns an MPC share, is an insured-freeze / system-of-record offering priced on governed mainnet volume.</p>
+
+  <!-- 8 -->
+  <h2 class="sec" id="roadmap"><span class="n">08</span>Ecosystem roadmap</h2>
+  <p class="lead">Integrations are sequenced crypto-first — permissionless, with agents spending today and zero regulatory drag — then settlement, then the identity and mandate layer that is the moat, then fiat and cards for the mass market, and finally custody.</p>
+  <table>
+    <thead><tr><th>Tier</th><th>Theme</th><th>Representative integrations</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td><b>0</b></td><td>Crypto enforcement + front door</td><td>Coinbase, Turnkey, Openfort, Lithic card, SDK + MCP</td><td class="t-live">live · testnet</td></tr>
+      <tr><td><b>1</b></td><td>Settlement &amp; protocol</td><td>x402, Circle / USDC, Privy</td><td>next</td></tr>
+      <tr><td><b>2</b></td><td>Identity &amp; mandate (the moat)</td><td>Google AP2, Skyfire (KYA), Nevermined</td><td>next</td></tr>
+      <tr><td><b>3</b></td><td>Fiat &amp; cards (mass market)</td><td>Stripe, Visa, Mastercard, Crossmint, Ramp / Brex, AWS Bedrock</td><td>later</td></tr>
+      <tr><td><b>4</b></td><td>Enterprise custody (endgame)</td><td>Fireblocks / Dfns / Sodot</td><td>endgame</td></tr>
+    </tbody>
+  </table>
+  <p>The build today is Tier 0, proven live. In one breath: prove the cross-rail freeze on the crypto backends, make x402 and USDC first-class, become where mandates and agent identity live, extend onto cards for the mass market, and finally own the custody layer. For every integration the rule is the same — do not rebuild the vendor's cryptography; wrap it behind the interface and extract only the capability that the neutral layer needs.</p>
+
+  <!-- 9 -->
+  <h2 class="sec" id="status"><span class="n">09</span>Status &amp; limitations</h2>
+  <p>Countersign is testnet-only today. The core, freeze controller, policy compiler, signed and append-only ledger, mock provider, REST/ws API and dashboard, the spend guard with human-in-the-loop approval, the SDK and MCP server, x402 governance, and an early anomaly-freeze are built and tested. All four rails are live on testnet, each with scripts proving real enforcement, and the four-rail freeze is proven live. The honest open items are native-enforcement parity on every rail (so each guarantee is backend-enforced end-to-end), webhook event streams, and — non-negotiably — an independent third-party security audit before any mainnet or real-custody use. The Flutter client beyond a scaffold and push notifications are deferred. Nothing in this paper should be read as a claim of mainnet readiness or custody; Countersign holds policy, freeze, and proof, and never takes custody of funds.</p>
+
+  <!-- 10 -->
+  <h2 class="sec" id="conclusion"><span class="n">10</span>Conclusion</h2>
+  <p class="lead">As agents start to spend, someone has to be able to decide, stop, and prove — across every rail at once. That layer cannot be one of the rails, because the rails compete. Countersign takes the empty, neutral seat above them.</p>
+  <p>The contribution is not new cryptography; it is the aggregation. One policy compiled to each backend's native controls; one freeze that stops everything fail-closed in under a second; one tamper-evident ledger of every attempt. The claim is falsifiable and already met on four live rails in ~432&nbsp;ms. The moat is neutrality and the cross-rail data only the neutral seat can see. The invitation is the same one that makes the claim credible: don't take our word for it — run it, freeze four vendors yourself, and verify the ledger.</p>
+
+  <!-- REFERENCES -->
+  <h2 class="sec" id="references"><span class="n">—</span>References &amp; further reading</h2>
+  <div class="refs">
+    <ol>
+      <li>Countersign — repository, README and architecture (docs/architecture.md), <code>countersign.network</code>.</li>
+      <li>Countersign threat model — docs/THREAT-MODEL.md and SECURITY.md (assets, trust boundaries, invariants).</li>
+      <li>Headline live freeze — <code>packages/agent-harness/live-freeze.ts</code>; per-rail <code>smoke.ts</code> / <code>spike.ts</code> enforcement proofs.</li>
+      <li>Policy compiler &amp; unified policy schema — <code>packages/policy</code> (the cross-vendor compiler, core IP).</li>
+      <li>Hash-chained ledger — <code>packages/ledger</code> (append-only, Ed25519-signed, on-chain anchored).</li>
+      <li>x402 — open standard for internet-native (HTTP-402) machine payments, <code>x402.org</code>.</li>
+      <li>Enforcement backends — Coinbase CDP / Agentic Wallets, Turnkey, Openfort, Lithic (per docs/sdk-research).</li>
+      <li>Moat &amp; integration roadmap; pricing &amp; go-to-market — Countersign strategy notes.</li>
+    </ol>
+  </div>
+</div>
+
+<footer>
+  <div class="doc">
+    <div class="frow">
+      <a class="brand" href="index.html"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b0e15"/><path d="M16 6 L25 10 V17 C25 22 21 25.5 16 27 C11 25.5 7 22 7 17 V10 Z" fill="none" stroke="#7c9cff" stroke-width="2"/><path d="M12.5 16.5 l2.5 2.5 l5 -6" fill="none" stroke="#5cf2a9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Countersign</a>
+      <span class="spacer"></span>
+      <a href="index.html">Home</a>
+      <a href="countersign-whitepaper.pdf">Download PDF</a>
+      <a href="https://github.com/countersign-network/packages">GitHub</a>
+      <a href="https://app.countersign.network/start">Get a key</a>
+    </div>
+    <p class="mono-note" style="margin-top:16px">Countersign holds policy, freeze, and a tamper-evident ledger — it never takes custody of funds. Testnet only; mainnet follows a third-party security audit. © 2026 Countersign. Apache-2.0 open core.</p>
+  </div>
+</footer>
+</body>
+</html>
