@@ -1,7 +1,7 @@
 {
   "name": "@countersign/core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.3.0",
+  "description": "Countersign Core — the EnforcementProvider interface, branded ids, money + ledger-event primitives, the UnifiedPolicy schema, and the fail-closed cross-vendor freeze controller. Vendor- and storage-agnostic.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -9,7 +9,45 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.dts.json && tsup && rollup -c rollup.dts.config.mjs",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/countersign-network/packages.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://countersign.network",
+  "keywords": [
+    "countersign",
+    "ai-agents",
+    "agent-payments",
+    "enforcement-provider",
+    "kill-switch",
+    "policy"
+  ],
   "dependencies": {
     "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
   }
 }

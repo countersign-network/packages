@@ -70,6 +70,10 @@ importers:
       zod:
         specifier: ^4.4.0
         version: 4.4.3
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
 
   packages/mcp:
     dependencies:
