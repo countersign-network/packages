@@ -1,0 +1,73 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.countersign-network/countersign",
+  "title": "Countersign",
+  "description": "Cross-vendor kill switch + spend guard for AI agents that spend money: one policy, one sub-second freeze, one tamper-evident ledger.",
+  "version": "0.1.4",
+  "websiteUrl": "https://countersign.network",
+  "repository": {
+    "url": "https://github.com/countersign-network/packages",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@countersign/mcp",
+      "version": "0.1.4",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "COUNTERSIGN_URL",
+          "description": "Base URL of the Countersign Core to govern (hosted or self-hosted).",
+          "isRequired": true,
+          "isSecret": false,
+          "format": "string",
+          "default": "https://app.countersign.network"
+        },
+        {
+          "name": "COUNTERSIGN_API_KEY",
+          "description": "API key for the Core (self-serve one at https://app.countersign.network/start or POST /signup).",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "tags": [
+        "payments",
+        "agent-payments",
+        "security",
+        "kill-switch",
+        "spend-guard",
+        "wallet",
+        "ledger",
+        "governance"
+      ],
+      "categories": ["finance", "security"],
+      "license": "Apache-2.0",
+      "summary": "Countersign is a neutral, cross-vendor control plane for AI agents that spend money. It holds one policy, one sub-second freeze (kill switch), and one tamper-evident audit ledger across multiple agent-wallet and card backends at once. Remote mode: set COUNTERSIGN_URL + COUNTERSIGN_API_KEY against a hosted or self-hosted Core. Testnet only; Countersign never takes custody of funds.",
+      "tools": [
+        "countersign_request_spend",
+        "countersign_freeze",
+        "countersign_unfreeze",
+        "countersign_apply_policy",
+        "countersign_list_agents",
+        "countersign_health",
+        "countersign_list_approvals",
+        "countersign_approve",
+        "countersign_deny",
+        "countersign_ledger",
+        "countersign_guard_x402",
+        "countersign_guard_ap2"
+      ]
+    }
+  }
+}
