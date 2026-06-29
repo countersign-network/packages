@@ -47,6 +47,7 @@ Get a free testnet key at **<https://app.countersign.network/start>**.
 | [`@countersign/sdk`](packages/sdk) | typed client over the Core API + live ledger subscribe |
 | [`@countersign/mcp`](packages/mcp) | Countersign as MCP tools — kill switch + spend guard inside any MCP client |
 | [`@countersign/x402`](packages/x402) | govern [x402](https://x402.org) (HTTP-402 machine payments) — guard a payment *before* it pays |
+| [`@countersign/ap2`](packages/ap2) | govern AP2 (Agent Payments Protocol) — guard an agent-payment mandate before it executes |
 
 The proprietary brain (policy **compiler** to each backend's native controls, ledger, Coinbase /
 Turnkey / Openfort / Lithic adapters, the hosted Core) lives in a separate private repository.
@@ -65,7 +66,8 @@ Turnkey / Openfort / Lithic adapters, the hosted Core) lives in a separate priva
 - **Home:** <https://countersign.network> · **Hosted Core:** <https://app.countersign.network>
 - **npm:** [`@countersign/sdk`](https://www.npmjs.com/package/@countersign/sdk) ·
   [`@countersign/mcp`](https://www.npmjs.com/package/@countersign/mcp) ·
-  [`@countersign/x402`](https://www.npmjs.com/package/@countersign/x402)
+  [`@countersign/x402`](https://www.npmjs.com/package/@countersign/x402) ·
+  [`@countersign/ap2`](https://www.npmjs.com/package/@countersign/ap2)
 - **Architecture:** [`docs/architecture.md`](docs/architecture.md) · **Security:** [`SECURITY.md`](SECURITY.md)
 
 Apache-2.0. Countersign holds policy, freeze, and a tamper-evident ledger — it never takes custody of funds.

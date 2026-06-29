@@ -79,3 +79,15 @@ jobs:
         run: node scripts/publish-pkg.mjs @countersign/mcp
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # List @countersign/mcp in the OFFICIAL MCP Registry (registry.modelcontextprotocol.io) — the
+      # canonical index that mcp.so / Glama / PulseMCP and MCP clients ingest from. Auth is GitHub OIDC
+      # (no secret): the io.github.countersign-network/* namespace is authorized by this repo's org.
+      # Runs AFTER the npm publish so the registry can validate the live package + its mcpName. The
+      # publisher reads packages/mcp/server.json; it no-ops if that version is already registered.
+      - name: Install mcp-publisher
+        run: curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+      - name: Publish to MCP Registry
+        run: cd packages/mcp && "$GITHUB_WORKSPACE/mcp-publisher" publish
