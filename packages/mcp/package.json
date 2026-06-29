@@ -1,6 +1,6 @@
 {
   "name": "@countersign/mcp",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Countersign as MCP tools — the cross-vendor kill switch + spend guard inside any MCP client (Claude, Cursor, …).",
   "mcpName": "io.github.countersign-network/countersign",
   "license": "Apache-2.0",
