@@ -35,6 +35,33 @@ export interface AgentsResponse {
   agents: AgentDTO[];
 }
 
+/**
+ * Per-rail enforceability (A3). A security control whose binding you can't see isn't one: this surfaces,
+ * per provider + policy field, whether the rail enforces it NATIVELY (in vendor MPC/TEE/on-chain) or
+ * only at the Countersign pre-flight layer. The freeze itself is native on every current rail; what
+ * varies is fine-grained policy. Computed from the compiler's `unsupported[]`.
+ */
+export interface FieldEnforcement {
+  field: string;
+  binding: "native" | "countersign-layer";
+  /** Why it isn't native (present only for countersign-layer fields). */
+  reason?: string;
+}
+
+export interface ProviderEnforcement {
+  providerId: string;
+  mode: EnforcementMode;
+  /** Is the FREEZE (kill switch) enforced natively by this rail? True for all current rails. */
+  freezeNative: boolean;
+  /** Fraction of policy fields bound natively (0..1) — for ranking rails by enforceability. */
+  nativeScore: number;
+  fields: FieldEnforcement[];
+}
+
+export interface EnforcementResponse {
+  providers: ProviderEnforcement[];
+}
+
 export interface ApplyPolicyRequest {
   /** Target a single agent, or omit to apply to every agent on every backend. */
   agentId?: string;
@@ -49,6 +76,13 @@ export interface ApplyPolicyResult {
 
 export interface FreezeRequest {
   reason?: string;
+  /** Agent-scoped freeze (A6): stop just this agent across its provider(s) instead of the whole fleet. */
+  agentId?: string;
+}
+
+export interface UnfreezeRequest {
+  /** Lift only this agent's scoped freeze (A6); omit to lift the whole-fleet freeze. */
+  agentId?: string;
 }
 
 export type FreezeResponse = FreezeReport;
@@ -136,12 +170,14 @@ export type WsServerMessage =
 export interface CountersignApi {
   health(): Promise<HealthResponse>;
   agents(): Promise<AgentsResponse>;
+  /** Per-rail enforceability matrix (A3): which policy fields each backend binds natively vs at the layer. */
+  enforcement(): Promise<EnforcementResponse>;
   applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult>;
   evaluate(req: EvaluateRequest): Promise<EvaluateResponse>;
   approvals(): Promise<ApprovalsResponse>;
   approve(req: ApproveRequest): Promise<ApprovalResolution>;
   deny(req: DenyRequest): Promise<ApprovalResolution>;
   freeze(req?: FreezeRequest): Promise<FreezeResponse>;
-  unfreeze(): Promise<{ ok: boolean }>;
+  unfreeze(req?: UnfreezeRequest): Promise<{ ok: boolean }>;
   ledger(): Promise<LedgerResponse>;
 }

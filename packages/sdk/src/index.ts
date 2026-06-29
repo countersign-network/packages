@@ -22,8 +22,10 @@ import {
   type DenyRequest,
   type EvaluateRequest,
   type EvaluateResponse,
+  type EnforcementResponse,
   type FreezeRequest,
   type FreezeResponse,
+  type UnfreezeRequest,
   type HealthResponse,
   type LedgerResponse,
   type WsServerMessage,
@@ -42,8 +44,10 @@ export type {
   DenyRequest,
   EvaluateRequest,
   EvaluateResponse,
+  EnforcementResponse,
   FreezeRequest,
   FreezeResponse,
+  UnfreezeRequest,
   HealthResponse,
   LedgerRecordDTO,
   LedgerResponse,
@@ -91,12 +95,17 @@ export class CountersignClient implements CountersignApi {
     return this.request<AgentsResponse>("GET", "/agents");
   }
 
+  /** Per-rail enforceability matrix (A3): which policy fields each backend binds natively vs at the layer. */
+  enforcement(): Promise<EnforcementResponse> {
+    return this.request<EnforcementResponse>("GET", "/enforcement");
+  }
+
   /** Compile + apply one unified policy across backends (fail-closed). */
   applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult> {
     return this.request<ApplyPolicyResult>("POST", "/policy", req);
   }
 
-  /** The kill switch — freeze every agent on every backend. */
+  /** The kill switch — freeze every agent on every backend, or one agent with `{ agentId }` (A6). */
   freeze(req: FreezeRequest = {}): Promise<FreezeResponse> {
     return this.request<FreezeResponse>("POST", "/freeze", req);
   }
@@ -121,9 +130,9 @@ export class CountersignClient implements CountersignApi {
     return this.request<ApprovalResolution>("POST", "/deny", req);
   }
 
-  /** Lift a freeze (replay / recover). */
-  unfreeze(): Promise<{ ok: boolean }> {
-    return this.request<{ ok: boolean }>("POST", "/unfreeze", {});
+  /** Lift a freeze (replay / recover) — the whole fleet, or one agent with `{ agentId }` (A6). */
+  unfreeze(req: UnfreezeRequest = {}): Promise<{ ok: boolean }> {
+    return this.request<{ ok: boolean }>("POST", "/unfreeze", req);
   }
 
   /** The append-only, hash-chained ledger, re-verified at read time. */
