@@ -15,4 +15,7 @@ regexes = [
   # ledger/hash-chain.ts: `const privateKey: KeyObject = privateKeyB64` — Node crypto type + a param
   # name, NOT a secret. Scoped to this exact pattern so a genuine secret in the file still trips.
   '''KeyObject = privateKeyB64''',
+  # main.ts doc comment showing the COSIGN/COUNTERSIGN_API_KEYS env-var FORMAT with placeholder values
+  # ("key1:tenantA,key2:tenantB"); the generic-api-key entropy heuristic flags the example, not a secret.
+  '''_API_KEYS="key1:tenant''',
 ]
