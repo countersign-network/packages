@@ -48,39 +48,30 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-      # Each step publishes WITH provenance via scripts/publish-pkg.mjs, which SKIPS any package whose
-      # current manifest version is already on npm. So a tag only publishes the packages you bumped;
-      # the already-live ones no-op instead of failing the run. prepublishOnly builds each package;
-      # publishConfig swaps src→dist entry points.
-      #
-      # Order respects runtime deps: core is standalone; api-contract is the contract; sdk/x402/ap2
-      # depend on api-contract (workspace:^ → ^x.y.z); mcp depends on sdk + x402 + ap2 — so mcp last.
-      - name: Publish @countersign/core
-        run: node scripts/publish-pkg.mjs @countersign/core
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+      # Publish order matters: sdk depends on api-contract (workspace:^ → ^x.y.z).
+      # prepublishOnly builds each package; publishConfig swaps src→dist entry points.
       - name: Publish @countersign/api-contract
-        run: node scripts/publish-pkg.mjs @countersign/api-contract
+        run: pnpm --filter @countersign/api-contract publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @countersign/sdk
-        run: node scripts/publish-pkg.mjs @countersign/sdk
+        run: pnpm --filter @countersign/sdk publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # x402 + ap2 depend on api-contract; mcp depends on sdk + x402 + ap2 — publish mcp last.
       - name: Publish @countersign/x402
-        run: node scripts/publish-pkg.mjs @countersign/x402
+        run: pnpm --filter @countersign/x402 publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @countersign/ap2
-        run: node scripts/publish-pkg.mjs @countersign/ap2
+        run: pnpm --filter @countersign/ap2 publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @countersign/mcp
-        run: node scripts/publish-pkg.mjs @countersign/mcp
+        run: pnpm --filter @countersign/mcp publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
