@@ -117,6 +117,14 @@ describe("parseAp2 — fail-closed on malformed amounts/currency", () => {
     expect(parseAp2({ payment_amount: { amount: 500 } } as unknown as Ap2PaymentMandate)).toBeNull();
     expect(parseAp2({ payment_amount: { amount: 500, currency: "" } } as unknown as Ap2PaymentMandate)).toBeNull();
   });
+  it("Gen-2 NON-integer amount → null (a major-unit float in the minor-unit field is rejected, not truncated)", () => {
+    // 129.99 (a Gen-1 major-unit float mistakenly placed in the Gen-2 minor field) must be REJECTED —
+    // before the fix it was truncated to "129" (~100x under-report that could clear a per-tx cap).
+    expect(parseAp2({ payment_amount: { amount: 129.99, currency: "USD" } } as unknown as Ap2PaymentMandate)).toBeNull();
+    expect(parseAp2({ payment_amount: { amount: 0.5, currency: "USD" } } as unknown as Ap2PaymentMandate)).toBeNull();
+    // A genuine integer still passes straight through.
+    expect(parseAp2({ payment_amount: { amount: 12999, currency: "USD" } } as unknown as Ap2PaymentMandate)!.amount).toBe("12999");
+  });
   it("Gen-1 NaN / Infinity / negative value → null", () => {
     const m = (value: number): Ap2CartMandate => ({ contents: { payment_request: { details: { total: { amount: { value, currency: "USD" } } } } } } as unknown as Ap2CartMandate);
     expect(parseAp2(m(NaN))).toBeNull();
@@ -142,5 +150,9 @@ describe("parseAp2 — currency-decimal coverage (Gen-1 major→minor)", () => {
   });
   it("default 2-decimal currency (USD) scales by 100", () => {
     expect(parseAp2(cart(5, "USD"))?.amount).toBe("500");
+  });
+  it("4-decimal unit-of-account currencies (CLF/UYW) scale by 10000 (were missing → 100x under-report)", () => {
+    expect(parseAp2(cart(100, "CLF"))?.amount).toBe("1000000");
+    expect(parseAp2(cart(1, "UYW"))?.amount).toBe("10000");
   });
 });

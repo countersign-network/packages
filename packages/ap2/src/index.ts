@@ -93,6 +93,7 @@ const CURRENCY_DECIMALS: Readonly<Record<string, number>> = {
   JPY: 0, KRW: 0, CLP: 0, ISK: 0, VND: 0, XOF: 0, XAF: 0, PYG: 0, RWF: 0, UGX: 0, VUV: 0, XPF: 0,
   BIF: 0, DJF: 0, GNF: 0, KMF: 0, UYI: 0, // the remaining ISO-4217 zero-decimal currencies
   BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,
+  CLF: 4, UYW: 4, // the ISO-4217 four-decimal unit-of-account codes (else a 100x under-report)
 };
 const decimalsFor = (currency: string): number => CURRENCY_DECIMALS[currency.toUpperCase()] ?? 2;
 
@@ -119,10 +120,16 @@ export function parseAp2(mandate: Ap2Mandate): Ap2Charge | null {
     // Infinity is "number", so a bare typeof check would emit a bogus "NaN"/"Infinity" charge instead
     // of null (the documented contract) and lean on the Core regex to deny. Fail-closed here: null.
     if (!amt || typeof amt.amount !== "number" || !Number.isFinite(amt.amount) || amt.amount < 0) return null;
+    // The Gen-2 contract is INTEGER minor units. A non-integer (e.g. a Gen-1 major-unit float like
+    // 129.99 mistakenly placed in this minor-unit field) must be REJECTED, not silently truncated to
+    // 129 — a ~100x under-report that would clear a per-tx cap it should breach. Fail-closed, mirroring
+    // x402's strict atomic-amount gate.
+    if (!Number.isInteger(amt.amount)) return null;
     if (typeof amt.currency !== "string" || amt.currency === "") return null;
     const method = pi?.type ?? pi?.id ?? "ap2";
     return {
-      amount: String(Math.trunc(Math.abs(amt.amount))),
+      // Now guaranteed a non-negative integer; BigInt yields a clean decimal string at any magnitude.
+      amount: BigInt(amt.amount).toString(),
       asset: amt.currency,
       payee: payee?.id || payee?.name || "",
       paymentMethod: method,
