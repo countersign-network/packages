@@ -227,3 +227,23 @@ describe("FreezeController — fail-closed cross-vendor freeze", () => {
     expect(kinds(events).filter((k) => k === "freeze_result")).toHaveLength(3);
   });
 });
+
+describe("FreezeController — agent-scoped freeze on an unknown agent is fail-closed", () => {
+  it("returns allStopped:false (not a phantom success) and records no freeze_resolved", async () => {
+    const { events, record } = recorder();
+    const c = new FreezeController([fakeRegistration({ id: "coinbase", freeze: "confirm" })], { record });
+    // "coinbase-agent" is the only registered agent; scope the kill to a DIFFERENT (stale/typo'd) id.
+    const report = await c.freezeAgent(asAgentId("ghost-agent"), "typo");
+    expect(report.allStopped).toBe(false); // matched nothing => not a stop (was true before the fix)
+    expect(report.providers).toEqual([]);
+    expect(kinds(events)).not.toContain("freeze_resolved"); // no misleading "resolved" for a no-op
+  });
+
+  it("a KNOWN agent still freezes and reports allStopped:true", async () => {
+    const { record } = recorder();
+    const c = new FreezeController([fakeRegistration({ id: "coinbase", freeze: "confirm" })], { record });
+    const report = await c.freezeAgent(asAgentId("coinbase-agent"));
+    expect(report.allStopped).toBe(true);
+    expect(report.providers).toHaveLength(1);
+  });
+});

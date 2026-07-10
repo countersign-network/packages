@@ -172,7 +172,8 @@ export class FreezeController {
    * Freeze ONE agent across whatever provider(s) host it — without halting the rest of the fleet (A6).
    * The point of an agent-scoped kill switch is to stop a single rogue agent at low collateral, so an
    * operator isn't forced to choose between "halt everything" and "do nothing". Same fail-closed
-   * escalation as freezeAll, scoped to this agent. Returns an empty report if the agent isn't found.
+   * escalation as freezeAll, scoped to this agent. If the agent matches no registration, returns a
+   * fail-closed report (allStopped:false, no providers) — a scoped kill that found nothing isn't a stop.
    */
   async freezeAgent(agentId: AgentId, reason = "manual agent freeze"): Promise<FreezeReport> {
     const targets = this.registrations
@@ -182,6 +183,14 @@ export class FreezeController {
         scope: { kind: "agent", agentId } as FreezeScope,
         escalationAgents: reg.agents.filter((a) => a.agentId === agentId),
       }));
+    // A scoped kill that matches NO registration stopped nothing — it must NOT report allStopped:true
+    // (a green "all stopped" for an agent nothing was done to; a stale/typo'd id would read as success).
+    // Return a fail-closed report WITHOUT routing through runFreeze, so no misleading freeze_resolved is
+    // recorded either. (freezeAll's empty-fleet case is unaffected — it still resolves vacuously.)
+    if (targets.length === 0) {
+      const t = this.now();
+      return { freezeId: this.idFactory(), requestedAt: t, windowMs: 0, allStopped: false, providers: [] };
+    }
     return this.runFreeze(targets, reason);
   }
 
