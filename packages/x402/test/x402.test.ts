@@ -54,6 +54,51 @@ describe("parseX402 — venue + asset mapping", () => {
     expect(parseX402(body([opt({ extra: { name: "EURC" } })]))?.asset).toBe("EURC");
     expect(parseX402(body([opt({})]))?.asset).toBe("USDC");
   });
+  it("carries the asset CONTRACT + decimals through (no longer silently dropped)", () => {
+    const c = parseX402(body([opt({ asset: "0xRealUSDC", extra: { name: "USDC", decimals: 6 } })]));
+    expect(c?.assetContract).toBe("0xRealUSDC");
+    expect(c?.decimals).toBe(6);
+  });
+});
+
+describe("parseX402 — cross-asset decoy resistance (review D)", () => {
+  it("a fewer-decimals decoy with a tiny ATOMIC amount does NOT win the 'cheapest' selection", () => {
+    // Real: 1 USDC = 1_000_000 atomic (6-dec). Decoy: "5" atomic of a 0-dec token (worth far more), with
+    // a spoofed name. By RAW atomic units "5" < "1000000" and would have been picked; by normalized
+    // VALUE the real USDC option is actually cheaper and wins.
+    const c = parseX402(body([
+      opt({ maxAmountRequired: "1000000", asset: "0xRealUSDC", extra: { name: "USDC", decimals: 6 } }),
+      opt({ maxAmountRequired: "5", asset: "0xScamToken", extra: { name: "USDC", decimals: 0 } }),
+    ]));
+    expect(c?.amount).toBe("1000000");
+    expect(c?.assetContract).toBe("0xRealUSDC");
+  });
+
+  it("an asset PIN drops a decoy whose extra.name is spoofed, and labels the charge with the trusted symbol", () => {
+    const c = parseX402(
+      body([
+        opt({ maxAmountRequired: "5", asset: "0xScamToken", extra: { name: "usdc", decimals: 6 } }), // spoof (lowercase)
+        opt({ maxAmountRequired: "1000000", asset: "0xRealUSDC", extra: { name: "EURC", decimals: 6 } }),
+      ]),
+      { asset: "EURC" },
+    );
+    // Only the EURC option survives the pin; the spoofed-"usdc" decoy is dropped even though it's cheaper.
+    expect(c?.amount).toBe("1000000");
+    expect(c?.asset).toBe("EURC"); // the TRUSTED pin, not extra.name
+    expect(c?.assetContract).toBe("0xRealUSDC");
+  });
+
+  it("a pin with no matching option → null (the guard won't pay a mislabeled asset)", () => {
+    expect(parseX402(body([opt({ extra: { name: "SCAM" } })]), { asset: "USDC" })).toBeNull();
+  });
+
+  it("same-asset options still pick the cheapest (no regression for the common case)", () => {
+    const c = parseX402(body([
+      opt({ maxAmountRequired: "1000", extra: { name: "USDC", decimals: 6 } }),
+      opt({ maxAmountRequired: "300", extra: { name: "USDC", decimals: 6 } }),
+    ]));
+    expect(c?.amount).toBe("300");
+  });
 });
 
 // A minimal fake Core that records the evaluate request and returns a scripted decision.

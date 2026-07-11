@@ -1,6 +1,6 @@
 {
   "name": "@countersign/x402",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Govern x402 (HTTP-402 machine payments) with Countersign — guard an agent's payment against policy before it pays.",
   "license": "Apache-2.0",
   "type": "module",
