@@ -83,11 +83,22 @@ jobs:
       # List @countersign/mcp in the OFFICIAL MCP Registry (registry.modelcontextprotocol.io) — the
       # canonical index that mcp.so / Glama / PulseMCP and MCP clients ingest from. Auth is GitHub OIDC
       # (no secret): the io.github.countersign-network/* namespace is authorized by this repo's org.
-      # Runs AFTER the npm publish so the registry can validate the live package + its mcpName. The
-      # publisher reads packages/mcp/server.json; it no-ops if that version is already registered.
+      # Runs AFTER the npm publish so the registry can validate the live package + its mcpName.
       - name: Install mcp-publisher
         run: curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
       - name: Authenticate to MCP Registry (GitHub OIDC)
         run: ./mcp-publisher login github-oidc
+      # The registry rejects a re-publish of an already-listed version with a 400 "duplicate version"
+      # (it is NOT a no-op). A coordinated release that bumps the npm packages but not mcp would then
+      # red-X here for no real failure — so treat that specific duplicate as success and fail on anything
+      # else. (mcp's server.json version tracks packages/mcp/package.json; bump it to actually re-list.)
       - name: Publish to MCP Registry
-        run: cd packages/mcp && "$GITHUB_WORKSPACE/mcp-publisher" publish
+        run: |
+          cd packages/mcp
+          out=$("$GITHUB_WORKSPACE/mcp-publisher" publish 2>&1) && { echo "$out"; exit 0; }
+          echo "$out"
+          if echo "$out" | grep -qi "duplicate version"; then
+            echo "::notice::mcp version already listed in the MCP Registry — nothing to re-publish."
+            exit 0
+          fi
+          exit 1
