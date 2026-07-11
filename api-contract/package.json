@@ -1,6 +1,6 @@
 {
   "name": "@countersign/api-contract",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Countersign Core API contract — typed REST + ws schema and OpenAPI spec for the cross-vendor agent-spend control plane.",
   "license": "Apache-2.0",
   "type": "module",

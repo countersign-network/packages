@@ -1,6 +1,6 @@
 {
   "name": "@countersign/ap2",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Govern AP2 (the Agent Payments Protocol) with Countersign — guard an agent's mandate against policy before it signs the PaymentMandate.",
   "license": "Apache-2.0",
   "type": "module",
