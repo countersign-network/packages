@@ -89,6 +89,11 @@ export function parseX402(body: X402PaymentRequired, opts: ParseX402Options = {}
   // downstream, or a non-numeric value ("1.5") throw mid-sort and discard the whole challenge.
   // Filter to the policy's own amount rule (^\d+$) first; no valid option => null (the guard won't pay).
   let options = (body.accepts ?? []).filter((o) => typeof o.maxAmountRequired === "string" && /^\d+$/.test(o.maxAmountRequired));
+  // Same rule for a PRESENT `extra.decimals`: it is attacker-controlled JSON, and a non-numeric value
+  // (NaN survives the min/max clamp in normalizedValue) would throw at BigInt() mid-sort and discard the
+  // whole challenge. A present-but-garbage decimals field marks a malformed/hostile option — drop it,
+  // keep the rest. (ABSENT decimals stays fine and defaults to DEFAULT_DECIMALS.)
+  options = options.filter((o) => o.extra?.decimals === undefined || Number.isFinite(o.extra.decimals));
   // Asset pin (recommended): keep only options that declare the expected symbol, so a decoy option in a
   // different token can't be selected and mislabeled as the caller's asset.
   if (opts.asset) {

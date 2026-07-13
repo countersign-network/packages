@@ -99,6 +99,22 @@ describe("parseX402 — cross-asset decoy resistance (review D)", () => {
     ]));
     expect(c?.amount).toBe("300");
   });
+
+  it("a hostile non-numeric extra.decimals is dropped, not thrown — the rest of the challenge survives", () => {
+    // NaN survives normalizedValue's min/max clamp and would throw at BigInt() mid-sort,
+    // discarding the WHOLE challenge (a one-option DoS on a multi-option 402 body).
+    const c = parseX402(body([
+      opt({ maxAmountRequired: "5", extra: { name: "USDC", decimals: Number.NaN } }),
+      opt({ maxAmountRequired: "1000000", extra: { name: "USDC", decimals: 6 } }),
+    ]));
+    expect(c?.amount).toBe("1000000"); // the legit option wins; no throw
+    // Every option hostile → null (the guard won't pay), still no throw.
+    expect(parseX402(body([opt({ extra: { name: "USDC", decimals: Number.NaN } })]))).toBeNull();
+  });
+
+  it("an absurd extra.decimals (999999) is clamped, never throws", () => {
+    expect(() => parseX402(body([opt({ extra: { name: "USDC", decimals: 999999 } })]))).not.toThrow();
+  });
 });
 
 // A minimal fake Core that records the evaluate request and returns a scripted decision.
@@ -134,5 +150,12 @@ describe("guardX402 / withX402Guard", () => {
     const { api } = fakeApi({ outcome: "needs_approval", reason: "over threshold", approvalToken: "appr_1", policyId: "p" });
     const charge = parseX402(body([opt()]))!;
     await expect(withX402Guard(api, "bot", charge, async () => "x")).rejects.toBeInstanceOf(X402Denied);
+  });
+  it("a failing evaluate (network error) rejects and the payment NEVER runs — fail-closed, not fail-open", async () => {
+    const api = { evaluate: async () => { throw new Error("ECONNRESET"); } } as unknown as CountersignApi;
+    const charge = parseX402(body([opt()]))!;
+    let paid = false;
+    await expect(withX402Guard(api, "bot", charge, async () => { paid = true; return "x"; })).rejects.toThrow("ECONNRESET");
+    expect(paid).toBe(false);
   });
 });
