@@ -5,6 +5,10 @@
 the one thing no single wallet vendor can do, because each only governs its own rail. That
 aggregation is the moat.
 
+[![Countersign — one policy, one sub-second freeze, one signed ledger, across every wallet vendor](https://countersign.network/demo.gif)](https://countersign.network/demo.html)
+
+*Live version of this loop: [countersign.network/demo.html](https://countersign.network/demo.html) · [60s video](https://countersign.network/demo.mp4)*
+
 > One falsifiable test defines it: **can Countersign freeze agents across many backends at once, in
 > under a second, with a unified tamper-evident ledger of every attempt?** Proven LIVE across **four
 > rails** (Coinbase, Turnkey, Openfort, and a Lithic Visa **card**) in ~432ms on testnet.
@@ -36,7 +40,7 @@ await cs.evaluate({ agentId, amount, asset, venue }); // may this spend happen? 
 await cs.freeze();                                     // the kill switch — every backend, < 1s
 ```
 
-Get a free testnet key at **<https://app.countersign.network/start>**.
+Get a free testnet key at **<https://app.countersign.network/start?ref=gh-readme>**.
 
 ## Packages (this repo — all Apache-2.0)
 
