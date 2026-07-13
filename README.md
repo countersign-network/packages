@@ -42,6 +42,10 @@ await cs.freeze();                                     // the kill switch — ev
 
 Get a free testnet key at **<https://app.countersign.network/start?ref=gh-readme>**.
 
+**Agents paying agents?** See [`examples/guarded-payee`](examples/guarded-payee) — the A2A/AP2
+pattern where a payee advertises it is governed and the payer verifies that (and guards its own
+payment) before any mandate is signed.
+
 ## Packages (this repo — all Apache-2.0)
 
 | Package | Role |

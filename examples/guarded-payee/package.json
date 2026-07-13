@@ -1,0 +1,17 @@
+{
+  "name": "@countersign/example-guarded-payee",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference pattern: an A2A/AP2 payee that advertises it is governed by Countersign, and a payer that verifies governance and guards its own payment before paying.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@countersign/ap2": "workspace:^",
+    "@countersign/sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

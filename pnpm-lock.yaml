@@ -57,6 +57,19 @@ importers:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.17)(tsx@4.22.4)(typescript@5.9.3)
 
+  examples/guarded-payee:
+    dependencies:
+      '@countersign/ap2':
+        specifier: workspace:^
+        version: link:../../packages/ap2
+      '@countersign/sdk':
+        specifier: workspace:^
+        version: link:../../packages/sdk
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+
   packages/ap2:
     dependencies:
       '@countersign/api-contract':

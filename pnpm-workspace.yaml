@@ -1,6 +1,7 @@
 packages:
   - 'packages/*'
   - 'api-contract'
+  - 'examples/*'
 allowBuilds:
   esbuild: true
 # Force patched transitive deps (prod audit gates CI on high+). hono/@hono/node-server arrive via the

@@ -6,6 +6,7 @@
   "include": [
     "packages/**/src/**/*.ts",
     "packages/**/test/**/*.ts",
+    "examples/**/src/**/*.ts",
     "api-contract/**/*.ts",
     "vitest.config.ts",
     "packages/**/spike.ts",
@@ -13,5 +14,9 @@
     "packages/**/smoke.ts",
     "packages/**/live-freeze.ts"
   ],
-  "exclude": ["**/node_modules", "**/dist", "client"]
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "client"
+  ]
 }
