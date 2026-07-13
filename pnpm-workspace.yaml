@@ -11,5 +11,8 @@ overrides:
   axios: '>=1.18.1'
   hono: '>=4.12.27'
   '@hono/node-server': '>=2.0.5'
+  # dev-only advisories (Dependabot repo badge): vite path-traversal/fs.deny + esbuild dev-server
+  vite: '>=6.4.3'
+  esbuild: '>=0.28.1'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
