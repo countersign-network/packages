@@ -28,6 +28,7 @@ import {
   type UnfreezeRequest,
   type HealthResponse,
   type LedgerResponse,
+  type PoliciesResponse,
   type WsServerMessage,
 } from "@countersign/api-contract";
 
@@ -118,6 +119,11 @@ export class CountersignClient implements CountersignApi {
   /** Spends currently held pending human approval. */
   approvals(): Promise<ApprovalsResponse> {
     return this.request<ApprovalsResponse>("GET", "/approvals");
+  }
+
+  /** The tenant's applied policies (canonical v2 shapes). */
+  policies(): Promise<PoliciesResponse> {
+    return this.request<PoliciesResponse>("GET", "/policies");
   }
 
   /** Approve a pending spend (rejected if the system is frozen — fail-closed). */

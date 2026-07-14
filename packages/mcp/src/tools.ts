@@ -110,19 +110,43 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
         asset: z.string(),
         counterparty: z.string().optional(),
         venue: z.string(),
+        listingId: z.string().optional().describe("Marketplace listing being paid (x402 Bazaar / Agentic.Market resource URL) — required when the policy carries a listing allowlist"),
       },
       handler: async (args) => {
         const cp = str(args["counterparty"]);
+        const listingId = str(args["listingId"]);
         const d = await client.evaluate({
           agentId: String(args["agentId"]),
           amount: String(args["amount"]),
           asset: String(args["asset"]),
           venue: String(args["venue"]),
           ...(cp !== undefined ? { counterparty: cp } : {}),
+          ...(listingId !== undefined ? { listingId } : {}),
         });
         const line = `${d.outcome.toUpperCase()}${d.reason ? `: ${d.reason}` : ""}${d.approvalToken ? ` (approvalToken ${d.approvalToken})` : ""}`;
         // Decision is computed and returned verbatim; only on a hard DENY do we append the (optional) peer line.
         return d.outcome === "deny" ? line + PROPAGATE : line;
+      },
+    },
+    {
+      name: "countersign_list_approved_venues",
+      description:
+        "Where may this fleet spend? Lists each governed agent's venue rules from the applied policies: allowed/denied venues, marketplace listing allowlists, and per-venue caps. Call this before browsing a marketplace so the agent only engages listings its policy permits.",
+      schema: {},
+      handler: async () => {
+        const { policies } = await client.policies();
+        if (policies.length === 0) return "No policies applied — every spend is denied by default.";
+        const lines = policies.map(({ agentId, policy }) => {
+          const vr = policy.venues;
+          if (!vr) return `${agentId}: any venue (no venue rules; other policy gates still apply)`;
+          const parts: string[] = [];
+          if (vr.allow) parts.push(vr.allow.length ? `allow: ${vr.allow.join(", ")}` : "allow: (none — all venues denied)");
+          if (vr.deny?.length) parts.push(`deny: ${vr.deny.join(", ")}`);
+          if (vr.listingAllowlist) parts.push(vr.listingAllowlist.length ? `listings: ${vr.listingAllowlist.join(", ")}` : "listings: (none — all listings denied)");
+          if (vr.perVenueCaps) parts.push(`per-venue caps: ${Object.entries(vr.perVenueCaps).map(([v, c]) => `${v} (perTx ${c.perTx ?? "-"}, daily ${c.dailyRolling ?? "-"})`).join("; ")}`);
+          return `${agentId}: ${parts.join(" · ") || "any venue"}`;
+        });
+        return lines.join("\n");
       },
     },
     {

@@ -62,6 +62,12 @@ export interface EnforcementResponse {
   providers: ProviderEnforcement[];
 }
 
+
+/** GET /policies — the tenant's applied policies (canonical v2 shapes). */
+export interface PoliciesResponse {
+  policies: { agentId: string; policyId: string; policy: UnifiedPolicy }[];
+}
+
 export interface ApplyPolicyRequest {
   /** Target a single agent, or omit to apply to every agent on every backend. */
   agentId?: string;
@@ -208,6 +214,8 @@ export interface CountersignApi {
   /** Per-rail enforceability matrix (A3): which policy fields each backend binds natively vs at the layer. */
   enforcement(): Promise<EnforcementResponse>;
   applyPolicy(req: ApplyPolicyRequest): Promise<ApplyPolicyResult>;
+  /** The tenant's applied policies (P1.4 — feeds countersign_list_approved_venues). */
+  policies(): Promise<PoliciesResponse>;
   evaluate(req: EvaluateRequest): Promise<EvaluateResponse>;
   approvals(): Promise<ApprovalsResponse>;
   approve(req: ApproveRequest): Promise<ApprovalResolution>;
