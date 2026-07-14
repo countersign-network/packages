@@ -7,7 +7,7 @@
  * still only call these endpoints — it holds no keys and cannot weaken policy or move funds.
  */
 
-import type { EnforcementMode, FreezeReport, LedgerEvent, UnifiedPolicy } from "@countersign/core";
+import type { EnforcementMode, FreezeReport, LedgerEvent, UnifiedPolicy, UnifiedPolicyInput } from "@countersign/core";
 
 export const WS_PATH = "/events";
 
@@ -65,7 +65,8 @@ export interface EnforcementResponse {
 export interface ApplyPolicyRequest {
   /** Target a single agent, or omit to apply to every agent on every backend. */
   agentId?: string;
-  policy: UnifiedPolicy;
+  /** Either schema generation is accepted; the Core normalizes to canonical v2 on receipt. */
+  policy: UnifiedPolicyInput;
 }
 
 export interface ApplyPolicyResult {
@@ -98,6 +99,8 @@ export interface EvaluateRequest {
   asset: string;
   counterparty?: string;
   venue: string;
+  /** Marketplace listing being paid (x402 Bazaar / Agentic.Market pin), when known. */
+  listingId?: string;
 }
 
 export interface EvaluateResponse {

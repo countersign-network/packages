@@ -15,8 +15,10 @@ describe("UnifiedPolicy schema — accepts well-formed policy", () => {
     expect(p.asset).toBe("USDC");
     expect(p.allowlist).toEqual([ADDR]);
   });
-  it("definePolicy fills schemaVersion:1", () => {
-    expect(definePolicy({ asset: "USDC", perTxCap: "1" }).schemaVersion).toBe(1);
+  it("definePolicy returns the canonical v2 shape (v1 input normalizes)", () => {
+    expect(definePolicy({ asset: "USDC", perTxCap: "1" }).schemaVersion).toBe(2);
+    // a venues ARRAY marks v1 input — still accepted, normalized to the v2 allow-list
+    expect(definePolicy({ asset: "USDC", venues: ["base-sepolia"] }).venues).toEqual({ allow: ["base-sepolia"] });
   });
 });
 
@@ -24,10 +26,14 @@ describe("UnifiedPolicy schema — rejects malformed input (fail-closed at the b
   it("rejects UNKNOWN keys (strictObject — no smuggled fields)", () => {
     expect(() => parsePolicy({ ...base, bogus: 1 })).toThrow();
   });
-  it("enforces schemaVersion === 1", () => {
-    expect(() => parsePolicy({ asset: "USDC" })).toThrow(); // missing
-    expect(() => parsePolicy({ ...base, schemaVersion: 2 })).toThrow();
-    expect(() => parsePolicy({ ...base, schemaVersion: "1" })).toThrow(); // string, not literal 1
+  it("enforces a KNOWN schemaVersion (1 or 2) and the right venues shape per version", () => {
+    expect(() => parsePolicy({ asset: "USDC" })).toThrow(); // missing version
+    expect(() => parsePolicy({ ...base, schemaVersion: 3 })).toThrow(); // unknown version
+    expect(() => parsePolicy({ ...base, schemaVersion: "1" })).toThrow(); // string, not a literal
+    // v2 IS accepted — with the rules-block venues shape (an array is the v1 shape)
+    expect(parsePolicy({ ...base, schemaVersion: 2 }).schemaVersion).toBe(2);
+    expect(() => parsePolicy({ ...base, schemaVersion: 2, venues: ["base-sepolia"] })).toThrow();
+    expect(() => parsePolicy({ ...base, schemaVersion: 1, venues: { allow: ["base-sepolia"] } })).toThrow();
   });
   it("requires a non-empty asset", () => {
     expect(() => parsePolicy({ schemaVersion: 1, asset: "" })).toThrow();

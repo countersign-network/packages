@@ -80,6 +80,8 @@ export interface ActionRequest {
   amount: string;            // base units, as a string — NEVER a JS number for money
   counterparty?: string;
   venue: Venue;
+  /** Marketplace listing being paid (x402 Bazaar / Agentic.Market pin), when known — for the ledger. */
+  listingId?: string;
   raw?: unknown;             // vendor-native request, for the ledger
   ts: number;
 }
