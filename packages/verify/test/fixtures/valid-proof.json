@@ -1,0 +1,44 @@
+{
+  "record": {
+    "index": 4,
+    "prevHash": "545cc9b0ac183dbbffa90979cdf596a70d2014851b01e37d90d3f95a0544ce24",
+    "payloadHash": "e33a232d4b4fec2fb4fcb2339ee4f24895a45ebb7eee78f72a775018e456a895",
+    "rowHash": "23f868752ebcb4a950a539041998556a12bddf946487c45f44022344add83f05",
+    "payload": {
+      "kind": "action_blocked",
+      "providerId": "coinbase",
+      "agentId": "fixture-bot",
+      "action": {
+        "id": "act_000005",
+        "agentId": "fixture-bot",
+        "kind": "x402-payment",
+        "asset": "USDC",
+        "amount": "9000000",
+        "venue": "base-sepolia",
+        "ts": 1784025776472
+      },
+      "policyId": "pol_000002",
+      "reason": "amount 9000000 exceeds per-tx cap 1000000",
+      "ts": 1784025776472
+    },
+    "signature": "a7eb9980da1c76c98f099b53a684732629c98d6c09ac799700de2705ec1f298966da496d1510c20b437a398ac35b507d596a6cf10515d4c618874d750e379d06"
+  },
+  "proof": {
+    "index": 4,
+    "size": 5,
+    "siblings": [
+      {
+        "hash": "ebc87a1b7974babeac9e297eb481b610946faff0a814f0997e5c4027ac35bb65",
+        "side": "left"
+      }
+    ]
+  },
+  "checkpoint": {
+    "size": 5,
+    "headHash": "23f868752ebcb4a950a539041998556a12bddf946487c45f44022344add83f05",
+    "merkleRoot": "bf4cd8204774d9603ca98f72fde01d7a07c77fab1a8e3f87ada1884557151f0e",
+    "ts": 1700000003000,
+    "signature": "ef5a2f5b915e912478bac80b918440d6e47427be21b8b27d39ce744d23bef19529f26aa9320398320266126890696b445eb28795a0be907caf06873e2a9d6d00"
+  },
+  "publicKey": "MCowBQYDK2VwAyEAD9vPGkCa2mw5qXDeDLJMBat7Lc+fO6Y7Z6LiYh1eLgo="
+}

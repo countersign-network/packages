@@ -1,0 +1,55 @@
+{
+  "name": "@countersign/verify",
+  "version": "0.1.0",
+  "description": "Verify a Countersign ledger entry offline: hash-chain recomputation, RFC 6962 Merkle inclusion, and Ed25519 signatures — zero hosted dependencies.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "countersign-verify": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/countersign-network/packages.git",
+    "directory": "packages/verify"
+  },
+  "homepage": "https://countersign.network",
+  "keywords": [
+    "countersign",
+    "transparency-log",
+    "merkle-proof",
+    "rfc6962",
+    "audit-ledger",
+    "ai-agents",
+    "verification"
+  ]
+}

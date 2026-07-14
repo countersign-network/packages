@@ -127,6 +127,12 @@ importers:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.17)(tsx@4.22.4)(typescript@5.9.3)
 
+  packages/verify:
+    devDependencies:
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.17)(tsx@4.22.4)(typescript@5.9.3)
+
   packages/x402:
     dependencies:
       '@countersign/api-contract':

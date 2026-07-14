@@ -159,6 +159,38 @@ export interface LedgerResponse {
   publicKey?: string;
 }
 
+/** RFC 6962 audit path (P1.6) — verify offline with `@countersign/verify`. */
+export interface MerkleProofDTO {
+  /** 0-based index of the proven row. */
+  index: number;
+  /** Tree size (row count) the proof was computed against. */
+  size: number;
+  /** Audit path, deepest-first; `side` = which side the SIBLING sits on when re-hashing upward. */
+  siblings: { hash: string; side: "left" | "right" }[];
+}
+
+/** A commitment to the ledger's size, head hash, and Merkle root at a point in time. */
+export interface LedgerCheckpointDTO {
+  size: number;
+  headHash: string;
+  /** RFC 6962 Merkle root over rowHashes[0..size). */
+  merkleRoot?: string;
+  ts: number;
+  /** Ed25519 signature over `cs-checkpoint:v2:<size>:<headHash>:<merkleRoot>` (v1 omits the root). */
+  signature?: string;
+  witnessCosignature?: string;
+}
+
+/** GET /ledger/proof/:index — everything a third party needs to verify one row offline. */
+export interface LedgerProofResponse {
+  record: LedgerRecordDTO;
+  proof: MerkleProofDTO;
+  checkpoint: LedgerCheckpointDTO;
+  /** Ledger signing public key (base64 SPKI), when the ledger is signed. */
+  publicKey?: string;
+}
+
+
 /** Messages the Core pushes to the client over the websocket. */
 export type WsServerMessage =
   | { type: "hello"; providers: ProviderHealth[] }
