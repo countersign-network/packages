@@ -55,6 +55,7 @@ payment) before any mandate is signed.
 | [`@countersign/sdk`](packages/sdk) | typed client over the Core API + live ledger subscribe |
 | [`@countersign/mcp`](packages/mcp) | Countersign as MCP tools — kill switch + spend guard inside any MCP client |
 | [`@countersign/x402`](packages/x402) | govern [x402](https://x402.org) (HTTP-402 machine payments) — guard a payment *before* it pays |
+| [`@countersign/verify`](packages/verify) | verify a ledger entry offline — hash chain, RFC 6962 Merkle inclusion, Ed25519 signatures |
 | [`@countersign/ap2`](packages/ap2) | govern AP2 (Agent Payments Protocol) — guard an agent-payment mandate before it executes |
 
 The proprietary brain (policy **compiler** to each backend's native controls, ledger, Coinbase /

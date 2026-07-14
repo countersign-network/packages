@@ -75,6 +75,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish @countersign/verify
+        run: node scripts/publish-pkg.mjs @countersign/verify
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish @countersign/mcp
         run: node scripts/publish-pkg.mjs @countersign/mcp
         env:

@@ -13,7 +13,7 @@ prohibited.
 OPEN-CORE GRANT (effective): Countersign follows an open-core direction. The
 "front door" packages — `@countersign/core` (the EnforcementProvider interface and
 shared types), `@countersign/api-contract`, `@countersign/sdk`, `@countersign/mcp`,
-`@countersign/x402`, and `@countersign/ap2` — ARE licensed under the Apache License, Version 2.0, as stated
+`@countersign/x402`, `@countersign/ap2`, and `@countersign/verify` — ARE licensed under the Apache License, Version 2.0, as stated
 by the `LICENSE` file and the `"license": "Apache-2.0"` field within each of those
 packages. That grant governs those packages and prevails over this notice for them.
 
