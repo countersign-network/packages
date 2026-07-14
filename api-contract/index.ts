@@ -107,6 +107,13 @@ export interface EvaluateRequest {
   venue: string;
   /** Marketplace listing being paid (x402 Bazaar / Agentic.Market pin), when known. */
   listingId?: string;
+  /** Negotiation context (schema v3): role, round, recurring flag, declared term classes. */
+  negotiation?: {
+    role?: "buyer" | "seller";
+    round?: number;
+    recurring?: boolean;
+    termClasses?: string[];
+  };
 }
 
 export interface EvaluateResponse {

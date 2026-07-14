@@ -75,7 +75,10 @@ export type LedgerEvent =
   // pre-seeded. Absent = operator-initiated (the original, pre-provenance behavior).
   | { kind: "backend_connected"; providerId: ProviderId; ts: number; source?: "seeded" | "operator" | undefined }
   // ---- the countersignature: the ledger head published to an external trust domain (e.g. on-chain) ----
-  | { kind: "ledger_anchored"; index: number; rowHash: string; ref?: string | undefined; ts: number };
+  | { kind: "ledger_anchored"; index: number; rowHash: string; ref?: string | undefined; ts: number }
+  // A pre-authorised negotiation envelope covered a spend (schema v3, P2.4) — the standing approval
+  // was USED, skipping the interactive approval gates; recorded so envelope consumption is auditable.
+  | { kind: "envelope_used"; providerId: ProviderId; agentId: AgentId; envelopeId: string; action: ActionRequest; policyId: string; ts: number };
 
 export type LedgerEventKind = LedgerEvent["kind"];
 

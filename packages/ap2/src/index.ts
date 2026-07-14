@@ -171,8 +171,19 @@ export function toEvaluateRequest(agentId: string, charge: Ap2Charge): EvaluateR
 }
 
 /** Ask Countersign whether this AP2 payment is allowed. */
-export function guardAp2(api: CountersignApi, agentId: string, charge: Ap2Charge): Promise<EvaluateResponse> {
-  return api.evaluate(toEvaluateRequest(agentId, charge));
+/** Extra guard context (schema v3): the negotiation the mandate concludes — role, round, recurring
+ *  flag, declared term classes. The Core's negotiation gates (ceilings, walk-aways, approval
+ *  triggers, envelopes) bind on it; per the 2026-07-15 ACP spike, AP2 mandates cannot carry these
+ *  constraints natively, so the pre-flight guard is their enforcement point (honestly `layer`). */
+export interface Ap2GuardOptions {
+  negotiation?: EvaluateRequest["negotiation"];
+}
+
+export function guardAp2(api: CountersignApi, agentId: string, charge: Ap2Charge, opts: Ap2GuardOptions = {}): Promise<EvaluateResponse> {
+  return api.evaluate({
+    ...toEvaluateRequest(agentId, charge),
+    ...(opts.negotiation !== undefined ? { negotiation: opts.negotiation } : {}),
+  });
 }
 
 export class Ap2Denied extends Error {
@@ -192,8 +203,9 @@ export async function withAp2Guard<T>(
   agentId: string,
   charge: Ap2Charge,
   pay: (charge: Ap2Charge) => Promise<T>,
+  opts: Ap2GuardOptions = {},
 ): Promise<T> {
-  const decision = await guardAp2(api, agentId, charge);
+  const decision = await guardAp2(api, agentId, charge, opts);
   if (decision.outcome !== "allow") throw new Ap2Denied(decision);
   return pay(charge);
 }

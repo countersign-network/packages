@@ -101,45 +101,126 @@ export const UnifiedPolicyV2Schema = z.strictObject({
 });
 export type UnifiedPolicyV2 = z.infer<typeof UnifiedPolicyV2Schema>;
 
-/** What operators may SUBMIT: either schema generation. */
+/** A negotiation term class — a named category of contract terms (e.g. "recurring", "exclusivity"). */
+const termClass = z.string().regex(/^\S+$/, "term class must be a non-empty name with no whitespace");
+
+/**
+ * A pre-authorised term ENVELOPE (Roadmap v2 P2.4): the operator approves a RANGE ahead of time so
+ * in-envelope spends proceed without interactive approval (approval latency must not kill a
+ * negotiation). An envelope is an approval, pre-signed: a matching spend SKIPS the approval gates
+ * (`negotiation.approvalTriggers` AND `approvalThreshold`) — every DENY gate (caps, venues,
+ * listings, counterparty lists, walk-away terms) still applies, and `maxAmount` bounds the skip.
+ */
+export const NegotiationEnvelopeSchema = z.strictObject({
+  /** Operator-chosen id — recorded in the ledger on every use. */
+  id: z.string().min(1),
+  description: z.string().optional(),
+  /** Max amount (base units) this envelope pre-authorises per spend. */
+  maxAmount: amount,
+  /** Restrict to one counterparty. ABSENT = any counterparty (other gates still apply). */
+  counterparty: address.optional(),
+  /** Restrict to these venues. ABSENT = any venue. */
+  venues: z.array(venueName).optional(),
+  /** Term classes this envelope covers. ABSENT = only spends declaring NO term classes. */
+  termClasses: z.array(termClass).optional(),
+  /** Unix ms after which the envelope no longer matches. ABSENT = no expiry. */
+  expiresAt: z.number().int().positive().optional(),
+});
+export type NegotiationEnvelope = z.infer<typeof NegotiationEnvelopeSchema>;
+
+/**
+ * Negotiation rules (schema v3, Roadmap v2 Phase 2): govern the TERMS an agent may commit to, not
+ * just the amounts it may move. All fields are enforced at the pre-flight guard (the 2026-07-15 ACP
+ * spike confirmed no current rail or mandate format can bind negotiation constraints natively) and
+ * are honestly reported `countersign-layer` in the enforcement matrix.
+ */
+export const NegotiationRulesSchema = z.strictObject({
+  /** Max amount the agent may OFFER when buying (base units). Denies over-ceiling bids outright. */
+  bidCeiling: amount.optional(),
+  /** Min amount the agent may ACCEPT when selling (base units). Denies below-floor acceptances. */
+  counterFloor: amount.optional(),
+  /** Walk away outright: after too many rounds, or on named term classes. */
+  walkAway: z
+    .strictObject({
+      maxRounds: z.number().int().positive().optional(),
+      termClasses: z.array(termClass).optional(),
+    })
+    .optional(),
+  /** Hold for HUMAN approval (fail-closed escalation, not a deny) when a spend trips these. */
+  approvalTriggers: z
+    .strictObject({
+      /** Amounts strictly above this hold for approval (base units). */
+      amountAbove: amount.optional(),
+      /** Any spend declaring a recurring/multi-period commitment holds. */
+      recurring: z.boolean().optional(),
+      /** A counterparty this agent has never successfully paid before holds. */
+      novelCounterparty: z.boolean().optional(),
+    })
+    .optional(),
+  /** Pre-authorised ranges that skip the approval gates (never the deny gates). */
+  envelopes: z.array(NegotiationEnvelopeSchema).optional(),
+});
+export type NegotiationRules = z.infer<typeof NegotiationRulesSchema>;
+
+/** Schema v3 — v2 plus the `negotiation` rules block. */
+export const UnifiedPolicyV3Schema = z.strictObject({
+  schemaVersion: z.literal(3),
+  ...commonFields,
+  venues: VenueRulesSchema.optional(),
+  negotiation: NegotiationRulesSchema.optional(),
+});
+export type UnifiedPolicyV3 = z.infer<typeof UnifiedPolicyV3Schema>;
+
+/** What operators may SUBMIT: any accepted schema generation. */
 export const UnifiedPolicySchema = z.discriminatedUnion("schemaVersion", [
   UnifiedPolicyV1Schema,
   UnifiedPolicyV2Schema,
+  UnifiedPolicyV3Schema,
 ]);
-/** Either accepted input generation. Use this for API/SDK request types. */
+/** Any accepted input generation. Use this for API/SDK request types. */
 export type UnifiedPolicyInput = z.infer<typeof UnifiedPolicySchema>;
 
 /**
- * The CANONICAL policy shape the system operates on (v2). Everything past the parse boundary —
+ * The CANONICAL policy shape the system operates on (v3). Everything past the parse boundary —
  * evaluator, compiler, providers, stores — sees only this.
  */
-export type UnifiedPolicy = UnifiedPolicyV2;
+export type UnifiedPolicy = UnifiedPolicyV3;
 
-/** Migrate an accepted input policy to the canonical v2 shape (v1 venues array → `venues.allow`). */
+/** Migrate an accepted input policy to the canonical v3 shape (v1 venues array → `venues.allow`;
+ *  v2 → v3 is a pure version bump — every v2 field means the same thing in v3). */
 export function normalizePolicy(input: UnifiedPolicyInput): UnifiedPolicy {
-  if (input.schemaVersion === 2) return input;
+  if (input.schemaVersion === 3) return input;
+  if (input.schemaVersion === 2) {
+    const { schemaVersion: _v, ...rest } = input;
+    return { schemaVersion: 3, ...rest };
+  }
   const { schemaVersion: _v, venues, ...rest } = input;
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...rest,
     ...(venues !== undefined ? { venues: { allow: venues } } : {}),
   };
 }
 
-/** Validate unknown input (either generation) and return the canonical policy. */
+/** Validate unknown input (any generation) and return the canonical policy. */
 export function parsePolicy(input: unknown): UnifiedPolicy {
   return normalizePolicy(UnifiedPolicySchema.parse(input));
 }
 
 type DefineInput =
   | Omit<UnifiedPolicyV1, "schemaVersion">
-  | Omit<UnifiedPolicyV2, "schemaVersion">;
+  | Omit<UnifiedPolicyV2, "schemaVersion">
+  | Omit<UnifiedPolicyV3, "schemaVersion">;
 
 /**
- * Convenience builder for code/tests — fills schemaVersion (inferred from the `venues` shape),
+ * Convenience builder for code/tests — fills schemaVersion (inferred from the input's shape),
  * validates, and returns the canonical policy.
  */
 export function definePolicy(input: DefineInput): UnifiedPolicy {
-  const schemaVersion = Array.isArray((input as { venues?: unknown }).venues) ? 1 : 2;
+  const schemaVersion = Array.isArray((input as { venues?: unknown }).venues)
+    ? 1
+    : (input as { negotiation?: unknown }).negotiation !== undefined
+      ? 3
+      : 2;
   return parsePolicy({ schemaVersion, ...input });
 }

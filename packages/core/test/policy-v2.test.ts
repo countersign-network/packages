@@ -5,14 +5,14 @@ import { parsePolicy, definePolicy, normalizePolicy, type UnifiedPolicyV1 } from
 describe("UnifiedPolicy schema v2 + v1 migration", () => {
   it("accepts a v1 policy and normalizes its venues array to the v2 allow-list", () => {
     const p = parsePolicy({ schemaVersion: 1, asset: "USDC", perTxCap: "100", venues: ["base-sepolia"] });
-    expect(p.schemaVersion).toBe(2);
+    expect(p.schemaVersion).toBe(3);
     expect(p.venues).toEqual({ allow: ["base-sepolia"] });
     expect(p.perTxCap).toBe("100");
   });
 
   it("a v1 policy WITHOUT venues normalizes without inventing a venues block", () => {
     const p = parsePolicy({ schemaVersion: 1, asset: "USDC" });
-    expect(p.schemaVersion).toBe(2);
+    expect(p.schemaVersion).toBe(3);
     expect(p.venues).toBeUndefined();
   });
 
@@ -41,17 +41,18 @@ describe("UnifiedPolicy schema v2 + v1 migration", () => {
     // strictObject: unknown keys rejected
     expect(() => parsePolicy({ schemaVersion: 2, asset: "USDC", venues: { allowed: ["typo"] } })).toThrow();
     // unknown schemaVersion
-    expect(() => parsePolicy({ schemaVersion: 3, asset: "USDC" })).toThrow();
+    expect(parsePolicy({ schemaVersion: 3, asset: "USDC" }).schemaVersion).toBe(3); // v3 is valid
+    expect(() => parsePolicy({ schemaVersion: 4, asset: "USDC" })).toThrow();
   });
 
   it("definePolicy infers the version from the venues shape and always returns canonical v2", () => {
     const fromArray = definePolicy({ asset: "USDC", venues: ["base-sepolia"] });
-    expect(fromArray.schemaVersion).toBe(2);
+    expect(fromArray.schemaVersion).toBe(3);
     expect(fromArray.venues).toEqual({ allow: ["base-sepolia"] });
     const fromBlock = definePolicy({ asset: "USDC", venues: { deny: ["polygon-amoy"] } });
     expect(fromBlock.venues?.deny).toEqual(["polygon-amoy"]);
     const without = definePolicy({ asset: "USDC" });
-    expect(without.schemaVersion).toBe(2);
+    expect(without.schemaVersion).toBe(3);
   });
 
   it("normalizePolicy is a no-op for v2 and preserves every common field from v1", () => {
@@ -63,10 +64,10 @@ describe("UnifiedPolicy schema v2 + v1 migration", () => {
     };
     const n = normalizePolicy(v1);
     expect(n).toMatchObject({
-      schemaVersion: 2, asset: "USDC", perTxCap: "1", dailyCap: "2",
+      schemaVersion: 3, asset: "USDC", perTxCap: "1", dailyCap: "2",
       approvalThreshold: "1", frozen: false, venues: { allow: ["base-sepolia"] },
     });
-    const v2 = definePolicy({ asset: "USDC", venues: { allow: ["x"] } });
-    expect(normalizePolicy(v2)).toBe(v2);
+    const v3 = definePolicy({ asset: "USDC", venues: { allow: ["x"] } });
+    expect(normalizePolicy(v3)).toBe(v3); // canonical input is identity
   });
 });
