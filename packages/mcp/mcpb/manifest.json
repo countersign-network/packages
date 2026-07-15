@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/dist/manifest.schema.json",
+  "manifest_version": "0.2",
+  "name": "countersign",
+  "display_name": "Countersign",
+  "version": "0.2.0",
+  "description": "Kill switch + spend guard for AI agents that spend money, across every wallet vendor at once.",
+  "long_description": "Countersign is a neutral, cross-vendor control plane for AI agents that transact. One policy, one sub-second freeze (kill switch), and one tamper-evident audit ledger across multiple agent-wallet and card backends at once. These tools govern a running Countersign Core: check a spend against policy before it executes (x402 and AP2 included), freeze everything instantly, review and resolve human approvals, and read the signed ledger. Testnet only; Countersign never takes custody of funds.",
+  "author": {
+    "name": "Countersign",
+    "url": "https://countersign.network"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/countersign-network/countersign-packages"
+  },
+  "homepage": "https://countersign.network",
+  "documentation": "https://countersign.network/docs/",
+  "license": "Apache-2.0",
+  "keywords": [
+    "payments",
+    "agent-payments",
+    "security",
+    "kill-switch",
+    "spend-guard",
+    "x402",
+    "ap2",
+    "wallet",
+    "ledger",
+    "governance"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "COUNTERSIGN_URL": "${user_config.countersign_url}",
+        "COUNTERSIGN_API_KEY": "${user_config.countersign_api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "countersign_url": {
+      "type": "string",
+      "title": "Countersign Core URL",
+      "description": "Base URL of the Countersign Core to govern (hosted or self-hosted).",
+      "default": "https://app.countersign.network",
+      "required": true
+    },
+    "countersign_api_key": {
+      "type": "string",
+      "title": "API key",
+      "description": "API key for the Core (self-serve one at https://app.countersign.network/start).",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20"
+    }
+  }
+}

@@ -28,7 +28,7 @@ if (!baseUrl) {
 const apiKey = process.env["COUNTERSIGN_API_KEY"];
 const client = new CountersignClient({ baseUrl, ...(apiKey ? { apiKey } : {}) });
 
-const server = new McpServer({ name: "countersign", version: "0.1.0" });
+const server = new McpServer({ name: "countersign", version: "0.2.0" });
 for (const t of createCountersignTools(client)) {
   server.tool(t.name, t.description, t.schema, async (args: Record<string, unknown>) => ({
     content: [{ type: "text" as const, text: await t.handler(args) }],

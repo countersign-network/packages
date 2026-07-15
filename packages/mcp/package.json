@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "build:mcpb": "tsup --config tsup.mcpb.config.ts && npx -y @anthropic-ai/mcpb pack ./mcpb ./countersign.mcpb",
     "start": "tsx src/server.ts",
     "prepublishOnly": "pnpm run build"
   },
