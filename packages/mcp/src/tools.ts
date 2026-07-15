@@ -155,14 +155,19 @@ export function createCountersignTools(client: CountersignApi): CountersignTool[
         "Govern an x402 (HTTP-402) machine payment BEFORE paying. Pass the agentId + the 402 challenge's `accepts` array; Countersign picks the cheapest option, evaluates it against policy, and returns allow / deny / needs_approval. Only pay if it returns allow — a rogue or over-budget agent never pays.",
       schema: {
         agentId: z.string(),
+        // LOOSE objects on purpose: a strict zod object STRIPS undeclared keys, which silently
+        // deleted attacker-controlled `extra.decimals` before parseX402 could see it — disabling the
+        // library's garbage-decimals drop AND its decimals-normalized cheapest-pick (a hostile offer
+        // then ties on raw atomic units and wins by array order). The challenge body must reach the
+        // x402 library UNTRIMMED so its own filters judge every field. (Found in deep dogfood 2026-07-15.)
         accepts: z
           .array(
-            z.object({
+            z.looseObject({
               network: z.string().describe("CAIP-2 (eip155:84532) or venue name"),
               maxAmountRequired: z.string().describe("atomic units"),
               payTo: z.string(),
               asset: z.string().optional(),
-              extra: z.object({ name: z.string().optional() }).optional(),
+              extra: z.looseObject({ name: z.string().optional() }).optional(),
             }),
           )
           .describe("the `accepts` array from the 402 Payment Required body"),

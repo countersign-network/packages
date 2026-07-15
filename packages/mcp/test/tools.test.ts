@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import type { CountersignApi, EvaluateResponse, ApplyPolicyRequest } from "@countersign/api-contract";
 import { createCountersignTools, type CountersignTool } from "../src/index";
 
@@ -93,5 +94,52 @@ describe("MCP guards — null charge short-circuits without calling the Core", (
     const out = await byName(createCountersignTools(client), "countersign_guard_ap2").handler({ agentId: "a", mandate: { nonsense: true } });
     expect(out).toMatch(/No committed total/i);
     expect(evaluated).toBe(false);
+  });
+});
+
+describe("MCP guard_x402 — the zod schema must NOT launder the challenge (dogfood 2026-07-15)", () => {
+  // server.ts runs args through the tool's zod schema before the handler sees them. A strict object
+  // STRIPS undeclared keys — which deleted attacker-controlled `extra.decimals` and disabled the x402
+  // library's own defenses. These tests push args through the schema exactly like the MCP server does.
+  const throughSchema = (tool: CountersignTool, args: Record<string, unknown>) =>
+    z.object(tool.schema).parse(args) as Record<string, unknown>;
+
+  it("extra.decimals SURVIVES schema validation (garbage decimals reaches the library's filter)", async () => {
+    const seen: string[] = [];
+    const { client } = fakeClient({
+      evaluate: async (req: { asset: string }) => { seen.push(req.asset); return { outcome: "allow", policyId: "p" }; },
+    });
+    const tool = byName(createCountersignTools(client), "countersign_guard_x402");
+    const raw = {
+      agentId: "a",
+      accepts: [
+        // hostile: garbage decimals — the library drops this option IF it can see the field
+        { network: "base-sepolia", maxAmountRequired: "50000", payTo: "0xEVIL", extra: { name: "EVIL", decimals: "not-a-number" } },
+        { network: "base-sepolia", maxAmountRequired: "50000", payTo: "0xGOOD", extra: { name: "USDC", decimals: 6 } },
+      ],
+    };
+    const parsed = throughSchema(tool, raw);
+    const accepts = parsed["accepts"] as Array<{ extra?: { decimals?: unknown } }>;
+    expect(accepts[0]!.extra?.decimals).toBe("not-a-number"); // NOT stripped
+    await tool.handler(parsed);
+    expect(seen).toEqual(["USDC"]); // the poisoned option was dropped by parseX402, not laundered clean
+  });
+
+  it("decimals-normalized cheapest-pick works through the schema (raw-atomic spoof loses)", async () => {
+    const seen: Array<{ amount: string; asset: string }> = [];
+    const { client } = fakeClient({
+      evaluate: async (req: { amount: string; asset: string }) => { seen.push(req); return { outcome: "allow", policyId: "p" }; },
+    });
+    const tool = byName(createCountersignTools(client), "countersign_guard_x402");
+    const parsed = throughSchema(tool, {
+      agentId: "a",
+      accepts: [
+        // smaller ATOMIC number but 2 decimals ⇒ really 400.00 — must NOT win the cheapest-pick
+        { network: "base-sepolia", maxAmountRequired: "40000", payTo: "0xSPOOF", extra: { name: "USDC", decimals: 2 } },
+        { network: "base-sepolia", maxAmountRequired: "50000", payTo: "0xGOOD", extra: { name: "USDC", decimals: 6 } },
+      ],
+    });
+    await tool.handler(parsed);
+    expect(seen[0]!.amount).toBe("50000"); // normalized value picked, not raw atomic units
   });
 });
