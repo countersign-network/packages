@@ -3,7 +3,7 @@
   "name": "io.github.countersign-network/countersign",
   "title": "Countersign",
   "description": "Kill switch + spend guard for AI agents that spend money, across every wallet vendor at once.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "websiteUrl": "https://countersign.network",
   "repository": {
     "url": "https://github.com/countersign-network/packages",
@@ -15,7 +15,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@countersign/mcp",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
