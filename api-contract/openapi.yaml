@@ -206,7 +206,16 @@ components:
       properties:
         agentId: { type: string }
         amount: { type: string, description: base units }
-        asset: { type: string }
+        asset: { type: string, description: "Asset SYMBOL. Only as trustworthy as whoever supplied it — see assetContract." }
+        assetContract:
+          type: string
+          description: >-
+            Token CONTRACT address backing `asset`, when known. Lets the Core's asset gate check identity
+            rather than an attacker-suppliable label. Optional and additive — omitting it preserves the
+            previous behaviour.
+        decimals:
+          type: integer
+          description: Decimals for `amount`, when known — lets the Core reason about value, not just atomic units.
         counterparty: { type: string }
         venue: { type: string }
     EvaluateResponse:

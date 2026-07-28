@@ -76,8 +76,17 @@ export interface ActionRequest {
   id: string;
   agentId: AgentId;
   kind: "transfer" | "contract-call" | "x402-payment";
-  asset: string;             // e.g. "USDC"
+  asset: string;             // e.g. "USDC" — a SYMBOL, only as trustworthy as its supplier
   amount: string;            // base units, as a string — NEVER a JS number for money
+  /**
+   * Token CONTRACT address backing `asset`, when known — the asset's actual identity, and what makes
+   * the ledger an audit artifact about a real token rather than about a label. An x402 body can put
+   * "USDC" on any contract; recording the contract is what lets a third party later verify WHICH token
+   * was paid.
+   */
+  assetContract?: string;
+  /** Decimals for `amount`, when known — so a reader can recover VALUE from atomic units. */
+  decimals?: number;
   counterparty?: string;
   venue: Venue;
   /** Marketplace listing being paid (x402 Bazaar / Agentic.Market pin), when known — for the ledger. */

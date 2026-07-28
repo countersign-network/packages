@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { CountersignApi, EvaluateRequest, EvaluateResponse } from "@countersign/api-contract";
-import { parseX402, networkToVenue, guardX402, withX402Guard, X402Denied, type X402PaymentRequired } from "../src/index";
+import { parseX402, networkToVenue, guardX402, withX402Guard, X402Denied, X402EvaluateTimeout, DEFAULT_EVALUATE_TIMEOUT_MS, type X402PaymentRequired } from "../src/index";
 
 const opt = (over: Partial<X402PaymentRequired["accepts"][number]> = {}): X402PaymentRequired["accepts"][number] => ({
   scheme: "exact",
@@ -131,6 +131,26 @@ describe("guardX402 / withX402Guard", () => {
     await guardX402(api, "bot", charge);
     expect(seen[0]).toMatchObject({ agentId: "bot", amount: "100", counterparty: "0x2222222222222222222222222222222222222222", venue: "base-sepolia" });
   });
+  it("forwards the asset CONTRACT and decimals to the Core, not just the symbol", async () => {
+    // The symbol is attacker-suppliable; the contract is the asset's actual identity. Dropping it here
+    // left the Core's asset gate — the documented backstop — evaluating a label it could not verify.
+    const { api, seen } = fakeApi({ outcome: "allow", policyId: "p" });
+    const charge = parseX402(body([opt({ asset: "0xRealUSDC", extra: { name: "USDC", decimals: 6 } })]))!;
+    await guardX402(api, "bot", charge);
+    expect(seen[0]).toMatchObject({ asset: "USDC", assetContract: "0xRealUSDC", decimals: 6 });
+  });
+  it("forwards the contract of the option actually SELECTED, not the one that was spoofed", async () => {
+    const { api, seen } = fakeApi({ outcome: "allow", policyId: "p" });
+    const charge = parseX402(
+      body([
+        opt({ maxAmountRequired: "5", asset: "0xScamToken", extra: { name: "usdc", decimals: 6 } }),
+        opt({ maxAmountRequired: "1000000", asset: "0xRealUSDC", extra: { name: "EURC", decimals: 6 } }),
+      ]),
+      { asset: "EURC" },
+    )!;
+    await guardX402(api, "bot", charge);
+    expect(seen[0]?.assetContract).toBe("0xRealUSDC");
+  });
   it("withX402Guard runs the payment ONLY on allow", async () => {
     const { api } = fakeApi({ outcome: "allow", policyId: "p" });
     const charge = parseX402(body([opt()]))!;
@@ -157,5 +177,62 @@ describe("guardX402 / withX402Guard", () => {
     let paid = false;
     await expect(withX402Guard(api, "bot", charge, async () => { paid = true; return "x"; })).rejects.toThrow("ECONNRESET");
     expect(paid).toBe(false);
+  });
+});
+
+// A Core that THROWS already fails closed (above). These cover the gap that leaves: a Core that is
+// alive but never answers — no rejection to propagate, so without a bound the agent waits forever and
+// the payment neither happens nor fails.
+describe("withX402Guard — bounded evaluate (a hang is not an allow)", () => {
+  const hangingApi = () => ({ evaluate: () => new Promise<EvaluateResponse>(() => {}) }) as unknown as CountersignApi;
+
+  it("rejects with X402EvaluateTimeout when the Core never answers — and the payment NEVER runs", async () => {
+    const charge = parseX402(body([opt()]))!;
+    let paid = false;
+    await expect(
+      withX402Guard(hangingApi(), "bot", charge, async () => { paid = true; return "x"; }, { evaluateTimeoutMs: 20 }),
+    ).rejects.toBeInstanceOf(X402EvaluateTimeout);
+    expect(paid).toBe(false);
+  });
+
+  it("a timeout is NOT reported as a denial — there is no decision to carry", async () => {
+    const charge = parseX402(body([opt()]))!;
+    const err = await withX402Guard(hangingApi(), "bot", charge, async () => "x", { evaluateTimeoutMs: 20 }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(X402EvaluateTimeout);
+    expect(err).not.toBeInstanceOf(X402Denied);
+    expect((err as X402EvaluateTimeout).timeoutMs).toBe(20);
+  });
+
+  it("does not fire when the Core answers inside the bound — a slow allow still pays", async () => {
+    const api = {
+      evaluate: async (): Promise<EvaluateResponse> => {
+        await new Promise((r) => setTimeout(r, 10));
+        return { outcome: "allow", policyId: "p" };
+      },
+    } as unknown as CountersignApi;
+    const charge = parseX402(body([opt()]))!;
+    await expect(withX402Guard(api, "bot", charge, async () => "tx-hash", { evaluateTimeoutMs: 500 })).resolves.toBe("tx-hash");
+  });
+
+  it("defaults to a bound even when the caller passes no options", async () => {
+    expect(DEFAULT_EVALUATE_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(Number.isFinite(DEFAULT_EVALUATE_TIMEOUT_MS)).toBe(true);
+  });
+
+  it("Infinity opts out of the bound entirely (historical behaviour, still reachable)", async () => {
+    const api = {
+      evaluate: async (): Promise<EvaluateResponse> => {
+        await new Promise((r) => setTimeout(r, 10));
+        return { outcome: "allow", policyId: "p" };
+      },
+    } as unknown as CountersignApi;
+    const charge = parseX402(body([opt()]))!;
+    await expect(withX402Guard(api, "bot", charge, async () => "tx-hash", { evaluateTimeoutMs: Infinity })).resolves.toBe("tx-hash");
+  });
+
+  it("a denial still beats the bound — a fast deny is a deny, not a timeout", async () => {
+    const { api } = fakeApi({ outcome: "deny", reason: "over cap", policyId: "p" });
+    const charge = parseX402(body([opt()]))!;
+    await expect(withX402Guard(api, "bot", charge, async () => "x", { evaluateTimeoutMs: 500 })).rejects.toBeInstanceOf(X402Denied);
   });
 });

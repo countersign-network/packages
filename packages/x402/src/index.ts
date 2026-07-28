@@ -100,15 +100,19 @@ export function parseX402(body: X402PaymentRequired, opts: ParseX402Options = {}
     const want = opts.asset.toLowerCase();
     options = options.filter((o) => (o.extra?.name ?? "").toLowerCase() === want);
   }
-  if (options.length === 0) return null;
   // Pick the cheapest by decimals-NORMALIZED value (not raw atomic units) so a different-decimals option
   // can't win the selection purely by showing a smaller atomic number.
   const decimalsOf = (o: X402Accepts): number => o.extra?.decimals ?? DEFAULT_DECIMALS;
-  const cheapest = [...options].sort((a, b) => {
+  const [cheapest] = [...options].sort((a, b) => {
     const va = normalizedValue(a.maxAmountRequired, decimalsOf(a));
     const vb = normalizedValue(b.maxAmountRequired, decimalsOf(b));
     return va < vb ? -1 : va > vb ? 1 : 0;
-  })[0]!;
+  });
+  // No acceptable option — empty `accepts`, or every option dropped by the filters above. Checking the
+  // selected value itself (rather than `options.length` before the sort) keeps the emptiness invariant
+  // adjacent to its use: a later change to the filters can't strand a non-null assertion here, which
+  // would silently hand `undefined` to the field reads below instead of refusing to pay.
+  if (!cheapest) return null;
   return {
     amount: cheapest.maxAmountRequired,
     // Prefer the caller's PINNED symbol over the challenge-supplied (attacker-controlled) extra.name.
@@ -121,8 +125,24 @@ export function parseX402(body: X402PaymentRequired, opts: ParseX402Options = {}
   };
 }
 
+/**
+ * Lower a parsed charge to a Core evaluate request.
+ *
+ * `assetContract` and `decimals` are forwarded, not dropped: `asset` is a symbol, and the symbol on an
+ * x402 option is attacker-controlled unless the caller pinned it. Sending the contract address the
+ * challenge actually named means the Core's asset gate — the backstop — can check identity rather than
+ * a label. Both fields are optional on the wire, so a Core that predates them ignores them.
+ */
 export function toEvaluateRequest(agentId: string, charge: X402Charge): EvaluateRequest {
-  return { agentId, amount: charge.amount, asset: charge.asset, counterparty: charge.payTo, venue: charge.venue };
+  return {
+    agentId,
+    amount: charge.amount,
+    asset: charge.asset,
+    assetContract: charge.assetContract,
+    decimals: charge.decimals,
+    counterparty: charge.payTo,
+    venue: charge.venue,
+  };
 }
 
 /** Ask Countersign whether this x402 payment is allowed. */
@@ -138,16 +158,79 @@ export class X402Denied extends Error {
 }
 
 /**
+ * Default bound on the Core round-trip inside {@link withX402Guard}.
+ *
+ * A Core that THROWS is already handled — the rejection propagates and `pay` never runs. The gap is a
+ * Core that is alive but never answers: without a bound the agent waits forever, so the payment neither
+ * happens nor fails, and no error ever reaches the caller to retry or alert on. An unattended agent
+ * simply stops.
+ *
+ * Deliberately generous rather than matching the freeze controller's 800ms. Freeze is an emergency stop
+ * where an aggressive cutoff is the right trade; evaluate sits on the happy path of every payment, and a
+ * cold-started Core can legitimately take seconds. The goal here is BOUNDED, not fast — too tight a
+ * default would convert ordinary latency into refused payments.
+ */
+export const DEFAULT_EVALUATE_TIMEOUT_MS = 10_000;
+
+/**
+ * Thrown when Countersign did not return a decision within the bound. Deliberately NOT an
+ * {@link X402Denied}: there is no decision to carry. The payment is refused because none arrived —
+ * fail-closed, which is not the same as having been denied, and callers should be able to tell the
+ * difference (retry/alert vs. respect a policy refusal).
+ */
+export class X402EvaluateTimeout extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`x402 guard: no decision from Countersign within ${timeoutMs}ms — payment refused (fail-closed)`);
+    this.name = "X402EvaluateTimeout";
+  }
+}
+
+export interface WithX402GuardOptions {
+  /**
+   * Bound on the Core round-trip, in ms. Defaults to {@link DEFAULT_EVALUATE_TIMEOUT_MS}. Pass
+   * `Infinity` to wait indefinitely (the historical behaviour) — not recommended for unattended agents,
+   * since that reintroduces the indefinite hang this bound exists to prevent.
+   */
+  evaluateTimeoutMs?: number;
+}
+
+/**
+ * Reject if `p` has not settled within `ms`. Unlike the freeze controller's `withTimeout` — which
+ * resolves to a non-ok result because it aggregates across providers — this one REJECTS, because the
+ * only correct outcome here is that `pay` is never reached.
+ */
+function bounded<T>(p: Promise<T>, ms: number): Promise<T> {
+  if (!Number.isFinite(ms)) return p; // explicitly opted out
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new X402EvaluateTimeout(ms)), ms);
+    p.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
  * Wrap the actual payment: evaluate first, and only run `pay` if Countersign allows. Throws X402Denied
- * (carrying the decision) on deny / needs_approval, so a rogue or over-budget agent never pays.
+ * (carrying the decision) on deny / needs_approval, so a rogue or over-budget agent never pays, and
+ * X402EvaluateTimeout if no decision arrives in time. Every non-allow path — deny, approval required,
+ * network error, silence — leaves `pay` unreached.
  */
 export async function withX402Guard<T>(
   api: CountersignApi,
   agentId: string,
   charge: X402Charge,
   pay: (charge: X402Charge) => Promise<T>,
+  opts: WithX402GuardOptions = {},
 ): Promise<T> {
-  const decision = await guardX402(api, agentId, charge);
+  const timeoutMs = opts.evaluateTimeoutMs ?? DEFAULT_EVALUATE_TIMEOUT_MS;
+  const decision = await bounded(guardX402(api, agentId, charge), timeoutMs);
   if (decision.outcome !== "allow") throw new X402Denied(decision);
   return pay(charge);
 }

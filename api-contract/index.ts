@@ -103,6 +103,16 @@ export interface EvaluateRequest {
   agentId: string;
   amount: string; // base units
   asset: string;
+  /**
+   * The token CONTRACT address backing `asset`, when the caller knows it (an x402 challenge always
+   * carries one). `asset` is a SYMBOL, and a symbol is only ever as trustworthy as whoever supplied it —
+   * an x402 body can label any contract "USDC". The caller's pre-flight asset pin closes that at the
+   * source; sending the contract lets the Core close it at the backstop too, instead of evaluating a
+   * name it cannot verify. Optional and additive: omitting it preserves the previous behaviour exactly.
+   */
+  assetContract?: string;
+  /** Decimals for `amount`, when known — lets the Core reason about VALUE, not just atomic units. */
+  decimals?: number;
   counterparty?: string;
   venue: string;
   /** Marketplace listing being paid (x402 Bazaar / Agentic.Market pin), when known. */
