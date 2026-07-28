@@ -20,5 +20,9 @@ overrides:
   # dev-only advisories (Dependabot repo badge): vite path-traversal/fs.deny + esbuild dev-server
   vite: '>=6.4.3'
   esbuild: '>=0.28.1'
+  # postcss <=8.5.17: path traversal via sourceMappingURL auto-loading a previous source map →
+  # arbitrary .map disclosure. Dev-scope only (tsup → postcss-load-config, vite → postcss), so the
+  # --prod audit gate never saw it; pinned anyway to keep the badge clean. Patched >=8.5.18.
+  postcss: '>=8.5.18'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
