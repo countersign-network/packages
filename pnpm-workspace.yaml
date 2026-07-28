@@ -11,7 +11,12 @@ overrides:
   ws: '>=8.21.0'
   axios: '>=1.18.1'
   hono: '>=4.12.27'
-  '@hono/node-server': '>=2.0.5'
+  '@hono/node-server': '>=2.0.10'
+  # fast-uri <3.1.4: host-confusion via backslash authority delimiter + failed IDN canonicalization
+  # (2 HIGH advisories). Transitive via @modelcontextprotocol/sdk → ajv. Patched >=3.1.4. Pin the 3.x
+  # line ajv expects, not the 4.x major. Dependabot cannot fix this itself (security_update_not_possible
+  # — it only bumps direct deps, and the top-level resolvable version is 3.1.2).
+  fast-uri: '^3.1.4'
   # dev-only advisories (Dependabot repo badge): vite path-traversal/fs.deny + esbuild dev-server
   vite: '>=6.4.3'
   esbuild: '>=0.28.1'
