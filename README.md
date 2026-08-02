@@ -1,5 +1,11 @@
 # Countersign
 
+[![CI](https://github.com/countersign-network/packages/actions/workflows/ci.yml/badge.svg)](https://github.com/countersign-network/packages/actions/workflows/ci.yml)
+[![npm — @countersign/sdk](https://img.shields.io/npm/v/%40countersign%2Fsdk?label=%40countersign%2Fsdk)](https://www.npmjs.com/package/@countersign/sdk)
+[![npm — @countersign/mcp](https://img.shields.io/npm/v/%40countersign%2Fmcp?label=%40countersign%2Fmcp)](https://www.npmjs.com/package/@countersign/mcp)
+[![npm downloads](https://img.shields.io/npm/dm/%40countersign%2Fmcp?label=mcp%20downloads)](https://www.npmjs.com/package/@countersign/mcp)
+[![License: Apache-2.0](https://img.shields.io/npm/l/%40countersign%2Fsdk)](https://github.com/countersign-network/packages/blob/main/LICENSE)
+
 **A neutral, cross-vendor control plane for AI agents that spend money.** Countersign holds the
 **policy**, the **freeze**, and the **audit ledger** *across multiple agent-wallet backends at once* —
 the one thing no single wallet vendor can do, because each only governs its own rail. That
