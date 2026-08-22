@@ -89,10 +89,32 @@ jobs:
       # canonical index that mcp.so / Glama / PulseMCP and MCP clients ingest from. Auth is GitHub OIDC
       # (no secret): the io.github.countersign-network/* namespace is authorized by this repo's org.
       # Runs AFTER the npm publish so the registry can validate the live package + its mcpName.
-      - name: Install mcp-publisher
-        run: curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      #
+      # SUPPLY CHAIN — this step used to pull `releases/latest` and pipe it straight into tar:
+      # unpinned (the binary could change under us between runs) and unverified (no checksum). It
+      # executes inside the ONE job that holds NPM_TOKEN and id-token: write, so a swapped binary
+      # could exfiltrate the publish token or mint OIDC tokens in this repo's name — the highest-value
+      # target in the repo. Now pinned AND SHA-256 verified before it is ever executed, matching the
+      # gitleaks step in ci.yml. (Aikido: "Binary, code or archive is pulled from a remote source
+      # without integrity verification".)
+      #
+      # The runner is always ubuntu-latest, so linux_amd64 is the only asset needed — dropping the
+      # uname plumbing also removes a silent-fallback path.
+      #
+      # To bump: set MP_VERSION, then take the matching hash from
+      #   https://github.com/modelcontextprotocol/registry/releases/download/v${MP_VERSION}/registry_${MP_VERSION}_checksums.txt
+      - name: Install mcp-publisher (pinned + SHA-256 verified)
+        run: |
+          MP_VERSION=1.8.1
+          MP_SHA256=a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+          curl -sSfL "https://github.com/modelcontextprotocol/registry/releases/download/v${MP_VERSION}/mcp-publisher_linux_amd64.tar.gz" -o /tmp/mcp-publisher.tar.gz
+          echo "${MP_SHA256}  /tmp/mcp-publisher.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/mcp-publisher.tar.gz -C /tmp mcp-publisher
+          chmod +x /tmp/mcp-publisher
+
       - name: Authenticate to MCP Registry (GitHub OIDC)
-        run: ./mcp-publisher login github-oidc
+        run: /tmp/mcp-publisher login github-oidc
+
       # The registry rejects a re-publish of an already-listed version with a 400 "duplicate version"
       # (it is NOT a no-op). A coordinated release that bumps the npm packages but not mcp would then
       # red-X here for no real failure — so treat that specific duplicate as success and fail on anything
@@ -100,7 +122,7 @@ jobs:
       - name: Publish to MCP Registry
         run: |
           cd packages/mcp
-          out=$("$GITHUB_WORKSPACE/mcp-publisher" publish 2>&1) && { echo "$out"; exit 0; }
+          out=$(/tmp/mcp-publisher publish 2>&1) && { echo "$out"; exit 0; }
           echo "$out"
           if echo "$out" | grep -qi "duplicate version"; then
             echo "::notice::mcp version already listed in the MCP Registry — nothing to re-publish."
