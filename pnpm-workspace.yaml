@@ -10,13 +10,19 @@ allowBuilds:
 overrides:
   ws: '>=8.21.0'
   axios: '>=1.18.1'
-  hono: '>=4.12.27'
+  # 4.12.27 cleared the old advisory but FOUR later ones land in <=4.12.33: memo() retaining SSR
+  # output across requests (GHSA-f23p-vx2j-j53r — cross-user data disclosure, the Aikido "wrong
+  # session" finding), ReDoS in the CORS middleware (GHSA-8j4g-w8fx-2239), algorithmic-complexity
+  # DoS in the language middleware (GHSA-54fx-42gc-7vw4), and the Proxy Helper leaking
+  # Connection-listed response headers (GHSA-79qm-7rj5-m7r9). All patched in 4.12.34.
+  hono: '>=4.12.34'
   '@hono/node-server': '>=2.0.10'
-  # fast-uri <3.1.4: host-confusion via backslash authority delimiter + failed IDN canonicalization
-  # (2 HIGH advisories). Transitive via @modelcontextprotocol/sdk → ajv. Patched >=3.1.4. Pin the 3.x
-  # line ajv expects, not the 4.x major. Dependabot cannot fix this itself (security_update_not_possible
-  # — it only bumps direct deps, and the top-level resolvable version is 3.1.2).
-  fast-uri: '^3.1.4'
+  # fast-uri: host-confusion via backslash authority delimiter + failed IDN canonicalization.
+  # The pin to >=3.1.4 was overtaken by GHSA-7p8r-x3mc-p8w7 (HIGH), which affects 3.1.4 itself and is
+  # patched in 3.1.5. Transitive via @modelcontextprotocol/sdk → ajv. Pin the 3.x line ajv expects,
+  # not the 4.x major. Dependabot cannot fix this itself (security_update_not_possible — it only
+  # bumps direct deps, and the top-level resolvable version is 3.1.2).
+  fast-uri: '^3.1.5'
   # dev-only advisories (Dependabot repo badge): vite path-traversal/fs.deny + esbuild dev-server
   vite: '>=6.4.3'
   esbuild: '>=0.28.1'
@@ -24,5 +30,10 @@ overrides:
   # arbitrary .map disclosure. Dev-scope only (tsup → postcss-load-config, vite → postcss), so the
   # --prod audit gate never saw it; pinned anyway to keep the badge clean. Patched >=8.5.18.
   postcss: '>=8.5.18'
+  # nanoid <3.3.18: a custom generator called with size 0 loops forever (GHSA-2v37-7h3g-55p8, HIGH).
+  # Dev-scope only (tsup → postcss-load-config → postcss → nanoid), so --prod never saw it. Caret, NOT
+  # '>=': nanoid 4+ is ESM-only and postcss depends on the 3.x line, so a bare >= would resolve 6.x
+  # and break the build.
+  nanoid: '^3.3.18'
 
 # client/ is the Flutter app (Dart), not a pnpm workspace member.
