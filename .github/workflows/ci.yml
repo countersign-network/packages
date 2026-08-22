@@ -1,9 +1,40 @@
 name: CI
 
+# Cost note: this repo is PUBLIC, so Actions minutes here are free and unmetered — unlike the
+# private brain repo, where the same shape was being billed. The structure below is kept in
+# sync with brain's ci.yml anyway: these two workflows are maintained as twins, and a saving
+# that only exists in one of them is a saving that drifts away the next time someone copies
+# the other. What it buys here is wall-clock and PR noise, not money.
+
+# Docs-only edits skip CI entirely. Nothing under the build reads markdown, and there are no
+# required status checks on this repo, so a skipped run cannot block a merge. Duplicated
+# rather than YAML-anchored: GitHub's workflow parser does not support anchors/aliases.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+
+# One in-flight run per ref. Pushing again to a PR supersedes the previous run instead of
+# running both. main is deliberately NOT cancelled — its runs are the record of what passed
+# on the trunk, so they always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Least privilege: nothing here writes to the repo. (release.yml sets its own wider
+# permissions — it needs id-token: write for npm provenance.)
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -11,7 +42,25 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # full history for the gitleaks scan below
           persist-credentials: false # this job never pushes; don't leave the token in .git/config
+
+      # Secrets are scanned FIRST, before install/typecheck/test. Two reasons: a leak fails the
+      # run in seconds instead of after the full suite, and — unlike the old parallel job — a
+      # leak can no longer be masked by an unrelated test failure, because nothing else runs.
+      #
+      # Run the gitleaks CLI directly (Apache/MIT, no license key). The gitleaks-action@v2 wrapper
+      # now requires a paid GITLEAKS_LICENSE secret for orgs; the binary does not. Same scan, same
+      # auto-discovered .gitleaks.toml, fails the job on any finding. The tarball is pinned AND its
+      # SHA-256 is verified before use — never run a binary fetched from the network unchecked.
+      - name: Secret scan (gitleaks CLI, full history)
+        run: |
+          GL_VERSION=8.21.2
+          GL_SHA256=5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          echo "${GL_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact --verbose --exit-code 1
 
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -32,24 +81,3 @@ jobs:
 
       - name: Audit production dependencies (fail on high+)
         run: pnpm audit --prod --audit-level high
-
-  secret-scan:
-    name: Secret scan (gitleaks)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # scan full history, not just the latest commit
-          persist-credentials: false # this job never pushes; don't leave the token in .git/config
-      # Run the gitleaks CLI directly (Apache/MIT, no license key). The gitleaks-action@v2 wrapper
-      # now requires a paid GITLEAKS_LICENSE secret for orgs; the binary does not. Same scan, same
-      # auto-discovered .gitleaks.toml, fails the job on any finding. The tarball is pinned AND its
-      # SHA-256 is verified before use — never run a binary fetched from the network unchecked.
-      - name: gitleaks (CLI)
-        run: |
-          GL_VERSION=8.21.2
-          GL_SHA256=5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
-          echo "${GL_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
-          /tmp/gitleaks detect --source . --redact --verbose --exit-code 1

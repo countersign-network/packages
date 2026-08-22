@@ -1,16 +1,38 @@
 version: 2
+
+# Note: this repo is PUBLIC, so Dependabot's resolution runs are free here — unlike the private
+# brain repo, where they were the largest single Actions line item. Settings are kept identical
+# to brain's on purpose (the two are maintained as twins). What they buy here is a smaller,
+# saner review queue: this repo was averaging ~8 individual dependency PRs a week.
+
 updates:
   # JS deps (pnpm via the npm ecosystem) — keeps vendor SDKs + tooling patched.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    # Do NOT re-resolve open PRs when main moves. A stale PR is cheap to refresh on demand
+    # (comment `@dependabot rebase`), and the weekly run recreates it against current main anyway.
+    rebase-strategy: "disabled"
     groups:
+      # Listed first: these patterns win over the catch-all below.
       dev-tooling:
         patterns: ["vitest", "@vitest/*", "vite", "tsx", "typescript", "@types/*"]
-  # Keep GitHub Actions pinned + patched.
+      # Everything else that is a non-breaking bump lands in ONE PR per week. Majors are excluded
+      # on purpose — they are breaking by definition and each deserves its own review and revert.
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Keep GitHub Actions pinned + patched. Monthly, not weekly: the pinned actions change rarely,
+  # and patch latency is not a real risk when every action is pinned to a full commit SHA.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    rebase-strategy: "disabled"
+    groups:
+      actions:
+        patterns: ["*"]
