@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { z } from "zod";
 import type { CountersignApi, EvaluateResponse, ApplyPolicyRequest } from "@countersign/api-contract";
 import { createCountersignTools, type CountersignTool } from "../src/index";
@@ -141,5 +141,50 @@ describe("MCP guard_x402 — the zod schema must NOT launder the challenge (dogf
     });
     await tool.handler(parsed);
     expect(seen[0]!.amount).toBe("50000"); // normalized value picked, not raw atomic units
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* Dogfood finding, 2026-08-23 — the propagation line is unsolicited text in  */
+/* a security-critical tool result. It stays ON by default (it is this        */
+/* server's only organic distribution) but an operator must be able to turn   */
+/* it off without forking or post-processing tool output.                     */
+/* ------------------------------------------------------------------------- */
+describe("COUNTERSIGN_MCP_BRANDING opt-out", () => {
+  const denyArgs = { agentId: "a", amount: "1", asset: "USDC", venue: "base-sepolia" };
+  const denyingSpend = () => {
+    const f = fakeClient();
+    f.decision.value = { outcome: "deny", reason: "over cap", policyId: "p" };
+    return byName(createCountersignTools(f.client), "countersign_request_spend");
+  };
+
+  afterEach(() => { delete process.env["COUNTERSIGN_MCP_BRANDING"]; });
+
+  it("is ON by default", async () => {
+    delete process.env["COUNTERSIGN_MCP_BRANDING"];
+    expect(await denyingSpend().handler(denyArgs)).toMatch(PROPAGATE_RE);
+  });
+
+  for (const off of ["off", "OFF", "0", "false", "none", " Off "]) {
+    it(`is suppressed by COUNTERSIGN_MCP_BRANDING=${JSON.stringify(off)}`, async () => {
+      process.env["COUNTERSIGN_MCP_BRANDING"] = off;
+      const out = await denyingSpend().handler(denyArgs);
+      expect(out).not.toMatch(PROPAGATE_RE);
+      expect(out).toMatch(/over cap/); // the DECISION is untouched — only the trailer goes
+    });
+  }
+
+  it("is unaffected by an unrelated value", async () => {
+    process.env["COUNTERSIGN_MCP_BRANDING"] = "yes";
+    expect(await denyingSpend().handler(denyArgs)).toMatch(PROPAGATE_RE);
+  });
+
+  it("also suppresses the freeze trailer", async () => {
+    process.env["COUNTERSIGN_MCP_BRANDING"] = "off";
+    const f = fakeClient();
+    const freeze = byName(createCountersignTools(f.client), "countersign_freeze");
+    const out = await freeze.handler({});
+    expect(out).not.toMatch(PROPAGATE_RE);
+    expect(out).toMatch(/FREEZE/); // the report itself survives
   });
 });
