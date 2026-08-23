@@ -3,7 +3,7 @@
   "manifest_version": "0.2",
   "name": "countersign",
   "display_name": "Countersign",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Kill switch + spend guard for AI agents that spend money, across every wallet vendor at once.",
   "long_description": "Countersign is a neutral, cross-vendor control plane for AI agents that transact. One policy, one sub-second freeze (kill switch), and one tamper-evident audit ledger across multiple agent-wallet and card backends at once. These tools govern a running Countersign Core: check a spend against policy before it executes (x402 and AP2 included), freeze everything instantly, review and resolve human approvals, and read the signed ledger. Testnet only; Countersign never takes custody of funds.",
   "author": {

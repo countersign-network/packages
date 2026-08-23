@@ -188,3 +188,36 @@ describe("COUNTERSIGN_MCP_BRANDING opt-out", () => {
     expect(out).toMatch(/FREEZE/); // the report itself survives
   });
 });
+
+/* ------------------------------------------------------------------------- */
+/* The mcp version is duplicated in FIVE hand-maintained places and nothing    */
+/* checked they agreed. A miss is silent and lands on users: server.ts is the  */
+/* version reported in the MCP handshake (what an operator debugging a client  */
+/* reads), server.json drives the MCP Registry listing, and manifest.json the  */
+/* MCPB bundle — so a stale one misreports which build is running.             */
+/* ------------------------------------------------------------------------- */
+describe("release hygiene — the mcp version agrees everywhere", () => {
+  it("package.json, server.json (x2), mcpb/manifest.json and src/server.ts all match", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+    const readJson = (p: string) => JSON.parse(readFileSync(join(pkgRoot, p), "utf8")) as Record<string, unknown>;
+
+    const pkg = readJson("package.json");
+    const expected = pkg["version"] as string;
+    expect(expected, "package.json version").toMatch(/^\d+\.\d+\.\d+$/);
+
+    const server = readJson("server.json");
+    const pkgs = server["packages"] as Array<Record<string, unknown>> | undefined;
+    const manifest = readJson("mcpb/manifest.json");
+    const src = readFileSync(join(pkgRoot, "src/server.ts"), "utf8");
+
+    expect(server["version"], "server.json .version").toBe(expected);
+    for (const [i, entry] of (pkgs ?? []).entries()) {
+      expect(entry["version"], `server.json .packages[${i}].version`).toBe(expected);
+    }
+    expect(manifest["version"], "mcpb/manifest.json version").toBe(expected);
+    expect(src, "src/server.ts McpServer version").toContain(`version: "${expected}"`);
+  });
+});
