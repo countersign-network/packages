@@ -48,7 +48,7 @@
     "freeze"
   ],
   "dependencies": {
-    "zod": "^4.4.0"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@countersign/core": "workspace:*",
