@@ -287,7 +287,7 @@
     <li><b>The ledger is the source of truth.</b> Append-only and hash-chained, enforced at the database level as well as in application code.</li>
     <li><b>Testnet only.</b> No mainnet, no real custody, no PII/KYC until after a third-party audit.</li>
   </ul>
-  <p>The trust boundary is the language boundary. Clients are written in a different language from the Core and hold no keys; they can only call the API, so client compromise cannot move funds or weaken policy. Hardening already in place includes a database-level append-only trigger, an on-chain external anchor (every freeze countersigns the ledger), input validation with hex-address policy-injection defense, single-use websocket tickets so keys never sit in a URL, rate limiting, reserve-before-send accounting to close a daily-cap race, and a fail-closed boot guard. Secrets are scanned in CI. The remaining work before any real-value operation is native-enforcement parity on every rail and an independent security audit — and the paper says so rather than implying guarantees it has not yet earned.</p>
+  <p>The trust boundary is the language boundary. Clients are written in a different language from the Core and hold no keys; they can only call the API, so client compromise cannot move funds or weaken policy. Hardening already in place includes a database-level append-only trigger, an optional on-chain external anchor (checkpoint roots committed to a public chain — the hosted demo wrote 35,000+ roots to Base Sepolia in 2026), input validation with hex-address policy-injection defense, single-use websocket tickets so keys never sit in a URL, rate limiting, reserve-before-send accounting to close a daily-cap race, and a fail-closed boot guard. Secrets are scanned in CI. The remaining work before any real-value operation is native-enforcement parity on every rail and an independent security audit — and the paper says so rather than implying guarantees it has not yet earned.</p>
 
   <!-- 6 -->
   <h2 class="sec" id="moat"><span class="n">06</span>The moat</h2>
@@ -348,7 +348,7 @@
       <li>Countersign threat model — docs/THREAT-MODEL.md and SECURITY.md (assets, trust boundaries, invariants).</li>
       <li>Headline live freeze — <code>packages/agent-harness/live-freeze.ts</code>; per-rail <code>smoke.ts</code> / <code>spike.ts</code> enforcement proofs.</li>
       <li>Policy compiler &amp; unified policy schema — <code>packages/policy</code> (the cross-vendor compiler, core IP).</li>
-      <li>Hash-chained ledger — <code>packages/ledger</code> (append-only, Ed25519-signed, on-chain anchored).</li>
+      <li>Hash-chained ledger — <code>packages/ledger</code> (append-only, Ed25519-signed, on-chain anchor seam).</li>
       <li>x402 — open standard for internet-native (HTTP-402) machine payments, <code>x402.org</code>.</li>
       <li>Enforcement backends — Coinbase CDP / Agentic Wallets, Turnkey, Openfort, Lithic (per docs/sdk-research).</li>
       <li>Moat &amp; integration roadmap; pricing &amp; go-to-market — Countersign strategy notes.</li>
