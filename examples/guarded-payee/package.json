@@ -12,6 +12,6 @@
     "@countersign/sdk": "workspace:^"
   },
   "devDependencies": {
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.13"
   }
 }
