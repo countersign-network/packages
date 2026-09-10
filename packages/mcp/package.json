@@ -36,7 +36,7 @@
     "@countersign/x402": "workspace:^",
     "@countersign/ap2": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.4.0"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@countersign/api-contract": "workspace:*",
