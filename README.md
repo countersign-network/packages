@@ -19,10 +19,16 @@ aggregation is the moat.
 > under a second, with a unified tamper-evident ledger of every attempt?** Proven LIVE across **four
 > rails** (Coinbase, Turnkey, Openfort, and a Lithic Visa **card**) in ~432ms on testnet.
 
+> ❄️ **The hosted Core is paused (2026-09-18).** `app.countersign.network` is switched off: it issues no
+> keys and existing keys no longer authenticate. **These packages are unaffected** — they are Apache-2.0,
+> still published on npm, and work against a Core you run yourself. Point `COUNTERSIGN_URL` at your own
+> instance wherever this README says `app.countersign.network`.
+
 This repository is the **open-core front door** — the Apache-2.0 packages you build *against*: the
 integration contract, the typed client, the MCP tools, and the x402 guard. The control-plane "brain"
 (the policy compiler, the hash-chained ledger, the vendor adapters, and the hosted Core) is separate
-and proprietary; you reach it over the network via the SDK/MCP, hosted at **app.countersign.network**.
+and proprietary; you reach it over the network via the SDK/MCP. It was hosted at
+**app.countersign.network**, which is currently paused — self-host the Core to use these packages today.
 
 ## Quickstart
 
@@ -46,7 +52,8 @@ await cs.evaluate({ agentId, amount, asset, venue }); // may this spend happen? 
 await cs.freeze();                                     // the kill switch — every backend, < 1s
 ```
 
-Get a free testnet key at **<https://app.countersign.network/start?ref=gh-readme>**.
+~~Get a free testnet key at `app.countersign.network/start`~~ — **the hosted signup is paused.** Run your
+own Core and issue yourself a key with `POST /signup`.
 
 **Agents paying agents?** See [`examples/guarded-payee`](examples/guarded-payee) — the A2A/AP2
 pattern where a payee advertises it is governed and the payer verifies that (and guards its own
@@ -78,7 +85,7 @@ Turnkey / Openfort / Lithic adapters, the hosted Core) lives in a separate priva
 
 ## Links
 
-- **Home:** <https://countersign.network> · **Hosted Core:** <https://app.countersign.network>
+- **Home:** <https://countersign.network> · **Hosted Core:** paused since 2026-09-18
 - **npm:** [`@countersign/sdk`](https://www.npmjs.com/package/@countersign/sdk) ·
   [`@countersign/mcp`](https://www.npmjs.com/package/@countersign/mcp) ·
   [`@countersign/x402`](https://www.npmjs.com/package/@countersign/x402) ·

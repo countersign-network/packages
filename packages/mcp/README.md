@@ -27,7 +27,8 @@ under a second.
 
 ## Setup
 
-It governs a running Countersign **Core** (hosted at `app.countersign.network`, or self-hosted). Set:
+It governs a running Countersign **Core**. The hosted Core at `app.countersign.network` is **paused since
+2026-09-18** and answers 503, so point this at a Core you run yourself. Set:
 
 - `COUNTERSIGN_URL` — your Core, e.g. `https://app.countersign.network`
 - `COUNTERSIGN_API_KEY` — required when the Core has auth enabled
