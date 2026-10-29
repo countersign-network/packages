@@ -15,10 +15,10 @@
     "check": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {
-    "@rollup/plugin-alias": "^6.0.0",
+    "@rollup/plugin-alias": "^6.0.1",
     "@types/node": "^26.2.0",
     "@types/ws": "^8.5.13",
-    "rollup": "^4.62.4",
+    "rollup": "^4.65.0",
     "rollup-plugin-dts": "^6.5.1",
     "tsup": "^8.5.1",
     "tsx": "^4.23.12",
